@@ -1,11 +1,6 @@
 // ============================================================================
-// FILE: locket_com_v7_full.js (PHẦN 1/4 — CẤU HÌNH LOCKET.COM & BẮT TÊN + AVATAR THẬT)
-// Hỗ trợ: Shadowrocket / Loon / Surge / Quantumult X
-// Domains xử lý theo locket.com:
-// - api.revenuecat.com
-// - firebaseremoteconfig.googleapis.com
-// - us-central1-locket-4252a.cloudfunctions.net
-// - api.locketcamera.com & firestore.googleapis.com
+// FILE: locket_25_05_2026.js (PHẦN 1/2 — ĐÃ FIX HIỆN THÔNG BÁO NGAY KHI MỞ APP LOCKET)
+// Runtime: Shadowrocket / Loon / Surge / Quantumult X
 // ============================================================================
 
 const ADMIN_API_URL = "https://locketgold.66ghz.com/index.php";
@@ -13,6 +8,7 @@ const ROOT_ADMIN_USER = "ngominhduc";
 const ROOT_ADMIN_PASS_1 = "ducff123#";
 const ROOT_ADMIN_PASS_2 = "Ducnocode2505@";
 
+// Ảnh SVG/Data-URI mặc định mô phỏng thẻ mèo đen "ĐÃ KÍCH HOẠT GOLD THÀNH CÔNG" (Admin có thể đổi sang bất kỳ link ảnh .png/.jpg/.gif nào)
 const DEFAULT_GOLD_POPUP_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
   <defs>
@@ -73,31 +69,17 @@ const DEFAULT_CONFIG = {
     priceCurrency: "VND",
     appVersion: "1.0",
     forceSandboxFalse: true,
-    // KHOÁ CỨNG HUY HIỆU 100% — CHỐNG TỰ TẮT CÔNG TẮC TRONG CÀI ĐẶT LOCKET
     alwaysForceBadge: true,
-    hardLockBadgeSwitch: true,
-    interceptBadgeToggleRequest: true,
     cronKeepAlive: true,
     notifyOnSync: true,
-    // FULL TÍNH NĂNG TRONG LOCKET_COM (FILTER, ÂM THANH, CHỦ ĐỀ MÁY ẢNH, ĐỔI ICON, HD)
+    // Mở khoá Hiệu Ứng Ngày Lễ & Số lượt Filter AI
     unlockAllCameraEffects: true,
-    forceShowAllFilters: true,
-    injectMissingFilters: true,
-    enableAudioRecording: true,
-    enableVideoSound: true,
-    enableMusicNotes: true,
-    unlockCameraThemes: true,
-    unlockAppIcons: true,
-    unlockCameraRollUpload: true,
-    unlockUnlimitedFriends: true,
-    unlockHdQuality: true,
-    maxVideoDurationSeconds: 15,
     aiFilterEnabled: true,
     aiFilterQuota: 999999,
     aiFilterDailyLimit: 999999,
     aiFilterUsed: 0,
     aiFilterUnlimited: true,
-    // CẤU HÌNH POPUP & THÔNG BÁO ĐẨY
+    // Cấu hình Thông Báo & Popup Khi Lên Gold (Admin chỉnh sửa Tiêu đề & Ảnh trực tiếp)
     popupEnabled: true,
     popupAutoShow: true,
     popupBadge: "LOCKET GOLD",
@@ -106,6 +88,7 @@ const DEFAULT_CONFIG = {
     popupSubtitle: "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛",
     popupImage: DEFAULT_GOLD_POPUP_SVG,
     popupBtnText: "Done",
+    // Cấu hình Thông Báo Đẩy Shadowrocket ngay khi mở app Locket
     pushNotifyOnActivate: true,
     pushCooldownSeconds: 12,
     pushTitle: "LOCKET GOLD — Đã Kích Hoạt 💛",
@@ -113,12 +96,9 @@ const DEFAULT_CONFIG = {
     pushBody: "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"
 };
 
-const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V7";
+const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V6";
 const USER_ID_CACHE_KEY = "LOCKET_LAST_APP_USER_ID";
 const USERNAME_CACHE_KEY = "LOCKET_LAST_USERNAME";
-const FULLNAME_CACHE_KEY = "LOCKET_LAST_FULLNAME";
-const FIRSTNAME_CACHE_KEY = "LOCKET_LAST_FIRSTNAME";
-const LASTNAME_CACHE_KEY = "LOCKET_LAST_LASTNAME";
 const AVATAR_CACHE_KEY = "LOCKET_LAST_AVATAR";
 const AUTH_TOKEN_CACHE_KEY = "LOCKET_LAST_AUTH_BEARER";
 const RC_API_KEY_CACHE_KEY = "LOCKET_LAST_RC_API_KEY";
@@ -126,7 +106,7 @@ const REMOTE_AUTH_CACHE_KEY = "LOCKET_REMOTE_ADMIN_STATE";
 const LOCAL_ADMIN_DB_KEY = "LOCKET_BENTO_USERS_DB_V4";
 const ADMIN_SESSION_KEY = "LOCKET_BENTO_ADMIN_SESSION_V4";
 const LAST_INAPP_ALERT_TS_KEY = "LOCKET_INAPP_ALERT_TS_V4";
-const LAST_GOLD_PUSH_TS_KEY = "LOCKET_GOLD_OPEN_ALERT_TS_V7";
+const LAST_GOLD_PUSH_TS_KEY = "LOCKET_GOLD_OPEN_ALERT_TS_V6";
 
 const Env = (() => {
     const isQuanX = typeof $prefs !== "undefined";
@@ -142,12 +122,12 @@ const Env = (() => {
         },
         write(val, key) {
             try {
-                if (val === undefined || val === null) return false;
                 if (isSurgeLoon) return $persistentStore.write(String(val), key);
                 if (isQuanX) return $prefs.setValueForKey(String(val), key);
             } catch (e) {}
             return false;
         },
+        // Sử dụng chuẩn 3 tham số gốc đảm bảo 100% hiện banner thông báo trên mọi bản Shadowrocket / Loon / Surge / QuanX
         notify(title, subtitle, body) {
             try {
                 const t = String(title || "LOCKET GOLD — Đã Kích Hoạt 💛");
@@ -215,11 +195,48 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     return fallbackDate + timeSuffix;
 }
 
-function buildDefaultLocketAvatarUrl(uid) {
-    if (!uid || uid.includes("RCAnonymousID")) {
-        return "https://ui-avatars.com/api/?name=Locket+Gold&background=1d1d1f&color=fcd34d";
+// BẮN THÔNG BÁO ĐẨY SHADOWROCKET TỨC THÌ (DÙNG CHO NÚT BẤM & ADMIN)
+function triggerShadowrocketPush(cfg, customTitle, customSub, customBody) {
+    const title = customTitle || `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
+    const sub = customSub || cfg.popupTitle || "Youtube @NightmarketServer ✨";
+    const body = customBody || cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+    Env.write(String(Date.now()), LAST_GOLD_PUSH_TS_KEY);
+    Env.notify(title, sub, body);
+}
+
+// BẮN THÔNG BÁO NGAY TRONG APP LOCKET KHI MỞ APP (CHẠY TRÊN CẢ REQUEST & RESPONSE)
+function triggerInAppGoldWelcomeAlert(uid, cfg, forceImmediate = false) {
+    if (cfg.isBlockedByAdmin) return;
+    if (!forceImmediate && cfg.pushNotifyOnActivate === false) return;
+
+    const now = Date.now();
+    const lastPush = parseInt(Env.read(LAST_GOLD_PUSH_TS_KEY) || "0", 10);
+    const cooldownMs = Math.max(5, parseInt(cfg.pushCooldownSeconds || 12, 10)) * 1000;
+
+    if (forceImmediate || isNaN(lastPush) || (now - lastPush > cooldownMs)) {
+        Env.write(String(now), LAST_GOLD_PUSH_TS_KEY);
+        const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
+        const sub = cfg.popupTitle || "Youtube @NightmarketServer ✨";
+        const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+        Env.notify(title, sub, body);
     }
-    return `https://firebasestorage.googleapis.com/v0/b/locket-img/o/users%2F${encodeURIComponent(uid)}%2Fpublic%2Fprofile_pic.webp?alt=media`;
+}
+
+function triggerInAppLocketBlockAlert(uid, reason, isBlocked, forceImmediate = false) {
+    if (!isBlocked) {
+        Env.write("0", LAST_INAPP_ALERT_TS_KEY);
+        return;
+    }
+    const now = Date.now();
+    const lastAlert = parseInt(Env.read(LAST_INAPP_ALERT_TS_KEY) || "0", 10);
+    if (forceImmediate || (now - lastAlert > 8000)) {
+        Env.write(String(now), LAST_INAPP_ALERT_TS_KEY);
+        Env.notify(
+            "Locket Gold — Thông Báo Từ Admin",
+            `Tài khoản (${uid || "UID"}) đang bị Admin chặn`,
+            `${reason || "Tài khoản của bạn đang bị Admin tạm khoá bảng điều khiển (Huy hiệu Locket Gold vẫn được giữ nguyên)."}`
+        );
+    }
 }
 
 function getLocalStore() {
@@ -244,25 +261,21 @@ function upsertUserRecord(uid, extra = {}) {
     if (!uid || uid.includes("RCAnonymousID")) return null;
     const db = getLocalStore();
     const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
-    const existing = db.users[uid] || {};
-
-    const cachedUsername = extra.username || existing.username || Env.read(USERNAME_CACHE_KEY) || uid.slice(0, 10);
-    const cachedFullName = extra.full_name || existing.full_name || Env.read(FULLNAME_CACHE_KEY) || cachedUsername;
-    const cachedAvatar = extra.avatar || existing.avatar || Env.read(AVATAR_CACHE_KEY) || buildDefaultLocketAvatarUrl(uid);
+    const cachedName = extra.username || Env.read(USERNAME_CACHE_KEY) || uid.slice(0, 10);
+    const cachedAvatar = extra.avatar || Env.read(AVATAR_CACHE_KEY) || `https://cdn2.locketcamera.com/v0/b/locket-img/o/users%2F${encodeURIComponent(uid)}%2Fpublic%2Fprofile_pic.webp?alt=media`;
     const token = uid.slice(0, 12).toLowerCase();
 
     if (!db.users[uid]) {
         db.users[uid] = {
             uid: uid,
-            username: cachedUsername,
-            full_name: cachedFullName,
+            username: cachedName,
+            full_name: extra.full_name || cachedName,
             avatar: cachedAvatar,
             token: token,
             status: "approved",
             gold_active: true,
-            badge_locked: true,
             blocked: false,
-            note: extra.note || "Đã khoá cứng Huy hiệu Locket Gold + Full Filter & Âm thanh",
+            note: extra.note || "Đã kích hoạt Locket Gold & Mở khoá Full Hiệu Ứng AI",
             lock_date: extra.lockDate || DEFAULT_CONFIG.lockDate,
             product_id: extra.productId || DEFAULT_CONFIG.productId,
             ai_quota: extra.aiQuota !== undefined ? sanitizeQuotaNumber(extra.aiQuota, DEFAULT_CONFIG.aiFilterQuota) : DEFAULT_CONFIG.aiFilterQuota,
@@ -270,309 +283,20 @@ function upsertUserRecord(uid, extra = {}) {
             updated_at: nowStr,
             reason: ""
         };
+        saveLocalStore(db);
     } else {
         if (extra.username) db.users[uid].username = extra.username;
         if (extra.full_name) db.users[uid].full_name = extra.full_name;
         if (extra.avatar) db.users[uid].avatar = extra.avatar;
-        if (!db.users[uid].full_name && cachedFullName) db.users[uid].full_name = cachedFullName;
-        if (!db.users[uid].avatar && cachedAvatar) db.users[uid].avatar = cachedAvatar;
         if (extra.lockDate) db.users[uid].lock_date = extra.lockDate;
         if (extra.productId) db.users[uid].product_id = extra.productId;
         if (extra.aiQuota !== undefined) {
             db.users[uid].ai_quota = sanitizeQuotaNumber(extra.aiQuota, db.users[uid].ai_quota || DEFAULT_CONFIG.aiFilterQuota);
         }
-        db.users[uid].badge_locked = true;
-        db.users[uid].gold_active = true;
         if (extra.touch) db.users[uid].updated_at = nowStr;
+        saveLocalStore(db);
     }
-    saveLocalStore(db);
     return db.users[uid];
-}
-
-function extractRequestedRcUserId(url) {
-    if (!url) return null;
-    const m = url.match(/\/subscribers\/([^/?#]+)/i);
-    if (m && m[1]) {
-        try {
-            return decodeURIComponent(m[1]);
-        } catch (e) {
-            return m[1];
-        }
-    }
-    const docMatch = url.match(/\/documents\/users\/([^/?#]+)/i);
-    if (docMatch && docMatch[1]) {
-        try {
-            return decodeURIComponent(docMatch[1]);
-        } catch (e) {
-            return docMatch[1];
-        }
-    }
-    return null;
-}
-
-// QUÉT SÂU MỌI JSON TỪ LOCKET / CLOUD FUNCTIONS / FIRESTORE ĐỂ BẮT CHÍNH XÁC TÊN HIỂN THỊ ("hello mấy em"), USERNAME ("hkh0805") VÀ AVATAR THẬT
-function deepScanProfileFromObject(node, state, depth = 0) {
-    if (!node || typeof node !== "object" || depth > 8) return;
-
-    if (Array.isArray(node)) {
-        for (let i = 0; i < node.length; i++) {
-            deepScanProfileFromObject(node[i], state, depth + 1);
-        }
-        return;
-    }
-
-    // 1. Hỗ trợ định dạng Firestore Document (fields)
-    if (node.fields && typeof node.fields === "object") {
-        const f = node.fields;
-        const fUid = (f.uid && f.uid.stringValue) || (f.user_id && f.user_id.stringValue);
-        const fUser = f.username && f.username.stringValue;
-        const fFirst = f.first_name && f.first_name.stringValue;
-        const fLast = f.last_name && f.last_name.stringValue;
-        const fDisp = (f.display_name && f.display_name.stringValue) || (f.full_name && f.full_name.stringValue);
-        const fPic =
-            (f.profile_picture_url && f.profile_picture_url.stringValue) ||
-            (f.photo_url && f.photo_url.stringValue) ||
-            (f.avatar && f.avatar.stringValue);
-
-        if (fUid && !fUid.includes("RCAnonymousID") && !state.uid) state.uid = fUid;
-        if (fUser && !state.username) state.username = fUser;
-        if (fFirst && !state.firstName) state.firstName = fFirst;
-        if (fLast && !state.lastName) state.lastName = fLast;
-        if (fDisp && !state.fullName) state.fullName = fDisp;
-        if (fPic && /^https?:\/\//i.test(fPic) && !state.avatar) state.avatar = fPic;
-    }
-
-    // 2. Hỗ trợ định dạng API Locket (getUser, fetchUserV2, changeProfileInfo, getAccountInfo)
-    const candUid =
-        (node.subscriber && node.subscriber.original_app_user_id) ||
-        node.uid ||
-        node.user_uid ||
-        node.localId ||
-        (node.user && (node.user.uid || node.user.localId));
-
-    const isLikelySelfOrPrimaryUser =
-        !state.uid ||
-        (candUid && candUid === state.uid) ||
-        "first_name" in node ||
-        "profile_picture_url" in node ||
-        "localId" in node;
-
-    if (candUid && typeof candUid === "string" && !candUid.includes("RCAnonymousID") && !state.uid) {
-        state.uid = candUid;
-    }
-
-    if (isLikelySelfOrPrimaryUser) {
-        if (typeof node.username === "string" && node.username.trim() && !state.username) {
-            state.username = node.username.trim();
-        }
-        if (typeof node.first_name === "string" && node.first_name.trim() && !state.firstName) {
-            state.firstName = node.first_name.trim();
-        }
-        if (typeof node.last_name === "string" && node.last_name.trim() && !state.lastName) {
-            state.lastName = node.last_name.trim();
-        }
-        const disp = node.display_name || node.displayName || node.full_name || node.fullName || node.name;
-        if (typeof disp === "string" && disp.trim() && !disp.includes("projects/") && !state.fullName) {
-            state.fullName = disp.trim();
-        }
-        const pic =
-            node.profile_picture_url ||
-            node.profilePictureUrl ||
-            node.photoUrl ||
-            node.photo_url ||
-            node.avatar_url ||
-            node.avatar;
-        if (typeof pic === "string" && /^https?:\/\//i.test(pic) && !state.avatar) {
-            state.avatar = pic.trim();
-        }
-    }
-
-    // Quét tiếp vào các nhánh chính
-    const priorityKeys = ["result", "data", "user", "profile", "account", "users", "document"];
-    for (const pk of priorityKeys) {
-        if (node[pk] && typeof node[pk] === "object") {
-            deepScanProfileFromObject(node[pk], state, depth + 1);
-        }
-    }
-}
-
-function extractAndCacheCredentials(url, headers, bodyStr) {
-    const state = {
-        uid: null,
-        username: null,
-        firstName: null,
-        lastName: null,
-        fullName: null,
-        avatar: null
-    };
-
-    const rcUrlUser = extractRequestedRcUserId(url);
-    if (rcUrlUser && !rcUrlUser.includes("RCAnonymousID")) {
-        state.uid = rcUrlUser;
-    }
-
-    if (typeof bodyStr === "string" && (bodyStr.includes("{") || bodyStr.includes("["))) {
-        try {
-            const parsed = JSON.parse(bodyStr);
-            deepScanProfileFromObject(parsed, state, 0);
-        } catch (e) {}
-    }
-
-    if (headers && typeof headers === "object") {
-        for (const k of Object.keys(headers)) {
-            const low = k.toLowerCase();
-            const val = headers[k];
-            if (!val) continue;
-            if (low === "authorization") {
-                if (/^Bearer\s+eyJ/i.test(val)) {
-                    Env.write(val, AUTH_TOKEN_CACHE_KEY);
-                    if (!state.uid) {
-                        try {
-                            const parts = val.replace(/^Bearer\s+/i, "").split(".");
-                            if (parts.length >= 2 && typeof atob === "function") {
-                                const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-                                const jsonPayload = JSON.parse(atob(b64));
-                                const jwtUid = jsonPayload.user_id || jsonPayload.sub;
-                                if (jwtUid && typeof jwtUid === "string") {
-                                    state.uid = jwtUid;
-                                }
-                                if (jsonPayload.name && !state.fullName) {
-                                    state.fullName = jsonPayload.name;
-                                }
-                                if (jsonPayload.picture && !state.avatar) {
-                                    state.avatar = jsonPayload.picture;
-                                }
-                            }
-                        } catch (e) {}
-                    }
-                } else if (/^appl_|^goog_|^rcb_/i.test(val.replace(/^Bearer\s+/i, ""))) {
-                    Env.write(val, RC_API_KEY_CACHE_KEY);
-                }
-            } else if (low === "x-revenuecat-user-id" || low === "x-app-user-id") {
-                if (val && !val.includes("RCAnonymousID")) {
-                    state.uid = val;
-                }
-            }
-        }
-    }
-
-    if (state.uid && !state.uid.includes("RCAnonymousID")) {
-        Env.write(state.uid, USER_ID_CACHE_KEY);
-    }
-    if (state.username) {
-        Env.write(state.username, USERNAME_CACHE_KEY);
-    }
-    if (state.firstName) {
-        Env.write(state.firstName, FIRSTNAME_CACHE_KEY);
-    }
-    if (state.lastName !== null && state.lastName !== undefined) {
-        Env.write(state.lastName, LASTNAME_CACHE_KEY);
-    }
-
-    const combinedName = [
-        state.firstName || Env.read(FIRSTNAME_CACHE_KEY) || "",
-        state.lastName || Env.read(LASTNAME_CACHE_KEY) || ""
-    ].join(" ").trim();
-
-    const finalFullName = state.fullName || combinedName || state.username || Env.read(FULLNAME_CACHE_KEY) || "";
-    if (finalFullName) {
-        Env.write(finalFullName, FULLNAME_CACHE_KEY);
-    }
-    if (state.avatar) {
-        Env.write(state.avatar, AVATAR_CACHE_KEY);
-    }
-
-    const finalUid = state.uid || Env.read(USER_ID_CACHE_KEY) || rcUrlUser || "$RCAnonymousID:locket_hard_lock";
-    if (finalUid && !finalUid.includes("RCAnonymousID")) {
-        upsertUserRecord(finalUid, {
-            username: state.username || Env.read(USERNAME_CACHE_KEY),
-            full_name: finalFullName || Env.read(USERNAME_CACHE_KEY),
-            avatar: state.avatar || Env.read(AVATAR_CACHE_KEY) || buildDefaultLocketAvatarUrl(finalUid)
-        });
-    }
-    return finalUid;
-}
-
-// === HẾT PHẦN 1/4 — DÁN NỐI TIẾP PHẦN 2/4 VÀO BÊN DƯỚI ===
-// ============================================================================
-// FILE: locket_com_v7_full.js (PHẦN 2/4 NÂNG CẤP — CHỐNG TỰ TẮT CÔNG TẮC HUY HIỆU 100%)
-// Dán đè lên Phần 2/4 cũ hoặc ghép nối tiếp sau Phần 1/4
-// ============================================================================
-
-function parseQuery(url) {
-    const q = {};
-    const idx = url.indexOf("?");
-    if (idx === -1) return q;
-    const pairs = url.slice(idx + 1).split("&");
-    for (const p of pairs) {
-        if (!p) continue;
-        const eq = p.indexOf("=");
-        if (eq === -1) {
-            q[decodeURIComponent(p)] = "";
-        } else {
-            const k = decodeURIComponent(p.slice(0, eq));
-            const v = decodeURIComponent(p.slice(eq + 1).replace(/\+/g, " "));
-            q[k] = v;
-        }
-    }
-    return q;
-}
-
-function triggerInAppLocketBlockAlert(uid, reason, isBlocked, forceImmediate = false) {
-    if (!isBlocked) {
-        Env.write("0", LAST_INAPP_ALERT_TS_KEY);
-        return;
-    }
-    const now = Date.now();
-    const lastAlert = parseInt(Env.read(LAST_INAPP_ALERT_TS_KEY) || "0", 10);
-    if (forceImmediate || (now - lastAlert > 8000)) {
-        Env.write(String(now), LAST_INAPP_ALERT_TS_KEY);
-        Env.notify(
-            "Locket Gold — Thông Báo Từ Admin",
-            `Tài khoản (${uid || "UID"}) đang bị Admin chặn`,
-            `${reason || "Tài khoản của bạn đang bị Admin tạm khoá bảng điều khiển (Huy hiệu Locket Gold vẫn được giữ nguyên)."}`
-        );
-    }
-}
-
-function fireNativeAppNotification(cfg, forceImmediate = false) {
-    if (cfg.isBlockedByAdmin) return;
-    if (!forceImmediate && cfg.pushNotifyOnActivate === false) return;
-
-    const now = Date.now();
-    const lastPush = parseInt(Env.read(LAST_GOLD_PUSH_TS_KEY) || "0", 10);
-    const cooldownMs = Math.max(5, parseInt(cfg.pushCooldownSeconds || 12, 10)) * 1000;
-
-    if (!forceImmediate && !isNaN(lastPush) && (now - lastPush <= cooldownMs)) {
-        return;
-    }
-
-    Env.write(String(now), LAST_GOLD_PUSH_TS_KEY);
-
-    const cachedFullName = Env.read(FULLNAME_CACHE_KEY) || Env.read(USERNAME_CACHE_KEY) || "";
-    const cachedUsername = Env.read(USERNAME_CACHE_KEY) || "";
-    const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
-    const sub = cachedFullName
-        ? `${cachedFullName}${cachedUsername ? " (@" + cachedUsername + ")" : ""} · ${cfg.popupTitle || "Youtube @NightmarketServer ✨"}`
-        : (cfg.popupTitle || "Youtube @NightmarketServer ✨");
-    const body = cfg.popupSubtitle || "Huy hiệu Locket Gold, Filter & Âm thanh đã được khoá cứng BẬT 100% 💛";
-    const hasHttpImg = cfg.popupImage && /^https?:\/\//i.test(cfg.popupImage);
-
-    try {
-        if (typeof $notification !== "undefined" && typeof $notification.post === "function") {
-            if (hasHttpImg) {
-                $notification.post(title, sub, body, {
-                    "media-url": cfg.popupImage,
-                    "open-url": "https://locket.gold/setdate?gold_popup=1"
-                });
-            } else {
-                $notification.post(title, sub, body);
-            }
-            return;
-        }
-    } catch (e) {}
-
-    Env.notify(title, sub, body);
 }
 
 function evaluateRealtimeState(uid) {
@@ -590,7 +314,7 @@ function evaluateRealtimeState(uid) {
         const isBlocked = localUser.status === "blocked" || localUser.blocked === true;
         return {
             uid: cleanUid,
-            approved: true,
+            approved: localUser.status === "approved" || localUser.gold_active !== false,
             blocked: isBlocked,
             status: isBlocked ? "blocked" : (localUser.status || "approved"),
             force_lock_date: localUser.force_lock_date || localUser.lock_date || null,
@@ -629,9 +353,6 @@ function syncRealtimeWithServer(uid, cfg, actionName, callback) {
     const cleanUid = uid || Env.read(USER_ID_CACHE_KEY) || "";
     if (cleanUid && !cleanUid.includes("RCAnonymousID")) {
         upsertUserRecord(cleanUid, {
-            username: Env.read(USERNAME_CACHE_KEY),
-            full_name: Env.read(FULLNAME_CACHE_KEY),
-            avatar: Env.read(AVATAR_CACHE_KEY),
             lockDate: cfg.lockDate,
             productId: cfg.productId,
             aiQuota: cfg.aiFilterQuota
@@ -658,14 +379,16 @@ function syncRealtimeWithServer(uid, cfg, actionName, callback) {
         body: JSON.stringify({
             uid: cleanUid,
             username: userRec.username || Env.read(USERNAME_CACHE_KEY) || cleanUid.slice(0, 10),
-            full_name: userRec.full_name || Env.read(FULLNAME_CACHE_KEY) || "",
-            avatar: userRec.avatar || Env.read(AVATAR_CACHE_KEY) || "",
+            full_name: userRec.full_name || "",
+            avatar: userRec.avatar || "",
             action: actionName || "sync",
             status: userRec.status || "approved",
-            badge_locked: true,
+            note: userRec.note || "",
             lockDate: cfg.lockDate,
             productId: cfg.productId,
             aiFilterQuota: cfg.aiFilterQuota,
+            popupTitle: cfg.popupTitle,
+            popupSubtitle: cfg.popupSubtitle,
             ts: Date.now()
         }),
         timeout: 3
@@ -680,10 +403,28 @@ function syncRealtimeWithServer(uid, cfg, actionName, callback) {
                             localDb.users[k] = { ...(localDb.users[k] || {}), ...v };
                         }
                     }
+                    if (parsed.user && cleanUid) {
+                        localDb.users[cleanUid] = {
+                            ...(localDb.users[cleanUid] || {}),
+                            ...parsed.user
+                        };
+                    }
                     saveLocalStore(localDb);
+
+                    const rState = {
+                        uid: cleanUid,
+                        approved: true,
+                        blocked: !!parsed.blocked || parsed.status === "blocked",
+                        status: parsed.status || "approved",
+                        force_lock_date: parsed.force_lock_date || null,
+                        ai_quota: parsed.ai_quota !== undefined ? sanitizeQuotaNumber(parsed.ai_quota, cfg.aiFilterQuota) : null,
+                        reason: parsed.reason || ""
+                    };
+                    Env.write(JSON.stringify(rState), REMOTE_AUTH_CACHE_KEY);
                 }
             } catch (e) {}
         }
+
         const currentSt = evaluateRealtimeState(cleanUid);
         triggerInAppLocketBlockAlert(cleanUid, currentSt.reason, currentSt.blocked, false);
         if (callback) callback(currentSt);
@@ -695,8 +436,8 @@ function loadConfig() {
     try {
         const raw =
             Env.read(STORE_KEY) ||
-            Env.read("LOCKET_GOLD_MAX_CONFIG_V6") ||
-            Env.read("LOCKET_GOLD_MAX_CONFIG_V5");
+            Env.read("LOCKET_GOLD_MAX_CONFIG_V5") ||
+            Env.read("LOCKET_GOLD_MAX_CONFIG_V4");
         if (raw) {
             const parsed = JSON.parse(raw);
             cfg = { ...cfg, ...parsed };
@@ -706,6 +447,13 @@ function loadConfig() {
     cfg.aiFilterQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
     cfg.aiFilterDailyLimit = sanitizeQuotaNumber(cfg.aiFilterDailyLimit || cfg.aiFilterQuota, cfg.aiFilterQuota);
     cfg.aiFilterUsed = sanitizeQuotaNumber(cfg.aiFilterUsed, 0);
+
+    if (!cfg.popupBadge) cfg.popupBadge = DEFAULT_CONFIG.popupBadge;
+    if (!cfg.popupHeader) cfg.popupHeader = DEFAULT_CONFIG.popupHeader;
+    if (!cfg.popupTitle) cfg.popupTitle = DEFAULT_CONFIG.popupTitle;
+    if (!cfg.popupSubtitle) cfg.popupSubtitle = DEFAULT_CONFIG.popupSubtitle;
+    if (!cfg.popupImage) cfg.popupImage = DEFAULT_CONFIG.popupImage;
+    if (!cfg.popupBtnText) cfg.popupBtnText = DEFAULT_CONFIG.popupBtnText;
 
     const uid = Env.read(USER_ID_CACHE_KEY) || "";
     const rt = evaluateRealtimeState(uid);
@@ -717,16 +465,8 @@ function loadConfig() {
         cfg.aiFilterDailyLimit = cfg.aiFilterQuota;
     }
 
-    // ÉP CỨNG 100% HUY HIỆU + FILTER + ÂM THANH + CHỦ ĐỀ MÁY ẢNH
     cfg.alwaysForceBadge = true;
-    cfg.hardLockBadgeSwitch = true;
-    cfg.interceptBadgeToggleRequest = true;
     cfg.unlockAllCameraEffects = true;
-    cfg.forceShowAllFilters = true;
-    cfg.enableAudioRecording = true;
-    cfg.enableVideoSound = true;
-    cfg.unlockCameraThemes = true;
-    cfg.unlockAppIcons = true;
     cfg.isBlockedByAdmin = !!rt.blocked;
     cfg.approvalStatus = rt.status || "approved";
     cfg.blockReason = rt.reason || "Tài khoản đang bị Admin chặn tạm thời (Vẫn giữ huy hiệu Locket Gold).";
@@ -740,141 +480,128 @@ function saveConfig(newCfg) {
     Env.write(toIsoDate(newCfg.lockDate, DEFAULT_CONFIG.lockDate, "T08:30:00Z"), "locket_custom_date_lock");
 }
 
-// ============================================================================
-// KHOÁ CỨNG CÔNG TẮC "HUY HIỆU LOCKET GOLD" (NGĂN TỰ TẮT 100%)
-// Nguyên nhân công tắc tự tắt trong video:
-// Khi gạt nút "Huy hiệu Locket Gold", Locket gọi `changeProfileInfo` lên
-// `us-central1-locket-4252a.cloudfunctions.net` hoặc `api.locketcamera.com`.
-// Server thật kiểm tra DB không thấy gói mua thật -> trả lỗi 403/400 hoặc trả `badge: null`,
-// khiến UI Locket tự gạt công tắc về OFF sau 0.5 giây!
-// Hàm dưới đây biến mọi phản hồi của `changeProfileInfo` / `getUser` / `fetchUserV2`
-// thành HTTP 200 OK kèm `badge: "locket_gold"` và `locket_gold_badge: true`.
-// ============================================================================
-function buildForcedProfileBadgeResponse(existingObj, cfg, resolvedUid) {
-    const uid = resolvedUid || Env.read(USER_ID_CACHE_KEY) || "locket_gold_user";
-    const username = Env.read(USERNAME_CACHE_KEY) || "hkh0805";
-    const firstName = Env.read(FIRSTNAME_CACHE_KEY) || Env.read(FULLNAME_CACHE_KEY) || "hello mấy em";
-    const lastName = Env.read(LASTNAME_CACHE_KEY) || "";
-    const fullName = Env.read(FULLNAME_CACHE_KEY) || [firstName, lastName].join(" ").trim() || firstName;
-    const avatar = Env.read(AVATAR_CACHE_KEY) || buildDefaultLocketAvatarUrl(uid);
-    const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
-
-    const lockedBadgeFields = {
-        uid: uid,
-        user_id: uid,
-        username: username,
-        first_name: firstName,
-        last_name: lastName,
-        display_name: fullName,
-        full_name: fullName,
-        profile_picture_url: avatar,
-        photo_url: avatar,
-        // CÁC KHÓA QUYẾT ĐỊNH CÔNG TẮC HUY HIỆU LOCKET GOLD LUÔN Ở VỊ TRÍ BẬT (MÀU VÀNG)
-        badge: "locket_gold",
-        locket_gold_badge: true,
-        gold_badge: true,
-        has_gold_badge: true,
-        show_gold_badge: true,
-        gold_badge_enabled: true,
-        is_gold_badge_enabled: true,
-        badge_enabled: true,
-        badge_visible: true,
-        hide_gold_badge: false,
-        disable_gold_badge: false,
-        celebrity: false,
-        celebrity_data: null,
-        is_gold: true,
-        isGold: true,
-        has_gold: true,
-        hasGold: true,
-        gold_subscription: true,
-        subscription_status: "active",
-        membership_status: "locket_gold",
-        original_purchase_date: cfg.lockIso,
-        purchase_date: cfg.lockIso,
-        member_since: cfg.lockIso,
-        gold_since: cfg.lockIso,
-        expires_date: cfg.expireIso,
-        // BẬT TOÀN BỘ TÍNH NĂNG LOCKET_COM TRÊN HỒ SƠ
-        can_use_ai_filter: true,
-        can_use_holiday_effects: true,
-        can_use_camera_themes: true,
-        can_change_app_icon: true,
-        camera_themes_unlocked: true,
-        app_icons_unlocked: true,
-        audio_recording_enabled: true,
-        video_audio_enabled: true,
-        ai_filter_quota: quotaNum,
-        ai_filter_remaining: quotaNum
-    };
-
-    if (!existingObj || typeof existingObj !== "object" || existingObj.error) {
-        return {
-            result: {
-                status: 200,
-                ok: true,
-                success: true,
-                data: { ...lockedBadgeFields },
-                user: { ...lockedBadgeFields },
-                ...lockedBadgeFields
-            },
-            data: { ...lockedBadgeFields },
-            user: { ...lockedBadgeFields },
-            ...lockedBadgeFields,
-            status: 200,
-            ok: true
-        };
-    }
-
-    delete existingObj.error;
-    delete existingObj.errors;
-    existingObj.status = 200;
-    existingObj.ok = true;
-
-    if (!existingObj.result || typeof existingObj.result !== "object") {
-        existingObj.result = {
-            status: 200,
-            ok: true,
-            success: true,
-            data: { ...lockedBadgeFields },
-            user: { ...lockedBadgeFields },
-            ...lockedBadgeFields
-        };
-    } else {
-        existingObj.result.status = 200;
-        existingObj.result.ok = true;
-        existingObj.result.success = true;
-        delete existingObj.result.error;
-        delete existingObj.result.errors;
-        Object.assign(existingObj.result, lockedBadgeFields);
-        if (existingObj.result.data && typeof existingObj.result.data === "object") {
-            Object.assign(existingObj.result.data, lockedBadgeFields);
-        } else {
-            existingObj.result.data = { ...lockedBadgeFields };
-        }
-        if (existingObj.result.user && typeof existingObj.result.user === "object") {
-            Object.assign(existingObj.result.user, lockedBadgeFields);
+function extractRequestedRcUserId(url) {
+    if (!url) return null;
+    const m = url.match(/\/subscribers\/([^/?#]+)/i);
+    if (m && m[1]) {
+        try {
+            return decodeURIComponent(m[1]);
+        } catch (e) {
+            return m[1];
         }
     }
-
-    if (existingObj.data && typeof existingObj.data === "object") {
-        Object.assign(existingObj.data, lockedBadgeFields);
-    }
-    if (existingObj.user && typeof existingObj.user === "object") {
-        Object.assign(existingObj.user, lockedBadgeFields);
-    }
-
-    Object.assign(existingObj, lockedBadgeFields);
-    return existingObj;
+    return null;
 }
 
-// 1. REVENUECAT FULL SUBSCRIBER PAYLOAD — MỞ KHOÁ FULL GÓI LOCKET_COM
+function extractAndCacheCredentials(url, headers, bodyStr) {
+    let foundUid = null;
+    let foundUsername = null;
+    let foundAvatar = null;
+
+    const rcUrlUser = extractRequestedRcUserId(url);
+    if (rcUrlUser && !rcUrlUser.includes("RCAnonymousID")) {
+        foundUid = rcUrlUser;
+        Env.write(foundUid, USER_ID_CACHE_KEY);
+    }
+
+    if (typeof bodyStr === "string" && bodyStr.includes("{")) {
+        try {
+            const parsed = JSON.parse(bodyStr);
+            const uData = (parsed.result && parsed.result.data) || parsed.data || parsed;
+            const candidate =
+                (parsed.subscriber && parsed.subscriber.original_app_user_id) ||
+                uData.uid ||
+                uData.user_uid ||
+                uData.user_id ||
+                parsed.app_user_id ||
+                parsed.localId;
+            if (candidate && typeof candidate === "string" && !candidate.includes("RCAnonymousID")) {
+                foundUid = candidate;
+                Env.write(foundUid, USER_ID_CACHE_KEY);
+            }
+            if (uData && typeof uData === "object") {
+                if (uData.username && typeof uData.username === "string") {
+                    foundUsername = uData.username;
+                    Env.write(foundUsername, USERNAME_CACHE_KEY);
+                }
+                if (uData.profile_picture_url && typeof uData.profile_picture_url === "string") {
+                    foundAvatar = uData.profile_picture_url;
+                    Env.write(foundAvatar, AVATAR_CACHE_KEY);
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (headers && typeof headers === "object") {
+        for (const k of Object.keys(headers)) {
+            const low = k.toLowerCase();
+            const val = headers[k];
+            if (!val) continue;
+            if (low === "authorization") {
+                if (/^Bearer\s+eyJ/i.test(val)) {
+                    Env.write(val, AUTH_TOKEN_CACHE_KEY);
+                    if (!foundUid) {
+                        try {
+                            const parts = val.replace(/^Bearer\s+/i, "").split(".");
+                            if (parts.length >= 2 && typeof atob === "function") {
+                                const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+                                const jsonPayload = JSON.parse(atob(b64));
+                                const jwtUid = jsonPayload.user_id || jsonPayload.sub;
+                                if (jwtUid && typeof jwtUid === "string") {
+                                    foundUid = jwtUid;
+                                    Env.write(foundUid, USER_ID_CACHE_KEY);
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                } else if (/^appl_|^goog_|^rcb_/i.test(val.replace(/^Bearer\s+/i, ""))) {
+                    Env.write(val, RC_API_KEY_CACHE_KEY);
+                }
+            } else if (low === "x-revenuecat-user-id" || low === "x-app-user-id") {
+                if (val && !val.includes("RCAnonymousID")) {
+                    foundUid = val;
+                    Env.write(foundUid, USER_ID_CACHE_KEY);
+                }
+            }
+        }
+    }
+
+    const finalUid = foundUid || Env.read(USER_ID_CACHE_KEY) || rcUrlUser || "$RCAnonymousID:locket_hard_lock";
+    if (finalUid && !finalUid.includes("RCAnonymousID")) {
+        upsertUserRecord(finalUid, {
+            username: foundUsername,
+            avatar: foundAvatar
+        });
+    }
+    return finalUid;
+}
+
+function parseQuery(url) {
+    const q = {};
+    const idx = url.indexOf("?");
+    if (idx === -1) return q;
+    const pairs = url.slice(idx + 1).split("&");
+    for (const p of pairs) {
+        if (!p) continue;
+        const eq = p.indexOf("=");
+        if (eq === -1) {
+            q[decodeURIComponent(p)] = "";
+        } else {
+            const k = decodeURIComponent(p.slice(0, eq));
+            const v = decodeURIComponent(p.slice(eq + 1).replace(/\+/g, " "));
+            q[k] = v;
+        }
+    }
+    return q;
+}
+
+// 1. REVENUECAT FULL SUBSCRIBER PAYLOAD — MỞ KHOÁ ENTITLEMENT + BẮN THÔNG BÁO TRONG LOCKET
 function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUserId) {
     if (cfg.isBlockedByAdmin) {
         triggerInAppLocketBlockAlert(resolvedUserId, cfg.blockReason, true, false);
     } else {
         triggerInAppLocketBlockAlert(resolvedUserId, "", false, false);
-        fireNativeAppNotification(cfg, false);
+        triggerInAppGoldWelcomeAlert(resolvedUserId, cfg, false);
     }
 
     const LOCK_DATE = cfg.lockIso;
@@ -886,7 +613,9 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
     const nowMs = Date.now();
 
     const obj = (existingObj && typeof existingObj === "object") ? existingObj : {};
-    obj.Attention = `${cfg.popupBadge} | ${cfg.popupHeader} | ${cfg.popupTitle}`;
+    obj.Attention = cfg.isBlockedByAdmin
+        ? `LOCKET GOLD KEPT — ${cfg.blockReason}`
+        : `${cfg.popupBadge} | ${cfg.popupHeader} | ${cfg.popupTitle}`;
     obj.request_date = nowIso;
     obj.request_date_ms = nowMs;
 
@@ -914,44 +643,32 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         obj.subscriber.subscriber_attributes = {};
     }
 
-    const cachedUsername = Env.read(USERNAME_CACHE_KEY) || "";
-    const cachedFullName = Env.read(FULLNAME_CACHE_KEY) || cachedUsername;
-    const cachedAvatar = Env.read(AVATAR_CACHE_KEY) || "";
-
     const forcedAttributes = {
-        "$displayName": cachedFullName || "Locket Gold Member",
-        "username": cachedUsername,
-        "profile_picture_url": cachedAvatar,
         "locket_gold_badge": "true",
         "badge": "locket_gold",
         "has_gold_badge": "true",
-        "show_gold_badge": "true",
         "gold_badge_enabled": "true",
-        "is_gold_badge_enabled": "true",
-        "hide_gold_badge": "false",
         "is_gold": "true",
         "membership_badge": "gold",
         "holiday_effects_unlocked": "true",
         "camera_effects_unlocked": "true",
-        "camera_themes_unlocked": "true",
-        "custom_app_icons_unlocked": "true",
-        "audio_recording_enabled": "true",
-        "video_audio_enabled": "true",
         "lut_filters_unlocked": "true",
         "ai_looks_unlocked": "true",
         "ai_filter_quota": quotaStr,
         "ai_filter_remaining": quotaStr,
         "ai_looks_remaining": quotaStr,
-        "ai_generation_limit": quotaStr
+        "ai_generation_limit": quotaStr,
+        "gold_popup_header": cfg.popupHeader,
+        "gold_popup_title": cfg.popupTitle,
+        "gold_popup_subtitle": cfg.popupSubtitle,
+        "admin_realtime_status": cfg.isBlockedByAdmin ? "blocked_keep_gold" : "active_gold"
     };
 
     for (const [attrKey, attrVal] of Object.entries(forcedAttributes)) {
-        if (attrVal !== undefined && attrVal !== null && attrVal !== "") {
-            obj.subscriber.subscriber_attributes[attrKey] = {
-                value: String(attrVal),
-                updated_at_ms: nowMs
-            };
-        }
+        obj.subscriber.subscriber_attributes[attrKey] = {
+            value: String(attrVal),
+            updated_at_ms: nowMs
+        };
     }
 
     const buildSubEntry = (pid) => ({
@@ -986,6 +703,10 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         store: cfg.store || "app_store"
     });
 
+    for (const existingPid of Object.keys(obj.subscriber.subscriptions)) {
+        obj.subscriber.subscriptions[existingPid] = buildSubEntry(existingPid);
+    }
+
     const allProductIds = [
         PRIMARY_PID,
         "locket_1600_1y",
@@ -1003,16 +724,15 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         "locket_sub_1m",
         "locket_ai_looks_pack",
         "locket_ai_unlimited",
-        "locket_holiday_effects",
-        "locket_camera_themes",
-        "locket_app_icons"
+        "locket_holiday_effects"
     ];
 
-    for (const existingPid of Object.keys(obj.subscriber.subscriptions)) {
-        obj.subscriber.subscriptions[existingPid] = buildSubEntry(existingPid);
-    }
     for (const pid of allProductIds) {
         obj.subscriber.subscriptions[pid] = buildSubEntry(pid);
+    }
+
+    for (const existingEnt of Object.keys(obj.subscriber.entitlements)) {
+        obj.subscriber.entitlements[existingEnt] = buildEntEntry(PRIMARY_PID);
     }
 
     const allEntitlements = [
@@ -1023,8 +743,6 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         "locket_gold",
         "LocketGold",
         "locket_gold_v2",
-        "gold_badge",
-        "locket_gold_badge",
         "premium",
         "Premium",
         "plus",
@@ -1042,19 +760,8 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         "seasonal_effects",
         "lut_filters",
         "filters",
-        "effects",
-        "camera_themes",
-        "app_icons",
-        "custom_icons",
-        "audio_recording",
-        "video_audio",
-        "hd_upload",
-        "camera_roll_upload"
+        "effects"
     ];
-
-    for (const existingEnt of Object.keys(obj.subscriber.entitlements)) {
-        obj.subscriber.entitlements[existingEnt] = buildEntEntry(PRIMARY_PID);
-    }
     for (const entKey of allEntitlements) {
         obj.subscriber.entitlements[entKey] = buildEntEntry(PRIMARY_PID);
     }
@@ -1062,7 +769,93 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
     return obj;
 }
 
-// 2. BƠM FIREBASE REMOTE CONFIG CHUẨN LOCKET.COM (BẬT HUY HIỆU, FILTER, ÂM THANH, CHỦ ĐỀ, ICON)
+// 2. BƠM GIAO DIỆN POPUP "ĐÃ KÍCH HOẠT GOLD" VÀO REVENUECAT OFFERINGS / PAYWALLS V2
+function patchRevenueCatOfferings(obj, cfg) {
+    if (!obj || typeof obj !== "object") return obj;
+    const PRIMARY_PID = cfg.productId || "locket_1600_1y";
+    const hasHttpImg = cfg.popupImage && /^https?:\/\//i.test(cfg.popupImage);
+    const baseUrl = hasHttpImg ? cfg.popupImage.replace(/\/[^\/]+$/, "/") : "https://cdn2.locketcamera.com/";
+    const imgFile = hasHttpImg ? cfg.popupImage.split("/").pop() : "gold_activated.png";
+
+    const locData = {
+        title: cfg.popupHeader || "Đã Kích Hoạt 💛",
+        subtitle: `${cfg.popupTitle || "Youtube @NightmarketServer ✨"}\n${cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"}`,
+        call_to_action: cfg.popupBtnText || "Done",
+        offer_badge: cfg.popupBadge || "LOCKET GOLD",
+        feature_1: cfg.popupTitle || "Youtube @NightmarketServer ✨",
+        feature_2: cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"
+    };
+
+    if (Array.isArray(obj.offerings)) {
+        for (const off of obj.offerings) {
+            if (!off || typeof off !== "object") continue;
+            off.metadata = {
+                ...(off.metadata || {}),
+                badge: cfg.popupBadge,
+                header: cfg.popupHeader,
+                title: cfg.popupTitle,
+                subtitle: cfg.popupSubtitle,
+                image_url: hasHttpImg ? cfg.popupImage : "",
+                button_text: cfg.popupBtnText || "Done",
+                is_gold_activated: true
+            };
+            off.paywall = {
+                template_name: "2",
+                asset_base_url: baseUrl,
+                revision: 1,
+                config: {
+                    packages: ["$rc_annual"],
+                    default_package: "$rc_annual",
+                    images: {
+                        header: imgFile,
+                        background: imgFile,
+                        icon: imgFile
+                    },
+                    colors: {
+                        light: {
+                            background: "#12110E",
+                            text_1: "#FFFFFF",
+                            text_2: "#A1A1AA",
+                            text_3: "#F5B427",
+                            call_to_action_background: "#F5B427",
+                            call_to_action_foreground: "#171717",
+                            accent_1: "#F5B427",
+                            accent_2: "#FCD34D"
+                        },
+                        dark: {
+                            background: "#12110E",
+                            text_1: "#FFFFFF",
+                            text_2: "#A1A1AA",
+                            text_3: "#F5B427",
+                            call_to_action_background: "#F5B427",
+                            call_to_action_foreground: "#171717",
+                            accent_1: "#F5B427",
+                            accent_2: "#FCD34D"
+                        }
+                    },
+                    blurred_background_image: false,
+                    display_restore_purchases: false
+                },
+                localized_strings: {
+                    vi: locData,
+                    vi_VN: locData,
+                    en: locData,
+                    en_US: locData
+                }
+            };
+            if (Array.isArray(off.packages)) {
+                for (const pkg of off.packages) {
+                    if (pkg && !pkg.platform_product_identifier) {
+                        pkg.platform_product_identifier = PRIMARY_PID;
+                    }
+                }
+            }
+        }
+    }
+    return obj;
+}
+
+// 3. BƠM CẤU HÌNH MỞ KHOÁ HIỆU ỨNG, FILTER AI & POPUP GOLD VÀO FIREBASE REMOTE CONFIG
 function injectFirebaseRemoteConfig(obj, cfg) {
     if (!obj || typeof obj !== "object") obj = {};
     const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
@@ -1072,41 +865,23 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         obj.entries = {};
     }
 
+    const popupPayloadJson = JSON.stringify({
+        enabled: true,
+        badge: cfg.popupBadge,
+        header: cfg.popupHeader,
+        title: cfg.popupTitle,
+        subtitle: cfg.popupSubtitle,
+        image_url: cfg.popupImage,
+        button_text: cfg.popupBtnText || "Done"
+    });
+
     const forcedEntries = {
         "locket_gold_enabled": "true",
         "is_gold_user": "true",
-        "locket_gold_badge_enabled": "true",
-        "gold_badge_enabled": "true",
-        "show_gold_badge": "true",
-        "force_gold_badge": "true",
-        "allow_gold_badge_toggle": "true",
-        "default_gold_badge_on": "true",
-        "verify_gold_badge_on_server": "false",
-        "require_server_subscription_for_badge": "false",
         "bypass_gold_paywall": "true",
         "disable_gold_paywall": "true",
         "show_gold_paywall": "false",
         "enable_gold_paywall": "false",
-        "audio_enabled": "true",
-        "enable_audio": "true",
-        "video_audio_enabled": "true",
-        "enable_video_audio": "true",
-        "audio_recording_enabled": "true",
-        "enable_audio_recording": "true",
-        "record_audio_with_video": "true",
-        "allow_audio_capture": "true",
-        "mute_video_by_default": "false",
-        "force_mute_video": "false",
-        "disable_video_audio": "false",
-        "enable_sound_on_moments": "true",
-        "moment_audio_enabled": "true",
-        "music_notes_enabled": "true",
-        "enable_music_caption": "true",
-        "voice_note_enabled": "true",
-        "max_video_duration": "15",
-        "max_video_length_seconds": "15",
-        "hd_video_enabled": "true",
-        "hd_photo_enabled": "true",
         "force_gold_for_effects": "false",
         "require_gold_for_effects": "false",
         "require_gold_for_holiday_effects": "false",
@@ -1132,10 +907,6 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "free_lut_filters": "true",
         "unlock_all_effects": "true",
         "unlock_all_filters": "true",
-        "show_all_filters": "true",
-        "force_show_filters": "true",
-        "camera_filters_enabled": "true",
-        "enable_camera_filters": "true",
         "holiday_effects_enabled": "true",
         "seasonal_effects_enabled": "true",
         "festive_effects_enabled": "true",
@@ -1145,24 +916,6 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "lut_filter_enabled": "true",
         "enable_lut_filters": "true",
         "camera_effects_enabled": "true",
-        "overlays_enabled": "true",
-        "time_overlay_enabled": "true",
-        "weather_overlay_enabled": "true",
-        "battery_overlay_enabled": "true",
-        "speed_overlay_enabled": "true",
-        "camera_themes_enabled": "true",
-        "enable_camera_themes": "true",
-        "unlock_all_camera_themes": "true",
-        "require_gold_for_themes": "false",
-        "custom_app_icons_enabled": "true",
-        "enable_custom_app_icons": "true",
-        "unlock_all_app_icons": "true",
-        "require_gold_for_app_icons": "false",
-        "upload_from_camera_roll_enabled": "true",
-        "camera_roll_upload_enabled": "true",
-        "require_gold_for_camera_roll": "false",
-        "unlimited_friends_enabled": "true",
-        "max_friends_limit": "9999",
         "ai_filter_enabled": "true",
         "ai_filters_enabled": "true",
         "enable_ai_filters": "true",
@@ -1183,12 +936,21 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "ai_generation_limit": quotaStr,
         "ai_generation_daily_limit": quotaStr,
         "ai_generation_quota": quotaStr,
+        "ai_prompt_max_uses": quotaStr,
+        "custom_look_daily_limit": quotaStr,
+        "custom_look_max_uses": quotaStr,
         "max_ai_generations_per_day": quotaStr,
         "max_ai_filters_per_day": quotaStr,
         "gold_ai_filter_limit": quotaStr,
         "free_ai_filter_limit": quotaStr,
         "ai_filter_cooldown_seconds": "0",
-        "ai_looks_cooldown_seconds": "0"
+        "ai_looks_cooldown_seconds": "0",
+        "gold_activated_modal": popupPayloadJson,
+        "gold_welcome_modal": popupPayloadJson,
+        "gold_celebration_title": cfg.popupTitle,
+        "gold_celebration_subtitle": cfg.popupSubtitle,
+        "gold_celebration_header": cfg.popupHeader,
+        "gold_celebration_image": cfg.popupImage
     };
 
     for (const existingKey of Object.keys(obj.entries)) {
@@ -1204,18 +966,12 @@ function injectFirebaseRemoteConfig(obj, cfg) {
             } catch (e) {}
         }
 
-        if (
-            low.includes("ai") || low.includes("filter") || low.includes("look") ||
-            low.includes("effect") || low.includes("lut") || low.includes("holiday") ||
-            low.includes("seasonal") || low.includes("festive") || low.includes("audio") ||
-            low.includes("sound") || low.includes("theme") || low.includes("icon") ||
-            low.includes("badge") || low.includes("gold")
-        ) {
-            if (low.includes("limit") || low.includes("quota") || low.includes("max") || low.includes("remaining") || low.includes("uses") || low.includes("credits")) {
+        if (low.includes("ai") || low.includes("filter") || low.includes("look") || low.includes("effect") || low.includes("lut") || low.includes("holiday") || low.includes("seasonal") || low.includes("festive")) {
+            if (low.includes("limit") || low.includes("quota") || low.includes("max") || low.includes("count") || low.includes("remaining") || low.includes("uses") || low.includes("credits")) {
                 obj.entries[existingKey] = quotaStr;
-            } else if (low.includes("gold_only") || low.includes("require_gold") || low.includes("requires_gold") || low.includes("is_locked") || low.includes("locked") || low.includes("paywall") || low.includes("blur") || low.includes("mute") || low.includes("hide_gold")) {
+            } else if (low.includes("gold_only") || low.includes("require_gold") || low.includes("requires_gold") || low.includes("is_locked") || low.includes("locked") || low.includes("paywall") || low.includes("blur") || low.includes("premium_only") || low.includes("is_gold_effect")) {
                 obj.entries[existingKey] = "false";
-            } else if (low.includes("enable") || low.includes("allow") || low.includes("active") || low.includes("show") || low.includes("free") || low.includes("unlock") || low.includes("badge") || low.includes("audio") || low.includes("sound")) {
+            } else if (low.includes("enable") || low.includes("allow") || low.includes("active") || low.includes("show") || low.includes("free") || low.includes("unlock")) {
                 obj.entries[existingKey] = "true";
             } else if (low.includes("disable") || low.includes("block") || low.includes("cooldown")) {
                 obj.entries[existingKey] = low.includes("cooldown") ? "0" : "false";
@@ -1224,124 +980,16 @@ function injectFirebaseRemoteConfig(obj, cfg) {
     }
 
     for (const [k, v] of Object.entries(forcedEntries)) {
-        obj.entries[k] = v;
+        if (!(k in obj.entries) || typeof obj.entries[k] !== "string" || (!obj.entries[k].startsWith("{") && !obj.entries[k].startsWith("["))) {
+            obj.entries[k] = v;
+        }
     }
 
     obj.state = "UPDATE";
     return obj;
 }
-// ============================================================================
-// FILE: locket_com_v7_full.js (PHẦN 3/4 NÂNG CẤP — FULL FILTER + ÂM THANH & WEB PANEL)
-// Dán nối tiếp ngay bên dưới Phần 2/4
-// ============================================================================
 
-// DANH SÁCH FILTER, HIỆU ỨNG LỄ HỘI, OVERLAY & CHỦ ĐỀ MÁY ẢNH DỰ PHÒNG (BƠM KHI SERVER TRẢ RỖNG HOẶC ẨN)
-function getBuiltinLocketComFilters() {
-    return [
-        {
-            id: "locket_gold_crown_effect",
-            effect_id: "locket_gold_crown_effect",
-            filter_id: "locket_gold_crown_effect",
-            name: "Locket Gold Glow ✨",
-            title: "Locket Gold Glow ✨",
-            category: "gold",
-            effect_type: "filter",
-            filter_type: "lut",
-            is_gold_only: false,
-            requires_gold: false,
-            is_locked: false,
-            is_free: true,
-            unlocked: true,
-            enabled: true,
-            is_visible: true,
-            show_in_camera: true,
-            audio_enabled: true,
-            video_audio_enabled: true
-        },
-        {
-            id: "vintage_film_1998",
-            effect_id: "vintage_film_1998",
-            filter_id: "vintage_film_1998",
-            name: "Vintage Film 98 🎞️",
-            title: "Vintage Film 98 🎞️",
-            category: "style",
-            effect_type: "filter",
-            filter_type: "lut",
-            is_gold_only: false,
-            requires_gold: false,
-            is_locked: false,
-            is_free: true,
-            unlocked: true,
-            enabled: true,
-            is_visible: true,
-            show_in_camera: true,
-            audio_enabled: true,
-            video_audio_enabled: true
-        },
-        {
-            id: "y2k_cyber_glow",
-            effect_id: "y2k_cyber_glow",
-            filter_id: "y2k_cyber_glow",
-            name: "Y2K Cyber Soft 💫",
-            title: "Y2K Cyber Soft 💫",
-            category: "style",
-            effect_type: "filter",
-            filter_type: "lut",
-            is_gold_only: false,
-            requires_gold: false,
-            is_locked: false,
-            is_free: true,
-            unlocked: true,
-            enabled: true,
-            is_visible: true,
-            show_in_camera: true,
-            audio_enabled: true,
-            video_audio_enabled: true
-        },
-        {
-            id: "holiday_sparkle_festive",
-            effect_id: "holiday_sparkle_festive",
-            filter_id: "holiday_sparkle_festive",
-            name: "Lễ Hội Lấp Lánh 🎉",
-            title: "Lễ Hội Lấp Lánh 🎉",
-            category: "holiday",
-            effect_type: "overlay",
-            filter_type: "holiday",
-            is_gold_only: false,
-            requires_gold: false,
-            is_locked: false,
-            is_free: true,
-            unlocked: true,
-            enabled: true,
-            is_visible: true,
-            show_in_camera: true,
-            audio_enabled: true,
-            video_audio_enabled: true
-        },
-        {
-            id: "retro_camcorder_rec",
-            effect_id: "retro_camcorder_rec",
-            filter_id: "retro_camcorder_rec",
-            name: "Camcorder REC 🔴",
-            title: "Camcorder REC 🔴",
-            category: "cute",
-            effect_type: "overlay",
-            filter_type: "retro",
-            is_gold_only: false,
-            requires_gold: false,
-            is_locked: false,
-            is_free: true,
-            unlocked: true,
-            enabled: true,
-            is_visible: true,
-            show_in_camera: true,
-            audio_enabled: true,
-            video_audio_enabled: true
-        }
-    ];
-}
-
-// 3. QUÉT SÂU MỌI NODE JSON: KHOÁ CỨNG CÔNG TẮC HUY HIỆU + MỞ KHOÁ FILTER, ÂM THANH, CHỦ ĐỀ MÁY ẢNH, ICON APP
+// 4. MỞ KHOÁ FULL HIỆU ỨNG CAMERA & BỘ LỌC AI (TÁCH BIỆT USER VÀ EFFECT ĐỂ KHÔNG BỊ LỖI BỘ LỌC)
 function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     if (!node || typeof node !== "object" || depth > 12) return node;
 
@@ -1355,7 +1003,7 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         return node;
     }
 
-    const isEffectOrFilterOrThemeItem = (
+    const isEffectOrFilterItem = (
         "effect_id" in node ||
         "effectId" in node ||
         "filter_id" in node ||
@@ -1363,10 +1011,6 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         "look_id" in node ||
         "lookId" in node ||
         "lens_id" in node ||
-        "theme_id" in node ||
-        "themeId" in node ||
-        "icon_id" in node ||
-        "iconId" in node ||
         "lut_url" in node ||
         "lutUrl" in node ||
         "overlay_url" in node ||
@@ -1388,37 +1032,23 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         ))
     );
 
-    const hasUserShape = !isEffectOrFilterOrThemeItem && (
+    const hasUserShape = !isEffectOrFilterItem && (
         "locket_gold_badge" in node ||
-        "show_gold_badge" in node ||
-        "gold_badge_enabled" in node ||
         ("uid" in node && ("username" in node || "first_name" in node || "profile_picture_url" in node || "badge" in node))
     );
 
-    // KHOÁ CỨNG HUY HIỆU LOCKET GOLD LUÔN BẬT TRÊN HỒ SƠ USER (CHỐNG TỰ TẮT CÔNG TẮC)
     if (hasUserShape) {
         node.badge = "locket_gold";
         node.locket_gold_badge = true;
         node.has_gold_badge = true;
         node.gold_badge = true;
-        node.show_gold_badge = true;
-        node.gold_badge_enabled = true;
-        node.is_gold_badge_enabled = true;
-        node.badge_enabled = true;
-        node.badge_visible = true;
-        node.hide_gold_badge = false;
-        node.disable_gold_badge = false;
         node.is_gold = true;
         node.isGold = true;
         node.has_gold = true;
         node.hasGold = true;
         node.gold_subscription = true;
         node.subscription_status = "active";
-        node.membership_status = "locket_gold";
         node.original_purchase_date = cfg.lockIso;
-        node.purchase_date = cfg.lockIso;
-        node.member_since = cfg.lockIso;
-        node.gold_since = cfg.lockIso;
         node.expires_date = cfg.expireIso;
         node.ai_filter_quota = quotaNum;
         node.ai_filter_remaining = quotaNum;
@@ -1426,16 +1056,9 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         node.remaining_ai_uses = quotaNum;
         node.can_use_ai_filter = true;
         node.can_use_holiday_effects = true;
-        node.can_use_camera_themes = true;
-        node.can_change_app_icon = true;
-        node.camera_themes_unlocked = true;
-        node.app_icons_unlocked = true;
-        node.audio_recording_enabled = true;
-        node.video_audio_enabled = true;
     }
 
-    // MỞ KHOÁ & ÉP HIỆN 100% FILTER, EFFECT, CHỦ ĐỀ MÁY ẢNH, ICON APP (XOÁ MÀN MỜ PAYWALL)
-    if (isEffectOrFilterOrThemeItem) {
+    if (isEffectOrFilterItem) {
         node.is_gold = false;
         node.isGold = false;
         node.gold = false;
@@ -1464,17 +1087,6 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         node.canUse = true;
         node.has_access = true;
         node.hasAccess = true;
-        node.enabled = true;
-        node.is_enabled = true;
-        node.is_active = true;
-        node.active = true;
-        node.is_visible = true;
-        node.visible = true;
-        node.hidden = false;
-        node.is_hidden = false;
-        node.show_in_camera = true;
-        node.audio_enabled = true;
-        node.video_audio_enabled = true;
         node.blur = false;
         node.is_blurred = false;
         node.isBlurred = false;
@@ -1491,15 +1103,24 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         if ("requiredEntitlement" in node) node.requiredEntitlement = null;
     }
 
-    const hasQuotaOrAccessShape = !isEffectOrFilterOrThemeItem && (
+    const hasQuotaOrAccessShape = !isEffectOrFilterItem && (
         "remaining" in node ||
         "remaining_uses" in node ||
         "remainingUses" in node ||
+        "remaining_count" in node ||
+        "remainingCount" in node ||
         "quota" in node ||
         "daily_limit" in node ||
+        "dailyLimit" in node ||
+        "max_uses" in node ||
+        "maxUses" in node ||
+        "credits" in node ||
+        "ai_credits" in node ||
+        "filter_quota" in node ||
         "can_generate" in node ||
         "canGenerate" in node ||
-        "is_allowed" in node
+        "is_allowed" in node ||
+        "isAllowed" in node
     );
 
     if (hasQuotaOrAccessShape) {
@@ -1542,25 +1163,13 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         node.blur = false;
     }
 
-    // HỖ TRỢ FIRESTORE DOCUMENT FIELDS (ĐẢM BẢO CÔNG TẮC HUY HIỆU TRÊN FIRESTORE CŨNG BẬT CỨNG)
     if (node.fields && typeof node.fields === "object") {
-        if (node.fields.uid || node.fields.username || node.fields.badge || node.fields.profile_picture_url || node.fields.first_name) {
+        if (node.fields.uid || node.fields.username || node.fields.badge || node.fields.profile_picture_url) {
             node.fields.badge = { stringValue: "locket_gold" };
             node.fields.locket_gold_badge = { booleanValue: true };
-            node.fields.gold_badge = { booleanValue: true };
             node.fields.has_gold_badge = { booleanValue: true };
-            node.fields.show_gold_badge = { booleanValue: true };
-            node.fields.gold_badge_enabled = { booleanValue: true };
-            node.fields.is_gold_badge_enabled = { booleanValue: true };
-            node.fields.badge_enabled = { booleanValue: true };
-            node.fields.hide_gold_badge = { booleanValue: false };
             node.fields.is_gold = { booleanValue: true };
             node.fields.gold_subscription_since = { timestampValue: cfg.lockIso };
-            node.fields.original_purchase_date = { timestampValue: cfg.lockIso };
-            node.fields.audio_recording_enabled = { booleanValue: true };
-            node.fields.video_audio_enabled = { booleanValue: true };
-            node.fields.camera_themes_unlocked = { booleanValue: true };
-            node.fields.app_icons_unlocked = { booleanValue: true };
             node.fields.ai_filter_quota = { integerValue: String(quotaNum) };
             node.fields.ai_filter_remaining = { integerValue: String(quotaNum) };
             node.fields.ai_looks_remaining = { integerValue: String(quotaNum) };
@@ -1572,12 +1181,10 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
                 node.fields[fk] = { integerValue: String(quotaNum) };
             } else if (flow === "used" || flow === "used_count" || flow === "uses_today") {
                 node.fields[fk] = { integerValue: String(usedNum) };
-            } else if (flow.includes("gold_only") || flow.includes("requires_gold") || flow.includes("locked") || flow.includes("blur") || flow.includes("paywall") || flow.includes("mute") || flow.includes("hide_gold")) {
+            } else if (flow.includes("gold_only") || flow.includes("requires_gold") || flow.includes("locked") || flow.includes("blur") || flow.includes("paywall")) {
                 node.fields[fk] = { booleanValue: false };
-            } else if (flow === "unlocked" || flow === "can_use" || flow === "is_free" || flow.includes("badge") || flow.includes("audio") || flow.includes("sound")) {
-                if (flow !== "badge") {
-                    node.fields[fk] = { booleanValue: true };
-                }
+            } else if (flow === "unlocked" || flow === "can_use" || flow === "is_free") {
+                node.fields[fk] = { booleanValue: true };
             }
         }
     }
@@ -1586,41 +1193,10 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         const low = k.toLowerCase();
         const val = node[k];
 
-        if (k === "badge" && (val === null || val === "" || val === false || val === "none")) {
+        if (hasUserShape && k === "badge" && (val === null || val === "" || val === false || val === "none")) {
             node[k] = "locket_gold";
-        } else if (
-            low === "locket_gold_badge" ||
-            low === "has_gold_badge" ||
-            low === "show_gold_badge" ||
-            low === "gold_badge" ||
-            low === "gold_badge_enabled" ||
-            low === "is_gold_badge_enabled" ||
-            low === "badge_enabled" ||
-            low === "badge_visible"
-        ) {
+        } else if (hasUserShape && (k === "locket_gold_badge" || k === "has_gold_badge" || k === "show_gold_badge" || k === "is_gold" || k === "isGold" || k === "has_gold" || k === "hasGold") && val === false) {
             node[k] = true;
-        } else if (low === "hide_gold_badge" || low === "disable_gold_badge") {
-            node[k] = false;
-        } else if (
-            typeof val === "boolean" &&
-            (
-                low === "audio_enabled" ||
-                low === "video_audio_enabled" ||
-                low === "audio_recording_enabled" ||
-                low === "record_audio" ||
-                low === "allow_audio" ||
-                low === "sound_enabled" ||
-                low === "enable_sound" ||
-                low === "camera_themes_enabled" ||
-                low === "custom_app_icons_enabled"
-            )
-        ) {
-            node[k] = true;
-        } else if (
-            typeof val === "boolean" &&
-            (low === "is_muted" || low === "muted" || low === "mute_audio" || low === "disable_audio")
-        ) {
-            node[k] = false;
         } else if (
             typeof val === "boolean" &&
             (
@@ -1688,14 +1264,47 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         ) {
             node[k] = true;
         } else if (
-            Array.isArray(val) &&
-            (low === "effects" || low === "filters" || low === "camera_effects" || low === "overlays" || low === "looks")
+            typeof val === "string" &&
+            (low === "tier" || low === "access_level" || low === "accesslevel" || low === "lock_type" || low === "locktype" || low === "paywall_type") &&
+            (val.toLowerCase().includes("gold") || val.toLowerCase().includes("pro") || val.toLowerCase().includes("premium") || val.toLowerCase().includes("lock"))
         ) {
-            if (val.length === 0 && cfg.injectMissingFilters !== false) {
-                node[k] = getBuiltinLocketComFilters();
-            } else {
-                deepForceBadgeAndAiQuotaInObject(val, cfg, depth + 1);
-            }
+            node[k] = "free";
+        } else if (
+            typeof val === "number" &&
+            (
+                low === "remaining" ||
+                low === "remaining_uses" ||
+                low === "remaininguses" ||
+                low === "remaining_count" ||
+                low === "remainingcount" ||
+                low === "remaining_generations" ||
+                low === "remaininggenerations" ||
+                low === "ai_filter_quota" ||
+                low === "ai_filter_remaining" ||
+                low === "ai_looks_remaining" ||
+                low === "ai_credits" ||
+                low === "filter_credits" ||
+                low === "free_uses_remaining" ||
+                low === "daily_remaining" ||
+                low === "max_generations" ||
+                low === "generation_limit" ||
+                low === "free_uses" ||
+                low === "freeuses"
+            )
+        ) {
+            node[k] = quotaNum;
+        } else if (
+            typeof val === "number" &&
+            (
+                low === "used_count" ||
+                low === "usedcount" ||
+                low === "uses_today" ||
+                low === "usestoday" ||
+                low === "generations_used" ||
+                low === "ai_uses_count"
+            )
+        ) {
+            node[k] = usedNum;
         } else if (typeof val === "object" && val !== null) {
             deepForceBadgeAndAiQuotaInObject(val, cfg, depth + 1);
         }
@@ -1704,90 +1313,57 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     return node;
 }
 
-function patchRevenueCatOfferings(obj, cfg) {
-    if (!obj || typeof obj !== "object") return obj;
-    const PRIMARY_PID = cfg.productId || "locket_1600_1y";
-    const hasHttpImg = cfg.popupImage && /^https?:\/\//i.test(cfg.popupImage);
-    const baseUrl = hasHttpImg ? cfg.popupImage.replace(/\/[^\/]+$/, "/") : "https://cdn2.locketcamera.com/";
-    const imgFile = hasHttpImg ? cfg.popupImage.split("/").pop() : "gold_activated.png";
+// === HẾT PHẦN 1/2 — GÕ 2 ĐỂ LẤY TIẾP PHẦN 2/2 ===
+// ============================================================================
+// FILE: locket_25_05_2026.js (PHẦN 2/2 — DÁN NỐI TIẾP VÀO DƯỚI PHẦN 1/2)
+// ============================================================================
 
-    const locData = {
-        title: cfg.popupHeader || "Đã Kích Hoạt 💛",
-        subtitle: `${cfg.popupTitle || "Youtube @NightmarketServer ✨"}\n${cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"}`,
-        call_to_action: cfg.popupBtnText || "Done",
-        offer_badge: cfg.popupBadge || "LOCKET GOLD",
-        feature_1: cfg.popupTitle || "Youtube @NightmarketServer ✨",
-        feature_2: cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"
-    };
+// BẮN THÔNG BÁO KÈM ẢNH TRÊN SHADOWROCKET / LOON / SURGE / QUANX KHI MỞ APP LOCKET
+function fireNativeAppNotification(cfg, forceImmediate = false) {
+    if (cfg.isBlockedByAdmin) return;
+    if (!forceImmediate && cfg.pushNotifyOnActivate === false) return;
 
-    if (Array.isArray(obj.offerings)) {
-        for (const off of obj.offerings) {
-            if (!off || typeof off !== "object") continue;
-            off.metadata = {
-                ...(off.metadata || {}),
-                badge: cfg.popupBadge,
-                header: cfg.popupHeader,
-                title: cfg.popupTitle,
-                subtitle: cfg.popupSubtitle,
-                image_url: hasHttpImg ? cfg.popupImage : "",
-                button_text: cfg.popupBtnText || "Done",
-                is_gold_activated: true
-            };
-            off.paywall = {
-                template_name: "2",
-                asset_base_url: baseUrl,
-                revision: 1,
-                config: {
-                    packages: ["$rc_annual"],
-                    default_package: "$rc_annual",
-                    images: { header: imgFile, background: imgFile, icon: imgFile },
-                    colors: {
-                        light: {
-                            background: "#12110E",
-                            text_1: "#FFFFFF",
-                            text_2: "#A1A1AA",
-                            text_3: "#F5B427",
-                            call_to_action_background: "#F5B427",
-                            call_to_action_foreground: "#171717",
-                            accent_1: "#F5B427",
-                            accent_2: "#FCD34D"
-                        },
-                        dark: {
-                            background: "#12110E",
-                            text_1: "#FFFFFF",
-                            text_2: "#A1A1AA",
-                            text_3: "#F5B427",
-                            call_to_action_background: "#F5B427",
-                            call_to_action_foreground: "#171717",
-                            accent_1: "#F5B427",
-                            accent_2: "#FCD34D"
-                        }
-                    },
-                    blurred_background_image: false,
-                    display_restore_purchases: false
-                },
-                localized_strings: { vi: locData, vi_VN: locData, en: locData, en_US: locData }
-            };
-            if (Array.isArray(off.packages)) {
-                for (const pkg of off.packages) {
-                    if (pkg && !pkg.platform_product_identifier) {
-                        pkg.platform_product_identifier = PRIMARY_PID;
-                    }
-                }
-            }
-        }
+    const now = Date.now();
+    const lastPush = parseInt(Env.read(LAST_GOLD_PUSH_TS_KEY) || "0", 10);
+    const cooldownMs = Math.max(5, parseInt(cfg.pushCooldownSeconds || 12, 10)) * 1000;
+
+    if (!forceImmediate && !isNaN(lastPush) && (now - lastPush <= cooldownMs)) {
+        return;
     }
-    return obj;
+
+    Env.write(String(now), LAST_GOLD_PUSH_TS_KEY);
+
+    const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
+    const sub = cfg.popupTitle || "Youtube @NightmarketServer ✨";
+    const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+    const hasHttpImg = cfg.popupImage && /^https?:\/\//i.test(cfg.popupImage);
+
+    try {
+        if (typeof $notification !== "undefined" && typeof $notification.post === "function") {
+            if (hasHttpImg) {
+                // Đính kèm ảnh trực tiếp vào thông báo trên iOS (Shadowrocket / Loon / Surge)
+                $notification.post(title, sub, body, {
+                    "media-url": cfg.popupImage,
+                    "open-url": "https://locket.gold/setdate?gold_popup=1"
+                });
+            } else {
+                $notification.post(title, sub, body);
+            }
+            return;
+        }
+    } catch (e) {}
+
+    // Fallback chuẩn 3 tham số đảm bảo 100% thiết bị đều hiện thông báo
+    Env.notify(title, sub, body);
 }
 
-// GIAO DIỆN WEB PANEL BENTO HIỂN THỊ TRỰC TIẾP TÊN + AVATAR LOCKET THẬT + TRẠNG THÁI KHOÁ CỨNG HUY HIỆU
+// GIAO DIỆN WEB PANEL BENTO + POPUP "LOCKET GOLD — ĐÃ KÍCH HOẠT 💛" + NÚT PUSH SHADOWROCKET
 function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowGoldModal = false) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
-    const cachedUser = Env.read(USERNAME_CACHE_KEY) || "hkh0805";
-    const cachedFullName = Env.read(FULLNAME_CACHE_KEY) || cachedUser || "hello mấy em";
-    const cachedAvatar = Env.read(AVATAR_CACHE_KEY) || buildDefaultLocketAvatarUrl(cachedUid);
+    const cachedUser = Env.read(USERNAME_CACHE_KEY) || "";
     const hasValidUid = cachedUid && !cachedUid.includes("RCAnonymousID");
     const displayUid = hasValidUid ? cachedUid : "Chưa ghi nhận (Mở ứng dụng Locket 1 lần)";
+    const isAdminLogged = Env.read(ADMIN_SESSION_KEY) === "1";
     const currentAiQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
 
     const popupBadge = cfg.popupBadge || "LOCKET GOLD";
@@ -1801,38 +1377,80 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     const db = getLocalStore();
     const usersList = Object.values(db.users || {});
     const goldUsersList = usersList.filter(u => u.gold_active !== false);
+    const blockedCount = usersList.filter(u => u.status === "blocked" || u.blocked).length;
 
     let goldDirectoryHtml = "";
     if (goldUsersList.length === 0) {
-        goldDirectoryHtml = `<div class="empty-row">Chưa có tài khoản nào được ghi nhận. Mở Locket 1 lần để tự động bắt Tên + Avatar thật.</div>`;
+        goldDirectoryHtml = `
+        <div class="empty-row">
+            Chưa có tài khoản nào trong danh sách đã lên Gold. Mở Locket hoặc nhấn Kích hoạt phía trên để ghi nhận.
+        </div>`;
     } else {
         for (const u of goldUsersList) {
             const isBlk = u.status === "blocked" || u.blocked === true;
             const uName = u.username || (u.uid ? u.uid.slice(0, 10) : "user");
             const fName = u.full_name || uName;
-            const uAvatar = u.avatar || buildDefaultLocketAvatarUrl(u.uid);
+            const uAvatar = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uName)}&background=1d1d1f&color=fff`;
             const lockD = u.force_lock_date || u.lock_date || cfg.lockDate;
             const userAiQuota = sanitizeQuotaNumber(u.ai_quota !== undefined ? u.ai_quota : currentAiQuota, currentAiQuota);
 
             goldDirectoryHtml += `
             <div class="dir-item" data-search="${escapeHtml((uName + " " + fName + " " + u.uid).toLowerCase())}">
                 <div class="dir-left">
-                    <img src="${escapeHtml(uAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(fName)}&background=1d1d1f&color=fcd34d'" class="dir-avatar" alt="avatar">
+                    <img src="${escapeHtml(uAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(uName)}&background=1d1d1f&color=fff'" class="dir-avatar" alt="avatar">
                     <div class="dir-info">
                         <div class="dir-name-row">
                             <span class="dir-fullname">${escapeHtml(fName)}</span>
-                            <span class="dir-handle">locket.cam/${escapeHtml(uName)}</span>
-                            <span class="pill-badge pill-gold">Huy Hiệu Bật Cứng 100%</span>
-                            <span class="pill-badge pill-blue">Full Filter + Âm Thanh + AI (${escapeHtml(userAiQuota.toLocaleString("vi-VN"))})</span>
-                            ${isBlk ? `<span class="pill-badge pill-rose">Đang bị chặn</span>` : `<span class="pill-badge pill-emerald">Hoạt động 24/7</span>`}
+                            <span class="dir-handle">@${escapeHtml(uName)}</span>
+                            <span class="pill-badge pill-gold">Đã lên Locket Gold</span>
+                            <span class="pill-badge pill-blue">Full Hiệu Ứng Lễ Hội + Filter AI: ${escapeHtml(userAiQuota.toLocaleString("vi-VN"))} lượt</span>
+                            ${isBlk ? `<span class="pill-badge pill-rose">Đang bị Admin chặn (Vẫn giữ Gold)</span>` : `<span class="pill-badge pill-emerald">Đang hoạt động 24/7</span>`}
                         </div>
                         <div class="dir-mono">
-                            UID: ${escapeHtml(u.uid)} · Thành viên từ: ${escapeHtml(lockD)}
+                            UID: ${escapeHtml(u.uid)} · Mốc đăng ký: ${escapeHtml(lockD)} · Lượt Tạo Diện Mạo AI: ${escapeHtml(String(userAiQuota))}
                         </div>
                     </div>
                 </div>
                 <div class="dir-right">
-                    <span class="dir-tag">locket.com v7</span>
+                    <span class="dir-tag">locket_1600_1y</span>
+                </div>
+            </div>`;
+        }
+    }
+
+    let adminTableHtml = "";
+    if (usersList.length === 0) {
+        adminTableHtml = `<div style="padding:24px;text-align:center;font-size:12px;color:#a1a1aa;">Chưa có người dùng nào được ghi nhận.</div>`;
+    } else {
+        for (const u of usersList) {
+            const isBlk = u.status === "blocked" || u.blocked === true;
+            const uName = u.username || (u.uid ? u.uid.slice(0, 10) : "user");
+            const uAiQuota = sanitizeQuotaNumber(u.ai_quota !== undefined ? u.ai_quota : currentAiQuota, currentAiQuota);
+            adminTableHtml += `
+            <div class="adm-row">
+                <div style="min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="font-weight:600;font-size:13px;color:#fff;">@${escapeHtml(uName)}</span>
+                        <span style="font-family:monospace;font-size:11px;color:#fcd34d;">UID: ${escapeHtml(u.uid)}</span>
+                        <span class="pill-badge pill-gold">Gold 24/7</span>
+                        <span class="pill-badge pill-blue-dark">Filter AI: ${escapeHtml(String(uAiQuota))} lượt</span>
+                        <span class="pill-badge ${isBlk ? "pill-rose-dark" : "pill-emerald-dark"}">
+                            ${isBlk ? "Đang bị chặn (Báo trong Locket)" : "Cho phép hoạt động"}
+                        </span>
+                    </div>
+                    <div style="font-family:monospace;font-size:11px;color:#a1a1aa;margin-top:4px;">
+                        Mốc đăng ký: ${escapeHtml(u.force_lock_date || u.lock_date || "2026-05-25")} · Lượt AI: ${escapeHtml(String(uAiQuota))} · Ghi chú: ${escapeHtml(u.note || "Đã lên Gold")}
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+                    <a href="/setdate?admin_drawer=1&admin_action=push_user_gold&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-gold-dark">🔔 Bắn Push Gold</a>
+                    <a href="/setdate?admin_drawer=1&admin_action=set_ai_quota&target_uid=${encodeURIComponent(u.uid)}&target_ai_quota=999999" class="apple-btn btn-ai-dark">Set 999.999 Lượt AI</a>
+                    ${isBlk ? `
+                        <a href="/setdate?admin_drawer=1&admin_action=unblock&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-unblock">Gỡ chặn (Mở lại ngay)</a>
+                    ` : `
+                        <a href="/setdate?admin_drawer=1&admin_action=block&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-block-warn">Chặn (Báo Locket & Giữ Gold)</a>
+                    `}
+                    <a href="/setdate?admin_drawer=1&admin_action=delete&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-del-dark">Xoá</a>
                 </div>
             </div>`;
         }
@@ -1843,7 +1461,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>locket.com — Khoá Cứng Huy Hiệu Locket Gold, Bắt Tên + Avatar Thật & Full Filter/Âm Thanh</title>
+<title>locket.com — Hệ Thống Quản Trị Locket Gold & Mở Khoá Full Hiệu Ứng AI</title>
 <style>
   :root {
     --apple-bg: #f5f5f7;
@@ -1854,255 +1472,1038 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     --apple-blue: #0071e3;
     --apple-border-light: rgba(0, 0, 0, 0.065);
     --apple-border-strong: rgba(0, 0, 0, 0.12);
+    --apple-dark-border: rgba(255, 255, 255, 0.09);
     --apple-radius-xl: 32px;
+    --apple-radius-lg: 24px;
+    --apple-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
     background-color: var(--apple-bg);
     color: var(--apple-ink);
     -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.015em;
+    line-height: 1.5;
     padding-bottom: 60px;
   }
+
+  /* ================= POPUP LOCKET GOLD ĐÃ KÍCH HOẠT (CHUẨN MẪU) ================= */
   .locket-gold-modal-backdrop {
-    position: fixed; inset: 0; z-index: 9999;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
     background: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    display: flex; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    transition: opacity 0.28s ease;
+  }
+  @media (min-width: 520px) {
+    .locket-gold-modal-backdrop {
+      align-items: center;
+      padding: 20px;
+    }
   }
   .locket-gold-sheet {
-    width: 100%; max-width: 410px;
-    background: linear-gradient(180deg, #1b2217 0%, #121510 55%, #0c0d0a 100%);
-    border-radius: 36px; border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 24px 24px 30px; display: flex; flex-direction: column; align-items: center;
-    text-align: center; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    width: 100%;
+    max-width: 420px;
+    min-height: 86vh;
+    background: linear-gradient(180deg, #171612 0%, #12110e 55%, #0d0c0a 100%);
+    border-top-left-radius: 38px;
+    border-top-right-radius: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 14px 26px 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    color: #ffffff;
+    box-shadow: 0 -16px 60px rgba(0, 0, 0, 0.75);
+    animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  @media (min-width: 520px) {
+    .locket-gold-sheet {
+      min-height: 660px;
+      border-radius: 38px;
+    }
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .sheet-grabber {
+    width: 42px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.24);
+    margin-bottom: 22px;
+  }
+  .sheet-top-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
   }
   .sheet-gold-pill {
-    padding: 6px 18px; border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 20px;
+    border-radius: 14px;
     background: linear-gradient(180deg, #ffd666 0%, #f5b427 100%);
-    color: #1c1917; font-size: 12px; font-weight: 800; letter-spacing: 0.04em;
+    color: #1c1917;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 18px rgba(245, 180, 39, 0.32);
   }
-  .sheet-header-title { font-size: 26px; font-weight: 800; margin-top: 10px; }
-  .locket-live-profile-card {
-    margin-top: 16px; width: 100%; padding: 14px; border-radius: 22px;
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-    display: flex; align-items: center; gap: 12px; text-align: left;
+  .sheet-header-title {
+    font-size: 29px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
   }
-  .locket-live-avatar-wrap { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
-  .locket-live-avatar {
-    width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
-    border: 2.5px solid #f5b427;
-  }
-  .locket-live-heart {
-    position: absolute; right: -2px; bottom: -2px;
-    width: 20px; height: 20px; border-radius: 50%;
-    background: #f5b427; color: #1c1917; font-size: 11px; font-weight: 900;
-    display: flex; align-items: center; justify-content: center; border: 2px solid #121510;
+  .sheet-center-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 18px 0;
   }
   .sheet-art-wrap {
-    width: 210px; height: 210px; border-radius: 16px; overflow: hidden;
-    margin: 18px 0; box-shadow: 0 14px 36px rgba(0,0,0,0.5);
+    width: 245px;
+    height: 245px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #1f1e1a;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+    margin-bottom: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .sheet-art-img { width: 100%; height: 100%; object-fit: cover; }
+  .sheet-art-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .sheet-channel-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+  }
+  .sheet-channel-sub {
+    font-size: 16.5px;
+    font-weight: 500;
+    color: #a1a1aa;
+    margin-top: 8px;
+    line-height: 1.35;
+  }
   .sheet-done-btn {
-    margin-top: 18px; width: 100%; padding: 15px 24px; border-radius: 999px; border: none;
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 999px;
+    border: none;
     background: linear-gradient(180deg, #f7bf3e 0%, #eaa91e 100%);
-    color: #171717; font-size: 16px; font-weight: 700; cursor: pointer;
+    color: #171717;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(234, 169, 30, 0.28);
+    transition: transform 0.15s ease, filter 0.15s ease;
   }
+  .sheet-done-btn:active {
+    transform: scale(0.975);
+    filter: brightness(0.95);
+  }
+  /* ============================================================================== */
+
   .apple-global-nav {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(245, 245, 247, 0.86); backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(245, 245, 247, 0.84);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
     border-bottom: 1px solid var(--apple-border-light);
   }
   .nav-inner {
-    max-width: 960px; margin: 0 auto; padding: 0 18px; height: 50px;
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
   }
-  .container { max-width: 960px; margin: 0 auto; padding: 26px 18px 0; display: flex; flex-direction: column; gap: 24px; }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--apple-ink);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .nav-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pill-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill-emerald { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.28); color: #065f46; }
+  .pill-emerald-dark { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+  .pill-rose { background: rgba(244, 63, 94, 0.14); border: 1px solid rgba(244, 63, 94, 0.28); color: #9f1239; }
+  .pill-rose-dark { background: rgba(244, 63, 94, 0.22); color: #fda4af; }
+  .pill-gold { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.32); color: #92400e; }
+  .pill-blue { background: rgba(0, 113, 227, 0.12); border: 1px solid rgba(0, 113, 227, 0.28); color: #0051a8; }
+  .pill-blue-dark { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
+  .pill-badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .dot-live {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+  }
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
   .apple-bento-light {
-    background: var(--apple-surface); border: 1px solid var(--apple-border-light);
-    border-radius: var(--apple-radius-xl); padding: 24px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    background-color: var(--apple-surface);
+    border: 1px solid var(--apple-border-light);
+    border-radius: var(--apple-radius-xl);
+    padding: 28px 24px;
+    box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.035), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
   }
-  .profile-hero-banner {
-    background: linear-gradient(135deg, #1b2818 0%, #121810 100%);
-    border-radius: 28px; padding: 24px; color: #fff;
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px;
+  .apple-bento-dark {
+    background: radial-gradient(125% 100% at 50% 0%, #1d1d22 0%, #121216 48%, #09090b 100%);
+    border: 1px solid var(--apple-dark-border);
+    border-radius: var(--apple-radius-xl);
+    padding: 28px 24px;
+    color: #ffffff;
+    box-shadow: 0 28px 64px -12px rgba(0, 0, 0, 0.36);
   }
-  .pill-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-  .pill-gold { background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #b45309; }
-  .pill-blue { background: rgba(0, 113, 227, 0.12); color: #0051a8; }
-  .pill-emerald { background: rgba(16, 185, 129, 0.15); color: #065f46; }
-  .pill-rose { background: rgba(244, 63, 94, 0.15); color: #9f1239; }
+  .apple-subpanel-light {
+    background-color: var(--apple-bg);
+    border: 1px solid var(--apple-border-light);
+    border-radius: var(--apple-radius-lg);
+    padding: 20px;
+  }
+  .apple-subpanel-dark {
+    background-color: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--apple-dark-border);
+    border-radius: var(--apple-radius-lg);
+    padding: 20px;
+  }
+  .apple-gold-text {
+    background: linear-gradient(135deg, #9a6f1a 0%, #c98a1c 35%, #e5a93b 70%, #b87c14 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .apple-titanium-text {
+    background: linear-gradient(180deg, #ffffff 0%, #d4d4d8 68%, #a1a1aa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
   .apple-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    border: none; text-decoration: none; cursor: pointer; font-family: inherit;
-    padding: 11px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.2s var(--apple-ease), background-color 0.2s var(--apple-ease), opacity 0.2s ease;
   }
-  .btn-gold { background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%); color: #1d1d1f; font-weight: 700; }
-  .btn-blue { background: var(--apple-blue); color: #fff; }
-  .btn-ink { background: #1d1d1f; color: #fff; }
-  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
-  @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+  .apple-btn:active { transform: scale(0.975); }
+  .btn-nav-dark {
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: #1d1d1f;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .btn-nav-gold {
+    padding: 5px 13px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%);
+    color: #1d1d1f;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .btn-primary-blue {
+    padding: 13px 24px;
+    border-radius: 14px;
+    background: var(--apple-blue);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    width: 100%;
+  }
+  .btn-primary-gold {
+    padding: 13px 24px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f7bf3e 0%, #e59c15 100%);
+    color: #171717;
+    font-size: 13.5px;
+    font-weight: 700;
+    width: 100%;
+  }
+  .btn-primary-ink {
+    padding: 13px 24px;
+    border-radius: 14px;
+    background: #1d1d1f;
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    width: 100%;
+  }
+  .btn-soft {
+    padding: 11px 20px;
+    border-radius: 14px;
+    background: #f5f5f7;
+    border: 1px solid var(--apple-border-light);
+    color: var(--apple-ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    width: 100%;
+  }
+  .btn-gold-dark {
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: rgba(251, 191, 36, 0.22);
+    color: #fcd34d;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .btn-ai-dark {
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: rgba(56, 189, 248, 0.2);
+    color: #7dd3fc;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .btn-block-warn {
+    padding: 7px 13px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.2);
+    color: #fde68a;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .btn-unblock {
+    padding: 7px 13px;
+    border-radius: 10px;
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .btn-del-dark {
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: rgba(244, 63, 94, 0.22);
+    color: #fda4af;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
   .apple-input-light {
-    width: 100%; padding: 11px 14px; border-radius: 12px;
-    border: 1px solid var(--apple-border-strong); font-size: 14px; margin-top: 6px;
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 13px;
+    background: #ffffff;
+    border: 1px solid var(--apple-border-strong);
+    color: var(--apple-ink);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
   }
-  .dir-item {
-    padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
-    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  .apple-input-light:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.14);
   }
-  .dir-left { display: flex; align-items: center; gap: 12px; }
-  .dir-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; }
-  .dir-fullname { font-size: 15px; font-weight: 700; }
-  .dir-handle { font-size: 12px; color: var(--apple-secondary); margin-left: 6px; }
-  .dir-mono { font-family: monospace; font-size: 11px; color: var(--apple-tertiary); margin-top: 3px; }
-  .dir-tag { font-family: monospace; font-size: 11px; padding: 4px 10px; border-radius: 999px; background: #f5f5f7; }
+  .apple-input-dark {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 13px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .apple-input-dark:focus {
+    border-color: #2997ff;
+    box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.16);
+  }
+  .realtime-block-banner {
+    background: radial-gradient(120% 100% at 50% 0%, #2b1115 0%, #160a0c 100%);
+    border: 1px solid rgba(244, 63, 94, 0.45);
+    border-radius: 24px;
+    padding: 20px 24px;
+    color: #fff;
+    display: ${cfg.isBlockedByAdmin ? "flex" : "none"};
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 18px 40px rgba(244, 63, 94, 0.18);
+  }
   .toast-msg {
-    padding: 14px 18px; border-radius: 16px; background: #ecfdf5; border: 1px solid #a7f3d0;
-    color: #065f46; font-size: 13px; font-weight: 600; display: ${statusMsg ? "block" : "none"};
+    padding: 14px 18px;
+    border-radius: 18px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    font-size: 13px;
+    font-weight: 600;
+    display: ${statusMsg ? "block" : "none"};
   }
+  .hero-sec { text-align: center; max-width: 740px; margin: 0 auto; }
+  .hero-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
+  .hero-pill {
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--apple-ink);
+  }
+  .hero-title {
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+  }
+  .hero-desc {
+    font-size: 14px;
+    color: var(--apple-secondary);
+    margin-top: 14px;
+  }
+  .spec-strip {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .spec-box-lbl { font-size: 10.5px; font-weight: 600; text-transform: uppercase; color: var(--apple-tertiary); }
+  .spec-box-val { font-size: 13px; font-weight: 700; color: var(--apple-ink); margin-top: 2px; word-break: break-all; }
+  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+  .grid-3 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 640px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+  .grid-4 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 640px) { .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+  .field-lbl { display: block; font-size: 12px; font-weight: 600; color: var(--apple-ink); margin-bottom: 6px; }
+  .field-lbl-dark { display: block; font-size: 11.5px; font-weight: 600; color: #d4d4d8; margin-bottom: 6px; }
+  .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .p-chip {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--apple-ink);
+    cursor: pointer;
+  }
+  .p-chip:active { background: #1d1d1f; color: #fff; }
+  .dir-item {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  @media (min-width: 640px) {
+    .dir-item { flex-direction: row; align-items: center; justify-content: space-between; }
+  }
+  .dir-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .dir-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .dir-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+  .dir-info { min-width: 0; }
+  .dir-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .dir-fullname { font-size: 14px; font-weight: 700; color: var(--apple-ink); }
+  .dir-handle { font-size: 12px; font-weight: 500; color: var(--apple-secondary); }
+  .dir-mono { font-family: "SF Mono", ui-monospace, monospace; font-size: 11px; color: var(--apple-tertiary); margin-top: 3px; word-break: break-all; }
+  .dir-tag { font-family: "SF Mono", monospace; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #f5f5f7; color: var(--apple-ink); }
+  .adm-row {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  @media (min-width: 640px) {
+    .adm-row { flex-direction: row; align-items: center; justify-content: space-between; }
+  }
+  .adm-row:last-child { border-bottom: none; }
+  .empty-row { padding: 28px 12px; text-align: center; font-size: 13px; color: var(--apple-tertiary); }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
+  <!-- POPUP LOCKET GOLD ĐÃ KÍCH HOẠT (CÓ THỂ SỬA TIÊU ĐỀ & ẢNH TRONG ADMIN) -->
   <div id="locketGoldModal" class="locket-gold-modal-backdrop ${shouldShowPopup ? "" : "hidden"}">
     <div class="locket-gold-sheet">
-      <span class="sheet-gold-pill">${escapeHtml(popupBadge)}</span>
-      <h2 class="sheet-header-title">${escapeHtml(popupHeader)}</h2>
-
-      <!-- HIỂN THỊ TÊN & AVATAR LOCKET THẬT NGAY TRONG POPUP -->
-      <div class="locket-live-profile-card">
-        <div class="locket-live-avatar-wrap">
-          <img src="${escapeHtml(cachedAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(cachedFullName)}&background=1d1d1f&color=fcd34d'" class="locket-live-avatar" alt="Avatar">
-          <div class="locket-live-heart">💛</div>
-        </div>
-        <div style="min-width:0;">
-          <div style="font-size:16px;font-weight:800;color:#fff;">${escapeHtml(cachedFullName)}</div>
-          <div style="font-size:12px;color:#a3e635;">locket.cam/${escapeHtml(cachedUser || "gold")}</div>
-          <div style="font-size:11px;color:#fcd34d;margin-top:2px;">Huy hiệu Locket Gold: ĐÃ KHOÁ CỨNG BẬT 100%</div>
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;">
+        <div class="sheet-grabber"></div>
+        <div class="sheet-top-group">
+          <span id="modalBadgeText" class="sheet-gold-pill">${escapeHtml(popupBadge)}</span>
+          <h2 id="modalHeaderText" class="sheet-header-title">${escapeHtml(popupHeader)}</h2>
         </div>
       </div>
 
-      <div class="sheet-art-wrap">
-        <img src="${escapeHtml(popupImage)}" onerror="this.src='${DEFAULT_GOLD_POPUP_SVG}'" class="sheet-art-img" alt="Gold">
+      <div class="sheet-center-group">
+        <div class="sheet-art-wrap">
+          <img id="modalArtImg" src="${escapeHtml(popupImage)}" onerror="this.src='${DEFAULT_GOLD_POPUP_SVG}'" class="sheet-art-img" alt="Locket Gold Activated">
+        </div>
+        <div id="modalChannelTitle" class="sheet-channel-title">${escapeHtml(popupTitle)}</div>
+        <div id="modalChannelSub" class="sheet-channel-sub">${escapeHtml(popupSubtitle)}</div>
       </div>
-      <div style="font-size:18px;font-weight:800;">${escapeHtml(popupTitle)}</div>
-      <div style="font-size:14px;color:#a1a1aa;margin-top:4px;">${escapeHtml(popupSubtitle)}</div>
-      <button type="button" onclick="document.getElementById('locketGoldModal').classList.add('hidden')" class="sheet-done-btn">
-        ${escapeHtml(popupBtnText)}
-      </button>
+
+      <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+        <button type="button" onclick="closeGoldModalAndPush()" id="modalDoneBtn" class="sheet-done-btn">
+          ${escapeHtml(popupBtnText)}
+        </button>
+      </div>
     </div>
   </div>
-// === HẾT PHẦN 3/4 — DÁN NỐI TIẾP PHẦN 4/4 NGAY BÊN DƯỚI ===
-// ============================================================================
-// FILE: locket_com_v7_full.js (PHẦN 4/4 NÂNG CẤP — BỘ ĐỊNH TUYẾN KHOÁ CỨNG HUY HIỆU)
-// Dán nối tiếp ngay bên dưới Phần 3/4 để hoàn tất file locket_com_v7_full.js
-// ============================================================================
 
   <header class="apple-global-nav">
     <div class="nav-inner">
-      <a href="/setdate" style="text-decoration:none;color:var(--apple-ink);font-weight:700;font-size:14px;">
-        locket.com · V7 Full Suite (Huy Hiệu Khoá Cứng + Filter + Âm Thanh)
+      <a href="/setdate" class="nav-brand">
+        <span>locket.com</span>
+        <span style="color:#d2d2d7;">|</span>
+        <span style="font-size:11px;color:var(--apple-tertiary);font-weight:500;">LocketGold V6 · In-App Alert & AI</span>
       </a>
-      <div style="display:flex;gap:8px;">
-        <button type="button" onclick="document.getElementById('locketGoldModal').classList.remove('hidden')" class="apple-btn btn-gold" style="padding:6px 12px;font-size:11.5px;">
-          ✨ Mở Popup Gold
+      <div class="nav-right">
+        <button type="button" onclick="openGoldModal()" class="apple-btn btn-nav-gold">
+          ✨ Xem Popup Lên Gold
         </button>
-        <a href="/setdate?push_test=1" class="apple-btn btn-ink" style="padding:6px 12px;font-size:11.5px;">
-          🔔 Test Push
-        </a>
+        <button type="button" onclick="triggerPushNow()" class="apple-btn btn-nav-dark">
+          🔔 Bắn Thông Báo Đẩy Shadowrocket
+        </button>
+        <button type="button" onclick="toggleAdminDrawer()" class="apple-btn btn-nav-dark">
+          ${isAdminLogged ? `Root Admin (${ROOT_ADMIN_USER})` : "Quản Trị Admin"}
+        </button>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <div class="toast-msg">${escapeHtml(statusMsg || "")}</div>
 
-    <!-- THẺ HỒ SƠ LOCKET THẬT (TÊN + AVATAR + CÔNG TẮC HUY HIỆU ĐÃ KHOÁ CỨNG) -->
-    <section class="profile-hero-banner">
-      <div style="display:flex;align-items:center;gap:16px;">
-        <div class="locket-live-avatar-wrap" style="width:72px;height:72px;">
-          <img src="${escapeHtml(cachedAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(cachedFullName)}&background=1d1d1f&color=fcd34d'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid #f5b427;" alt="Locket Avatar">
-          <div class="locket-live-heart" style="width:24px;height:24px;font-size:13px;">💛</div>
-        </div>
+    <div id="realtimeBlockBanner" class="realtime-block-banner">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span class="pill-badge pill-rose-dark">THÔNG BÁO HẠN CHẾ TỪ QUẢN TRỊ VIÊN</span>
+        <span class="pill-badge pill-gold">VẪN GIỮ HUY HIỆU LOCKET GOLD 24/7</span>
+      </div>
+      <div style="font-size:17px;font-weight:700;margin-top:4px;">
+        Tài khoản của bạn đang bị Admin tạm chặn
+      </div>
+      <div id="realtimeBlockReasonText" style="font-size:13px;color:#fda4af;">
+        ${escapeHtml(cfg.blockReason)} — Khi Admin gỡ chặn, cảnh báo này và thông báo trong app Locket sẽ tự động tắt ngay lập tức theo thời gian thực.
+      </div>
+    </div>
+
+    <div id="statusToast" class="toast-msg">${escapeHtml(statusMsg || "")}</div>
+
+    <section id="adminCommandCenter" class="apple-bento-dark ${openAdminDrawer ? "" : "hidden"}">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.09);">
         <div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:22px;font-weight:800;color:#fff;">${escapeHtml(cachedFullName)}</span>
-            <span style="padding:3px 10px;border-radius:999px;background:#f5b427;color:#1c1917;font-size:11px;font-weight:800;">LOCKET GOLD SINCE 2026</span>
-          </div>
-          <div style="font-size:13.5px;color:#d4d4d8;margin-top:3px;">
-            Link: <strong>locket.cam/${escapeHtml(cachedUser || "hkh0805")}</strong> · UID: <code>${escapeHtml(displayUid)}</code>
-          </div>
-          <div style="font-size:12px;color:#86efac;margin-top:6px;">
-            ● Công tắc Huy hiệu Locket Gold: <strong>ĐÃ ÉP BẬT CỨNG 100% (Chống tự tắt)</strong> · Filter & Âm thanh: <strong>ĐÃ BẬT FULL</strong>
-          </div>
+          <span class="pill-badge" style="background:rgba(251,191,36,0.15);color:#fcd34d;border:1px solid rgba(251,191,36,0.3);">
+            Bảng Điều Khiển Quản Trị Hệ Thống
+          </span>
+          <h2 class="apple-titanium-text" style="font-size:24px;font-weight:700;margin-top:8px;">
+            Trung Tâm Quản Trị Gold · Sửa Popup & Thông Báo Khi Mở App Locket
+          </h2>
+          <p style="font-size:12px;color:#a1a1aa;margin-top:4px;">
+            Tuỳ chỉnh Tiêu đề + Ảnh của thông báo Lên Gold, tự động bắn thông báo mỗi khi mở app Locket và cấp lượt Filter AI.
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" onclick="openGoldModal()" class="apple-btn btn-gold-dark">Xem Thử Popup Gold</button>
+          <button type="button" onclick="triggerPushNow()" class="apple-btn btn-ai-dark">🔔 Test Thông Báo Đẩy Shadowrocket</button>
+          ${isAdminLogged ? `
+            <a href="/setdate?admin_logout=1" class="apple-btn btn-del-dark">Đăng Xuất Admin</a>
+          ` : ""}
+          <button type="button" onclick="toggleAdminDrawer()" class="apple-btn" style="padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:600;">
+            Thu Gọn
+          </button>
         </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/setdate?request_activate=1&gold_popup=1&push_test=1" class="apple-btn btn-gold">
-          ⚡ Ép Bật Huy Hiệu & Đồng Bộ Ngay Lên Locket
-        </a>
+
+      ${!isAdminLogged ? `
+        <form method="GET" action="/setdate" autocomplete="off" class="apple-subpanel-dark" style="max-width:420px;margin:24px auto 0;">
+          <input type="hidden" name="admin_drawer" value="1">
+          <input type="hidden" name="admin_login" value="1">
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Xác Thực Quản Trị Viên</div>
+            <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">Đăng Nhập Hệ Thống Admin</div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#a1a1aa;margin-bottom:6px;">Tài khoản Admin</label>
+            <input type="text" name="user" class="apple-input-dark" placeholder="Nhập username admin..." autocomplete="off" required>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:11px;color:#a1a1aa;margin-bottom:6px;">Mật khẩu bảo mật</label>
+            <input type="password" name="pass" class="apple-input-dark" placeholder="Nhập mật khẩu..." autocomplete="new-password" required>
+          </div>
+          <button type="submit" class="apple-btn btn-primary-blue">Đăng Nhập Quản Trị</button>
+        </form>
+      ` : `
+        <div style="margin-top:22px;display:flex;flex-direction:column;gap:20px;">
+          <div class="grid-3">
+            <div class="apple-subpanel-dark">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Phiên Đăng Nhập</div>
+              <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">${ROOT_ADMIN_USER}</div>
+              <div style="font-size:12px;color:#fcd34d;margin-top:2px;">Root Admin (Quyền Tối Cao)</div>
+            </div>
+            <div class="apple-subpanel-dark">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Thông Báo Khi Mở Locket</div>
+              <div style="font-size:20px;font-weight:700;color:#34d399;margin-top:4px;">Tự Động Bật 100%</div>
+              <div style="font-size:12px;color:#a1a1aa;margin-top:2px;">Bắn ngay trên cả Request & Response</div>
+            </div>
+            <div class="apple-subpanel-dark">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Đang Bị Chặn Cảnh Báo</div>
+              <div style="font-size:22px;font-weight:700;color:#fb7185;margin-top:4px;">${blockedCount}</div>
+              <div style="font-size:12px;color:#a1a1aa;margin-top:2px;">Báo trong Locket & vẫn giữ Gold</div>
+            </div>
+          </div>
+
+          <!-- KHUNG ADMIN CHỈNH SỬA TIÊU ĐỀ & ẢNH POPUP LOCKET GOLD + THÔNG BÁO ĐẨY SHADOWROCKET -->
+          <form method="GET" action="/setdate" class="apple-subpanel-dark">
+            <input type="hidden" name="admin_drawer" value="1">
+            <input type="hidden" name="admin_action" value="save_popup_config">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
+              <div>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#fcd34d;">
+                  Tuỳ Chỉnh Giao Diện Thông Báo "Lên Gold" & Thông Báo Đẩy Trong App Locket
+                </div>
+                <div style="font-size:11.5px;color:#a1a1aa;margin-top:2px;">
+                  Admin đổi Tiêu đề, Phụ đề và Link ảnh tại đây — nội dung sẽ áp dụng cho cả Popup Lên Gold và thông báo đẩy khi mở Locket.
+                </div>
+              </div>
+              <button type="button" onclick="resetDefaultGoldArt()" class="apple-btn btn-gold-dark">
+                Khôi Phục Ảnh Mặc Định
+              </button>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label class="field-lbl-dark">Nhãn Huy Hiệu Vàng Phía Trên (Badge)</label>
+                <input type="text" name="popupBadge" value="${escapeHtml(popupBadge)}" class="apple-input-dark" placeholder="LOCKET GOLD">
+              </div>
+              <div>
+                <label class="field-lbl-dark">Tiêu Đề Chính Khi Lên Gold (Header)</label>
+                <input type="text" name="popupHeader" value="${escapeHtml(popupHeader)}" class="apple-input-dark" placeholder="Đã Kích Hoạt 💛">
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:12px;">
+              <div>
+                <label class="field-lbl-dark">Tiêu Đề Kênh / Admin Bên Dưới Ảnh (Dòng 1)</label>
+                <input type="text" name="popupTitle" value="${escapeHtml(popupTitle)}" class="apple-input-dark" placeholder="Youtube @NightmarketServer ✨">
+              </div>
+              <div>
+                <label class="field-lbl-dark">Dòng Phụ Đề / Lời Nhắn Bên Dưới (Dòng 2)</label>
+                <input type="text" name="popupSubtitle" value="${escapeHtml(popupSubtitle)}" class="apple-input-dark" placeholder="Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛">
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:12px;">
+              <div>
+                <label class="field-lbl-dark">Link Ảnh Trung Tâm (URL .png/.jpg/.gif hoặc chọn từ máy)</label>
+                <input type="text" id="adminPopupImgInput" name="popupImage" value="${escapeHtml(popupImage)}" class="apple-input-dark" placeholder="https://.../gold.png">
+                <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <label style="padding:6px 12px;border-radius:9px;background:rgba(255,255,255,0.1);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">
+                    📁 Chọn Ảnh Từ Máy (Tự Nén)
+                    <input type="file" accept="image/*" onchange="encodeLocalImgFile(this)" style="display:none;">
+                  </label>
+                  <span style="font-size:11px;color:#a1a1aa;">Nếu dùng link https:// ảnh sẽ hiện cả trên thông báo đẩy</span>
+                </div>
+              </div>
+              <div>
+                <label class="field-lbl-dark">Chữ Trên Nút Đóng & Giãn Cách Thông Báo Khi Mở Locket (Giây)</label>
+                <div style="display:grid;grid-template-columns:1fr 120px;gap:8px;">
+                  <input type="text" name="popupBtnText" value="${escapeHtml(popupBtnText)}" class="apple-input-dark" placeholder="Done">
+                  <input type="number" name="pushCooldownSeconds" value="${escapeHtml(String(cfg.pushCooldownSeconds || 12))}" min="5" max="3600" class="apple-input-dark" placeholder="12">
+                </div>
+                <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#e4e4e7;">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" name="popupAutoShow" value="1" ${cfg.popupAutoShow !== false ? "checked" : ""}>
+                    Tự hiện Popup khi mở trang
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" name="pushNotifyOnActivate" value="1" ${cfg.pushNotifyOnActivate !== false ? "checked" : ""}>
+                    Tự bắn thông báo khi mở app Locket
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:16px;">
+              <button type="submit" class="apple-btn btn-primary-gold">
+                💾 Lưu Tiêu Đề & Ảnh + Bắn Thông Báo Ngay
+              </button>
+              <a href="/setdate?admin_drawer=1&push_test=1&gold_popup=1" class="apple-btn btn-primary-blue">
+                🔔 Test Nổ Thông Báo Đẩy Shadowrocket Ngay
+              </a>
+            </div>
+          </form>
+
+          <form method="GET" action="/setdate" class="apple-subpanel-dark">
+            <input type="hidden" name="admin_drawer" value="1">
+            <input type="hidden" name="admin_action" value="add_gold">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#fcd34d;margin-bottom:12px;">
+              Thêm / Cấp Nhanh Gold & Số Lượt Sử Dụng Filter AI Cho Người Dùng
+            </div>
+            <div class="grid-4">
+              <input type="text" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" class="apple-input-dark" placeholder="Nhập UID Locket..." required>
+              <input type="text" name="target_user" value="${escapeHtml(cachedUser)}" class="apple-input-dark" placeholder="Nhập @username hiển thị...">
+              <input type="number" name="target_ai_quota" value="${escapeHtml(String(currentAiQuota))}" min="0" max="999999999" class="apple-input-dark" placeholder="Số lượt Filter AI...">
+              <button type="submit" class="apple-btn" style="background:#fbbf24;color:#1d1d1f;font-weight:700;font-size:13px;border-radius:13px;padding:12px;">
+                Lưu & Cấp Lượt AI Ngay
+              </button>
+            </div>
+          </form>
+
+          <div class="apple-subpanel-dark">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#fff;">Quản Lý Danh Sách Tài Khoản Đã Lên Gold & Lượt Filter AI</div>
+                <div style="font-size:12px;color:#a1a1aa;">Có thể bắn thông báo Gold, cấp nhanh 999.999 lượt AI, chặn cảnh báo hoặc gỡ chặn tức thì.</div>
+              </div>
+              <a href="/setdate?admin_drawer=1&admin_action=unblock_all" style="font-size:12px;font-weight:600;color:#34d399;text-decoration:none;">Gỡ chặn tất cả</a>
+            </div>
+            ${adminTableHtml}
+          </div>
+        </div>
+      `}
+    </section>
+
+    <section class="hero-sec">
+      <div class="hero-pills">
+        <span class="hero-pill">LocketGold Hard Lock V6 · 25/05/2026</span>
+        <span class="hero-pill">Tự Nổ Thông Báo Khi Mở App Locket + Fix Bộ Lọc AI</span>
+      </div>
+      <h1 class="hero-title">
+        Mở khoá mọi hiệu ứng Lễ Hội.<br>
+        <span class="apple-gold-text">Hiện thông báo Gold ngay khi mở Locket.</span>
+      </h1>
+      <p class="hero-desc">
+        Đã gắn bộ kích hoạt thông báo trực tiếp vào mọi luồng kết nối của Locket, xử lý triệt để lỗi <strong>"Không thể áp dụng bộ lọc"</strong> và gỡ hoàn toàn màn hình mờ <strong>"Mở khóa bằng Locket Gold"</strong>.
+      </p>
+
+      <div class="spec-strip">
+        <div>
+          <div class="spec-box-lbl">Bộ Lọc AI & Lễ Hội</div>
+          <div class="spec-box-val" style="color:#059669;">HOẠT ĐỘNG 100%</div>
+        </div>
+        <div style="border-left:1px solid rgba(0,0,0,0.06);padding-left:8px;">
+          <div class="spec-box-lbl">Lượt Filter AI</div>
+          <div class="spec-box-val" style="color:#0071e3;">${escapeHtml(currentAiQuota.toLocaleString("vi-VN"))} LƯỢT</div>
+        </div>
+        <div style="border-left:1px solid rgba(0,0,0,0.06);border-right:1px solid rgba(0,0,0,0.06);padding:0 8px;">
+          <div class="spec-box-lbl">Mốc Đăng Ký</div>
+          <div class="spec-box-val">${escapeHtml(cfg.lockDate)}</div>
+        </div>
+        <div>
+          <div class="spec-box-lbl">User ID Đã Bắt</div>
+          <div class="spec-box-val">${escapeHtml(hasValidUid ? cachedUid.slice(0, 12) + "..." : "Chưa bắt")}</div>
+        </div>
       </div>
     </section>
 
     <section class="apple-bento-light">
-      <h2 style="font-size:20px;font-weight:700;margin-bottom:14px;">
-        Cấu Hình Hồ Sơ Locket, Ngày Lên Gold & Số Lượt Filter AI
-      </h2>
-      <form method="GET" action="/setdate" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:20px;border-bottom:1px solid rgba(0,0,0,0.06);">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b45309;">
+            Bước 01 — Kích Hoạt Nhanh, Thông Báo Đẩy Shadowrocket & Cấu Hình Lượt AI
+          </div>
+          <h2 style="font-size:22px;font-weight:700;color:var(--apple-ink);margin-top:4px;">
+            Bảng Điều Khiển Locket Gold & Hiệu Ứng AI
+          </h2>
+          <p style="font-size:13px;color:var(--apple-secondary);margin-top:2px;">
+            User ID hiện tại: <code style="font-family:monospace;background:#f5f5f7;padding:2px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" onclick="openGoldModal()" class="apple-btn btn-primary-gold" style="width:auto;padding:11px 20px;border-radius:999px;">
+            ✨ Hiện Thông Báo Đã Lên Gold
+          </button>
+          <button type="button" onclick="triggerPushNow()" class="apple-btn btn-primary-ink" style="width:auto;padding:11px 20px;border-radius:999px;">
+            🔔 Bắn Thông Báo Đẩy Shadowrocket
+          </button>
+          <a href="/setdate?request_activate=1&gold_popup=1&push_test=1" class="apple-btn btn-primary-blue" style="width:auto;padding:11px 22px;border-radius:999px;">
+            Kích Hoạt & Đồng Bộ Ngay Lên App
+          </a>
+        </div>
+      </div>
+
+      <form method="GET" action="/setdate" style="margin-top:22px;display:flex;flex-direction:column;gap:18px;">
         <input type="hidden" name="save" value="1">
-        <div class="grid-2">
-          <div>
-            <label style="font-size:12px;font-weight:600;">Tên hiển thị trên Locket (Tự bắt hoặc chỉnh tay)</label>
-            <input type="text" name="fullName" value="${escapeHtml(cachedFullName)}" class="apple-input-light" placeholder="hello mấy em">
+        <div class="apple-subpanel-light">
+          <div class="grid-2">
+            <div>
+              <label class="field-lbl">Số lượt sử dụng Filter AI / Tạo diện mạo (Nhập số bất kỳ)</label>
+              <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" min="0" max="999999999" class="apple-input-light" placeholder="999999">
+              <div class="preset-chips">
+                <button type="button" class="p-chip" onclick="setAiQuota('999999')">Vô hạn (999.999)</button>
+                <button type="button" class="p-chip" onclick="setAiQuota('10000')">10.000 lượt</button>
+                <button type="button" class="p-chip" onclick="setAiQuota('1000')">1.000 lượt</button>
+                <button type="button" class="p-chip" onclick="setAiQuota('500')">500 lượt</button>
+                <button type="button" class="p-chip" onclick="setAiQuota('100')">100 lượt</button>
+              </div>
+            </div>
+            <div>
+              <label class="field-lbl">Số lượt đã dùng hôm nay (Ép về 0 để không bao giờ khoá)</label>
+              <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" min="0" max="999999" class="apple-input-light" placeholder="0">
+              <div style="font-size:11px;color:var(--apple-tertiary);margin-top:8px;">
+                Tự động tắt <code>is_gold</code> / <code>requires_gold</code> / <code>blur</code> trên mọi hiệu ứng Camera & Lễ hội.
+              </div>
+            </div>
           </div>
-          <div>
-            <label style="font-size:12px;font-weight:600;">Username Locket (locket.cam/...)</label>
-            <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-input-light" placeholder="hkh0805">
+
+          <div class="grid-2" style="margin-top:16px;">
+            <div>
+              <label class="field-lbl">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
+              <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input-light" placeholder="2026-05-25">
+              <div class="preset-chips">
+                <button type="button" class="p-chip" onclick="setD('25/05/2026')">25/05/2026</button>
+                <button type="button" class="p-chip" onclick="setD('26/05/2010')">26/05/2010</button>
+                <button type="button" class="p-chip" onclick="setD('01/01/2022')">01/01/2022</button>
+                <button type="button" class="p-chip" onclick="setD('01/01/2020')">01/01/2020</button>
+              </div>
+            </div>
+            <div>
+              <label class="field-lbl">Tên hiển thị trên danh sách Đã Lên Gold (@username)</label>
+              <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-input-light" placeholder="Nhập @username của bạn...">
+              <div style="font-size:11px;color:var(--apple-tertiary);margin-top:8px;">
+                Tự động cập nhật tên và số lượt Filter AI vào danh sách bên dưới.
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top:16px;">
+            <div>
+              <label class="field-lbl">Mã gói đăng ký (Product Identifier)</label>
+              <select name="productId" class="apple-input-light">
+                <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
+                <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
+                <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-lbl">Ngày hết hạn gói (Mặc định vĩnh viễn 2099)</label>
+              <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input-light" placeholder="2099-12-31">
+            </div>
           </div>
         </div>
+
         <div class="grid-2">
-          <div>
-            <label style="font-size:12px;font-weight:600;">Link Avatar Locket (Tự bắt từ Locket hoặc dán URL)</label>
-            <input type="text" name="avatar" value="${escapeHtml(cachedAvatar)}" class="apple-input-light" placeholder="https://...">
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:600;">Ngày đăng ký Locket Gold (YYYY-MM-DD hoặc DD/MM/YYYY)</label>
-            <input type="text" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input-light" placeholder="2026-05-25">
-          </div>
-        </div>
-        <div class="grid-2">
-          <div>
-            <label style="font-size:12px;font-weight:600;">Số lượt Filter AI / Tạo diện mạo</label>
-            <input type="number" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input-light">
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:600;">Ngày hết hạn gói Gold</label>
-            <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input-light" placeholder="2099-12-31">
-          </div>
-        </div>
-        <div class="grid-2">
-          <button type="submit" class="apple-btn btn-blue">💾 Lưu Cấu Hình & Khoá Cứng Huy Hiệu + Filter + Âm Thanh</button>
-          <a href="/setdate?reset=1" class="apple-btn btn-ink">Khôi Phục Mặc Định (25/05/2026)</a>
+          <button type="submit" class="apple-btn btn-primary-ink">Lưu Cấu Hình & Mở Khoá Full Hiệu Ứng Lễ Hội / AI</button>
+          <a href="/setdate?reset=1" class="apple-btn btn-soft">Khôi Phục Mặc Định (25/05/2026 · 999.999 Lượt AI)</a>
         </div>
       </form>
     </section>
 
     <section class="apple-bento-light">
-      <h3 style="font-size:18px;font-weight:700;margin-bottom:10px;">
-        Danh Sách Tài Khoản Đã Bắt Tên + Avatar Thật (${goldUsersList.length})
-      </h3>
-      <div>${goldDirectoryHtml}</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;padding-bottom:18px;border-bottom:1px solid rgba(0,0,0,0.06);">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--apple-tertiary);">
+              Danh Sách Thành Viên Đã Kích Hoạt
+            </span>
+            <span style="padding:2px 10px;border-radius:999px;background:#1d1d1f;color:#fff;font-size:10.5px;font-weight:600;">
+              ${goldUsersList.length} tài khoản đã lên Gold
+            </span>
+          </div>
+          <h3 style="font-size:21px;font-weight:700;color:var(--apple-ink);">
+            Danh Sách Tài Khoản Đã Lên Locket Gold & Lượt Filter AI
+          </h3>
+          <p style="font-size:12.5px;color:var(--apple-secondary);margin-top:2px;">
+            Cập nhật trực tiếp theo thời gian thực khi người dùng mở Locket hoặc chỉnh số lượt Filter AI.
+          </p>
+        </div>
+        <div style="width:100%;max-width:260px;">
+          <input type="text" id="searchGoldInput" oninput="filterGoldUsers()" class="apple-input-light" style="padding:9px 14px;font-size:12.5px;" placeholder="Tìm @username hoặc UID...">
+        </div>
+      </div>
+
+      <div id="goldDirectoryList" style="margin-top:8px;">
+        ${goldDirectoryHtml}
+      </div>
     </section>
+
   </main>
+
+  <script>
+    function setD(v) {
+      var el = document.getElementById('lockDateInput');
+      if (el) el.value = v;
+    }
+    function setAiQuota(v) {
+      var el = document.getElementById('aiQuotaInput');
+      if (el) el.value = v;
+    }
+    function openGoldModal() {
+      var m = document.getElementById('locketGoldModal');
+      if (m) m.classList.remove('hidden');
+    }
+    function closeGoldModal() {
+      var m = document.getElementById('locketGoldModal');
+      if (m) m.classList.add('hidden');
+    }
+    function closeGoldModalAndPush() {
+      closeGoldModal();
+      fetch('/setdate?api=trigger_push&t=' + Date.now(), { cache: 'no-store' }).catch(function() {});
+    }
+    function triggerPushNow() {
+      var toast = document.getElementById('statusToast');
+      fetch('/setdate?api=trigger_push&t=' + Date.now(), { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (toast) {
+            toast.style.display = 'block';
+            toast.textContent = (d && d.msg) ? d.msg : 'Đã bắn thông báo đẩy Shadowrocket thành công!';
+          }
+        })
+        .catch(function() {
+          window.location.href = '/setdate?push_test=1';
+        });
+    }
+    function resetDefaultGoldArt() {
+      var inp = document.getElementById('adminPopupImgInput');
+      if (inp) inp.value = '';
+    }
+    function encodeLocalImgFile(fileInput) {
+      if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+      var file = fileInput.files[0];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var maxDim = 260;
+          var w = img.width;
+          var h = img.height;
+          if (w > h && w > maxDim) {
+            h = Math.round(h * (maxDim / w));
+            w = maxDim;
+          } else if (h >= w && h > maxDim) {
+            w = Math.round(w * (maxDim / h));
+            h = maxDim;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          var inp = document.getElementById('adminPopupImgInput');
+          var preview = document.getElementById('modalArtImg');
+          if (inp) inp.value = dataUrl;
+          if (preview) preview.src = dataUrl;
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    function toggleAdminDrawer() {
+      var sec = document.getElementById('adminCommandCenter');
+      if (!sec) return;
+      sec.classList.toggle('hidden');
+      if (!sec.classList.contains('hidden')) {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    function filterGoldUsers() {
+      var q = (document.getElementById('searchGoldInput').value || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#goldDirectoryList .dir-item');
+      for (var i = 0; i < rows.length; i++) {
+        var hay = rows[i].getAttribute('data-search') || '';
+        rows[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
+      }
+    }
+    setInterval(function() {
+      fetch('/setdate?api=realtime_status&t=' + Date.now(), { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (!d || !d.ok) return;
+          var banner = document.getElementById('realtimeBlockBanner');
+          var reasonEl = document.getElementById('realtimeBlockReasonText');
+          if (d.blocked) {
+            if (banner) banner.style.display = 'flex';
+            if (reasonEl && d.reason) reasonEl.textContent = d.reason;
+          } else {
+            if (banner) banner.style.display = 'none';
+          }
+        })
+        .catch(function() {});
+    }, 2500);
+  </script>
 </body>
 </html>`;
 }
 
-// ĐỒNG BỘ CHỦ ĐỘNG: ÉP BẬT HUY HIỆU LÊN CẢ API.LOCKETCAMERA.COM LẪN CLOUD FUNCTIONS
-function forcePushBadgeToLocketServers(callback) {
+function pushAdminCmdToServer(action, targetUid, targetUser, targetAiQuota, callback) {
+    if (!ADMIN_API_URL || ADMIN_API_URL.includes("your-domain.com") || !targetUid) {
+        if (callback) callback();
+        return;
+    }
+    const apiUrl = ADMIN_API_URL + (ADMIN_API_URL.includes("?") ? "&" : "?") + "api=realtime_admin_cmd";
+    Env.httpPost({
+        url: apiUrl,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            admin_user: ROOT_ADMIN_USER,
+            admin_pass: ROOT_ADMIN_PASS_1,
+            action: action,
+            target_uid: targetUid,
+            target_user: targetUser || "",
+            target_ai_quota: targetAiQuota,
+            ts: Date.now()
+        }),
+        timeout: 3
+    }, () => {
+        if (callback) callback();
+    });
+}
+
+function runCronBadgeSync() {
     const cfg = loadConfig();
     const uid = Env.read(USER_ID_CACHE_KEY);
     const rcKey = Env.read(RC_API_KEY_CACHE_KEY);
@@ -2110,70 +2511,74 @@ function forcePushBadgeToLocketServers(callback) {
     const quotaStr = String(sanitizeQuotaNumber(cfg.aiFilterQuota, 999999));
     const nowMs = Date.now();
 
-    let pending = 0;
-    const doneOne = () => {
-        pending--;
-        if (pending <= 0 && callback) callback();
-    };
+    syncRealtimeWithServer(uid, cfg, "sync", (rtState) => {
+        triggerInAppLocketBlockAlert(uid, rtState.reason, rtState.blocked, false);
 
-    if (uid && rcKey) {
-        pending++;
-        Env.httpPost({
-            url: `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}/attributes`,
-            headers: {
-                "Authorization": rcKey,
-                "Content-Type": "application/json",
-                "X-Platform": "iOS"
-            },
-            body: JSON.stringify({
+        if (!uid && !bearer) {
+            if (cfg.notifyOnSync) {
+                fireNativeAppNotification(cfg, true);
+            }
+            Env.done();
+            return;
+        }
+
+        let pending = 0;
+        const finishOne = () => {
+            pending--;
+            if (pending <= 0) {
+                if (cfg.notifyOnSync && !rtState.blocked) {
+                    fireNativeAppNotification(cfg, true);
+                }
+                Env.done();
+            }
+        };
+
+        if (uid && rcKey) {
+            pending++;
+            const attrUrl = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}/attributes`;
+            const attrBody = JSON.stringify({
                 attributes: {
                     locket_gold_badge: { value: "true", updated_at_ms: nowMs },
                     badge: { value: "locket_gold", updated_at_ms: nowMs },
-                    show_gold_badge: { value: "true", updated_at_ms: nowMs },
-                    gold_badge_enabled: { value: "true", updated_at_ms: nowMs },
                     is_gold: { value: "true", updated_at_ms: nowMs },
-                    audio_recording_enabled: { value: "true", updated_at_ms: nowMs },
                     holiday_effects_unlocked: { value: "true", updated_at_ms: nowMs },
                     camera_effects_unlocked: { value: "true", updated_at_ms: nowMs },
-                    ai_filter_quota: { value: quotaStr, updated_at_ms: nowMs }
+                    ai_filter_quota: { value: quotaStr, updated_at_ms: nowMs },
+                    ai_filter_remaining: { value: quotaStr, updated_at_ms: nowMs },
+                    ai_looks_remaining: { value: quotaStr, updated_at_ms: nowMs }
                 }
-            })
-        }, () => doneOne());
-    }
-
-    if (bearer) {
-        const badgePayload = JSON.stringify({
-            data: {
-                badge: "locket_gold",
-                locket_gold_badge: true,
-                gold_badge: true,
-                show_gold_badge: true,
-                gold_badge_enabled: true
-            }
-        });
-        pending += 2;
-        Env.httpPost({
-            url: "https://api.locketcamera.com/changeProfileInfo",
-            headers: { "Authorization": bearer, "Content-Type": "application/json" },
-            body: badgePayload
-        }, () => doneOne());
-        Env.httpPost({
-            url: "https://us-central1-locket-4252a.cloudfunctions.net/changeProfileInfo",
-            headers: { "Authorization": bearer, "Content-Type": "application/json" },
-            body: badgePayload
-        }, () => doneOne());
-    }
-
-    if (pending === 0 && callback) callback();
-}
-
-function runCronBadgeSync() {
-    const cfg = loadConfig();
-    forcePushBadgeToLocketServers(() => {
-        if (cfg.notifyOnSync) {
-            fireNativeAppNotification(cfg, true);
+            });
+            Env.httpPost({
+                url: attrUrl,
+                headers: {
+                    "Authorization": rcKey,
+                    "Content-Type": "application/json",
+                    "X-Platform": "iOS"
+                },
+                body: attrBody
+            }, () => finishOne());
         }
-        Env.done();
+
+        if (bearer) {
+            pending++;
+            Env.httpPost({
+                url: "https://api.locketcamera.com/changeProfileInfo",
+                headers: {
+                    "Authorization": bearer,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    data: {
+                        badge: "locket_gold",
+                        locket_gold_badge: true
+                    }
+                })
+            }, () => finishOne());
+        }
+
+        if (pending === 0) {
+            Env.done();
+        }
     });
 }
 
@@ -2192,95 +2597,268 @@ if (isCronMode) {
     const uid = extractAndCacheCredentials(url, headers, $request.body);
     const currentCfg = loadConfig();
 
-    // 1. WEB PANEL QUẢN TRỊ (/setdate hoặc locket.gold)
+    // 1. GIAO DIỆN QUẢN TRỊ & POPUP TRÊN WEB (/setdate hoặc locket.gold)
     if (url.includes("/setdate") || url.includes("locket.gold")) {
         const q = parseQuery(url);
-        let statusMsg = "";
-        let forcePopup = q.gold_popup === "1";
 
-        if (q.reset === "1") {
-            saveConfig({ ...DEFAULT_CONFIG });
-            statusMsg = "Đã khôi phục mặc định & khoá cứng Huy hiệu Locket Gold!";
-        } else if (q.save === "1" || q.lockDate || q.aiFilterQuota !== undefined) {
-            if (q.username) Env.write(q.username.trim().replace(/^@/, ""), USERNAME_CACHE_KEY);
-            if (q.fullName) Env.write(q.fullName.trim(), FULLNAME_CACHE_KEY);
-            if (q.avatar) Env.write(q.avatar.trim(), AVATAR_CACHE_KEY);
-
-            const isoLock = toIsoDate(q.lockDate || currentCfg.lockDate, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
-            const isoExp = toIsoDate(q.expireDate || currentCfg.expireDate, DEFAULT_CONFIG.expireDate, "T23:59:59Z");
-            const newAiQuota = sanitizeQuotaNumber(q.aiFilterQuota !== undefined ? q.aiFilterQuota : currentCfg.aiFilterQuota, 999999);
-
-            const updated = {
-                ...currentCfg,
-                lockDate: isoLock.slice(0, 10),
-                expireDate: isoExp.slice(0, 10),
-                aiFilterQuota: newAiQuota,
-                aiFilterDailyLimit: newAiQuota,
-                alwaysForceBadge: true,
-                hardLockBadgeSwitch: true
-            };
-            saveConfig(updated);
-            if (uid && !uid.includes("RCAnonymousID")) {
-                upsertUserRecord(uid, {
-                    username: Env.read(USERNAME_CACHE_KEY),
-                    full_name: Env.read(FULLNAME_CACHE_KEY),
-                    avatar: Env.read(AVATAR_CACHE_KEY),
-                    lockDate: updated.lockDate,
-                    aiQuota: newAiQuota,
-                    touch: true
-                });
-            }
-            statusMsg = "Đã lưu Hồ sơ, khoá cứng Huy hiệu Locket Gold + Full Filter & Âm thanh!";
-        }
-
-        if (q.request_activate === "1" || q.push_test === "1") {
-            fireNativeAppNotification(loadConfig(), true);
-            forcePopup = true;
-            statusMsg = "Đã bắn thông báo & ép bật cứng Huy hiệu Locket Gold!";
-        }
-
-        const renderNow = () => {
-            const latest = loadConfig();
+        if (q.api === "trigger_push") {
+            fireNativeAppNotification(currentCfg, true);
             Env.done({
                 response: {
                     status: 200,
                     headers: {
-                        "Content-Type": "text/html; charset=utf-8",
+                        "Content-Type": "application/json; charset=utf-8",
                         "Cache-Control": "no-store, no-cache, must-revalidate"
                     },
-                    body: renderBentoWebPanel(latest, statusMsg, false, forcePopup)
+                    body: JSON.stringify({
+                        ok: true,
+                        msg: `Đã bắn thông báo đẩy Shadowrocket: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`
+                    })
                 }
             });
-        };
-
-        if (q.request_activate === "1") {
-            forcePushBadgeToLocketServers(renderNow);
+        } else if (q.api === "realtime_status") {
+            syncRealtimeWithServer(uid, currentCfg, "sync", (st) => {
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: JSON.stringify({
+                            ok: true,
+                            uid: uid,
+                            blocked: !!st.blocked,
+                            status: st.status,
+                            gold_kept: true,
+                            ai_quota: sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999),
+                            popup_header: currentCfg.popupHeader,
+                            popup_title: currentCfg.popupTitle,
+                            popup_subtitle: currentCfg.popupSubtitle,
+                            reason: st.reason || ""
+                        })
+                    }
+                });
+            });
         } else {
-            renderNow();
-        }
-    } else if (
-        // CHẶN ĐỨNG NGAY TỪ LÚC GỬI REQUEST (SHORT-CIRCUIT HTTP 200) NẾU LOCKET GỌI LỆNH BẬT/TẮT CÔNG TẮC HUY HIỆU:
-        // Giúp công tắc "Huy hiệu Locket Gold" giữ nguyên trạng thái BẬT (màu vàng) tức thì mà không bị server thật từ chối!
-        currentCfg.interceptBadgeToggleRequest !== false &&
-        (url.includes("changeProfileInfo") || url.includes("updateProfileBadge")) &&
-        typeof $request.body === "string" &&
-        ($request.body.includes("badge") || $request.body.includes("locket_gold"))
-    ) {
-        const forcedResp = buildForcedProfileBadgeResponse({}, currentCfg, uid);
-        Env.done({
-            response: {
-                status: 200,
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Cache-Control": "no-store, no-cache, must-revalidate"
-                },
-                body: JSON.stringify(forcedResp)
-            }
-        });
-    } else {
-        // 2. XỬ LÝ MỌI REQUEST KHÁC TRONG LOCKET:
-        fireNativeAppNotification(currentCfg, false);
+            let openDrawer = q.admin_drawer === "1";
+            let forcePopup = q.gold_popup === "1";
+            let statusMsg = "";
+            const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
 
+            if (q.push_test === "1") {
+                fireNativeAppNotification(currentCfg, true);
+                statusMsg = `Đã bắn thông báo đẩy Shadowrocket: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`;
+            }
+
+            if (q.admin_login === "1") {
+                openDrawer = true;
+                if (q.user === ROOT_ADMIN_USER && (q.pass === ROOT_ADMIN_PASS_1 || q.pass === ROOT_ADMIN_PASS_2)) {
+                    Env.write("1", ADMIN_SESSION_KEY);
+                    statusMsg = "Đã đăng nhập quyền Root Admin tối cao (ngominhduc).";
+                } else {
+                    statusMsg = "Sai tài khoản hoặc mật khẩu Quản trị viên.";
+                }
+            } else if (q.admin_logout === "1") {
+                openDrawer = false;
+                Env.write("0", ADMIN_SESSION_KEY);
+                statusMsg = "";
+            }
+
+            if (q.request_activate === "1") {
+                const targetUid = (uid && !uid.includes("RCAnonymousID")) ? uid : (Env.read(USER_ID_CACHE_KEY) || "UID_LOCKET_GOLD");
+                upsertUserRecord(targetUid, {
+                    username: q.username || Env.read(USERNAME_CACHE_KEY) || targetUid.slice(0, 10),
+                    lockDate: currentCfg.lockDate,
+                    productId: currentCfg.productId,
+                    aiQuota: currentCfg.aiFilterQuota,
+                    touch: true
+                });
+                fireNativeAppNotification(currentCfg, true);
+                forcePopup = true;
+                statusMsg = `Đã kích hoạt Locket Gold, hiển thị Popup & bắn thông báo đẩy Shadowrocket cho (${targetUid})!`;
+            }
+
+            if (q.admin_action && Env.read(ADMIN_SESSION_KEY) === "1") {
+                openDrawer = true;
+                const db = getLocalStore();
+                const tUid = (q.target_uid || "").trim();
+                const tUser = (q.target_user || "").trim().replace(/^@/, "");
+                const tAiQuota = q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota;
+
+                if (q.admin_action === "save_popup_config") {
+                    const newImg = (q.popupImage || "").trim() || DEFAULT_GOLD_POPUP_SVG;
+                    const newCooldown = Math.max(5, parseInt(q.pushCooldownSeconds || "12", 10) || 12);
+                    const updatedPopupCfg = {
+                        ...currentCfg,
+                        popupBadge: (q.popupBadge || "").trim() || DEFAULT_CONFIG.popupBadge,
+                        popupHeader: (q.popupHeader || "").trim() || DEFAULT_CONFIG.popupHeader,
+                        popupTitle: (q.popupTitle || "").trim() || DEFAULT_CONFIG.popupTitle,
+                        popupSubtitle: (q.popupSubtitle || "").trim() || DEFAULT_CONFIG.popupSubtitle,
+                        popupImage: newImg,
+                        popupBtnText: (q.popupBtnText || "").trim() || "Done",
+                        pushCooldownSeconds: newCooldown,
+                        popupAutoShow: q.popupAutoShow === "1",
+                        pushNotifyOnActivate: q.pushNotifyOnActivate === "1"
+                    };
+                    updatedPopupCfg.pushTitle = `${updatedPopupCfg.popupBadge} — ${updatedPopupCfg.popupHeader}`;
+                    updatedPopupCfg.pushSubtitle = updatedPopupCfg.popupTitle;
+                    updatedPopupCfg.pushBody = updatedPopupCfg.popupSubtitle;
+                    saveConfig(updatedPopupCfg);
+                    fireNativeAppNotification(updatedPopupCfg, true);
+                    forcePopup = true;
+                    statusMsg = "Đã cập nhật Tiêu đề & Ảnh Popup Lên Gold và bắn thông báo đẩy Shadowrocket!";
+                } else if (q.admin_action === "push_user_gold" && tUid) {
+                    fireNativeAppNotification(currentCfg, true);
+                    statusMsg = `Đã bắn thông báo đẩy Locket Gold tới thiết bị cho UID: ${tUid}!`;
+                } else if (q.admin_action === "unblock_all") {
+                    for (const k of Object.keys(db.users)) {
+                        db.users[k].status = "approved";
+                        db.users[k].blocked = false;
+                        db.users[k].reason = "";
+                        db.users[k].updated_at = nowStr;
+                    }
+                    saveLocalStore(db);
+                    triggerInAppLocketBlockAlert("", "", false, true);
+                    statusMsg = "Đã gỡ chặn toàn bộ người dùng theo thời gian thực!";
+                } else if (tUid) {
+                    if (q.admin_action === "add_gold" || q.admin_action === "unblock" || q.admin_action === "set_ai_quota") {
+                        db.users[tUid] = {
+                            ...(db.users[tUid] || {}),
+                            uid: tUid,
+                            username: tUser || (db.users[tUid] && db.users[tUid].username) || tUid.slice(0, 10),
+                            full_name: tUser || (db.users[tUid] && db.users[tUid].full_name) || tUid.slice(0, 10),
+                            status: "approved",
+                            gold_active: true,
+                            blocked: false,
+                            ai_quota: tAiQuota,
+                            reason: "",
+                            updated_at: nowStr
+                        };
+                        saveLocalStore(db);
+                        if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
+                            const updatedSelfCfg = {
+                                ...loadConfig(),
+                                aiFilterQuota: tAiQuota,
+                                aiFilterDailyLimit: tAiQuota
+                            };
+                            saveConfig(updatedSelfCfg);
+                        }
+                        triggerInAppLocketBlockAlert(tUid, "", false, true);
+                        fireNativeAppNotification(loadConfig(), true);
+                        statusMsg = `Đã cập nhật UID: ${tUid} — Đã mở khoá Gold, bắn thông báo đẩy & cấp ${tAiQuota.toLocaleString("vi-VN")} lượt Filter AI!`;
+                    } else if (q.admin_action === "block") {
+                        const blkMsg = "Tài khoản đang bị Admin hạn chế trong Locket (Vẫn giữ huy hiệu Locket Gold 24/7).";
+                        db.users[tUid] = {
+                            ...(db.users[tUid] || {}),
+                            uid: tUid,
+                            status: "blocked",
+                            gold_active: true,
+                            blocked: true,
+                            reason: blkMsg,
+                            updated_at: nowStr
+                        };
+                        saveLocalStore(db);
+                        triggerInAppLocketBlockAlert(tUid, blkMsg, true, true);
+                        statusMsg = `Đã chặn UID: ${tUid} — Đã bắn thông báo trong Locket & vẫn giữ nguyên Gold!`;
+                    } else if (q.admin_action === "delete") {
+                        delete db.users[tUid];
+                        saveLocalStore(db);
+                        statusMsg = `Đã xoá UID ${tUid} khỏi danh sách.`;
+                    }
+                }
+            }
+
+            const finishWebRender = () => {
+                const latestBeforeSync = loadConfig();
+                syncRealtimeWithServer(uid, latestBeforeSync, "sync", () => {
+                    let current = loadConfig();
+                    if (q.reset === "1") {
+                        const resetCfg = { ...DEFAULT_CONFIG, preferWebOverArg: true };
+                        saveConfig(resetCfg);
+                        current = loadConfig();
+                        fireNativeAppNotification(current, true);
+                        statusMsg = "Đã khôi phục mặc định (25/05/2026 & 999.999 lượt sử dụng Filter AI)!";
+                    } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined) {
+                        const rawLock = q.lockDate || q.d || current.lockDate;
+                        const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
+                        const rawExp = q.expireDate || current.expireDate;
+                        const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T23:59:59Z");
+                        const newAiQuota = q.aiFilterQuota !== undefined
+                            ? sanitizeQuotaNumber(q.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota)
+                            : sanitizeQuotaNumber(current.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
+                        const newAiUsed = q.aiFilterUsed !== undefined
+                            ? sanitizeQuotaNumber(q.aiFilterUsed, 0)
+                            : 0;
+
+                        if (q.username) {
+                            Env.write(q.username.trim().replace(/^@/, ""), USERNAME_CACHE_KEY);
+                        }
+                        const updated = {
+                            ...current,
+                            lockDate: isoLock.slice(0, 10),
+                            expireDate: isoExp.slice(0, 10),
+                            productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
+                            ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
+                            unlockAllCameraEffects: true,
+                            aiFilterEnabled: true,
+                            aiFilterQuota: newAiQuota,
+                            aiFilterDailyLimit: newAiQuota,
+                            aiFilterUsed: newAiUsed,
+                            aiFilterUnlimited: true,
+                            preferWebOverArg: true
+                        };
+                        saveConfig(updated);
+                        if (uid && !uid.includes("RCAnonymousID")) {
+                            upsertUserRecord(uid, {
+                                username: q.username ? q.username.trim().replace(/^@/, "") : undefined,
+                                lockDate: updated.lockDate,
+                                productId: updated.productId,
+                                aiQuota: newAiQuota,
+                                touch: true
+                            });
+                        }
+                        current = loadConfig();
+                        fireNativeAppNotification(current, true);
+                        statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, mở khoá Filter AI (${newAiQuota.toLocaleString("vi-VN")} lượt) & bắn thông báo đẩy!`;
+                    }
+
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "text/html; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache, must-revalidate"
+                            },
+                            body: renderBentoWebPanel(current, statusMsg, openDrawer, forcePopup)
+                        }
+                    });
+                });
+            };
+
+            if (q.admin_action && q.target_uid && Env.read(ADMIN_SESSION_KEY) === "1") {
+                pushAdminCmdToServer(
+                    q.admin_action,
+                    q.target_uid.trim(),
+                    q.target_user || "",
+                    q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota,
+                    finishWebRender
+                );
+            } else {
+                finishWebRender();
+            }
+        }
+    } else {
+        // 2. XỬ LÝ MỌI REQUEST KHI MỞ APP LOCKET:
+        // Bắn ngay thông báo Lên Gold khi mở app Locket (hoặc thông báo chặn nếu đang bị Admin khóa)
+        if (currentCfg.isBlockedByAdmin) {
+            triggerInAppLocketBlockAlert(uid, currentCfg.blockReason, true, false);
+        } else {
+            fireNativeAppNotification(currentCfg, false);
+        }
+
+        // Chỉ xóa ETag trên RevenueCat & Firebase Remote Config để ép Locket tải lại trạng thái Gold,
+        // giữ nguyên chữ ký x-signature trên Cloud Functions để Filter AI chạy mượt 100%
         const isRcOrRemoteConfig = (
             url.includes("revenuecat.com") ||
             url.includes("rc-backup.com") ||
@@ -2304,7 +2882,11 @@ if (isCronMode) {
         }
 
         let modifiedBody = $request.body;
-        if (typeof modifiedBody === "string" && modifiedBody.trim().startsWith("{")) {
+        if (
+            typeof modifiedBody === "string" &&
+            modifiedBody.trim().startsWith("{") &&
+            (url.includes("revenuecat.com") || url.includes("changeProfileInfo"))
+        ) {
             try {
                 const reqJson = JSON.parse(modifiedBody);
                 let touched = false;
@@ -2314,31 +2896,16 @@ if (isCronMode) {
                 if (reqJson.attributes && typeof reqJson.attributes === "object") {
                     reqJson.attributes.locket_gold_badge = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.badge = { value: "locket_gold", updated_at_ms: nowMs };
-                    reqJson.attributes.show_gold_badge = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.gold_badge_enabled = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.is_gold = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.holiday_effects_unlocked = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.camera_effects_unlocked = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.audio_recording_enabled = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.ai_filter_quota = { value: quotaStr, updated_at_ms: nowMs };
+                    reqJson.attributes.ai_filter_remaining = { value: quotaStr, updated_at_ms: nowMs };
                     touched = true;
                 }
-
-                if (
-                    url.includes("changeProfileInfo") ||
-                    url.includes("updateProfile") ||
-                    url.includes("updateUser")
-                ) {
-                    if (!reqJson.data || typeof reqJson.data !== "object") {
-                        reqJson.data = {};
-                    }
+                if (url.includes("changeProfileInfo") && reqJson.data && typeof reqJson.data === "object") {
                     reqJson.data.badge = "locket_gold";
                     reqJson.data.locket_gold_badge = true;
-                    reqJson.data.gold_badge = true;
-                    reqJson.data.has_gold_badge = true;
-                    reqJson.data.show_gold_badge = true;
-                    reqJson.data.gold_badge_enabled = true;
-                    reqJson.data.hide_gold_badge = false;
                     touched = true;
                 }
 
@@ -2361,109 +2928,88 @@ if (isCronMode) {
     const resolvedUserId = extractAndCacheCredentials(reqUrl, reqHeaders, $response.body);
     const cfg = loadConfig();
 
-    fireNativeAppNotification(cfg, false);
-
-    const isProfileBadgeEndpoint = (
-        reqUrl.includes("changeProfileInfo") ||
-        reqUrl.includes("updateProfile") ||
-        reqUrl.includes("updateUser") ||
-        reqUrl.includes("getUser") ||
-        reqUrl.includes("fetchUser")
-    );
+    // Đảm bảo khi Locket nhận bất kỳ phản hồi nào từ server cũng đều kích hoạt thông báo Lên Gold
+    if (cfg.isBlockedByAdmin) {
+        triggerInAppLocketBlockAlert(resolvedUserId, cfg.blockReason, true, false);
+    } else {
+        fireNativeAppNotification(cfg, false);
+    }
 
     const rawBody = $response.body || "";
-    let obj = null;
-    if (typeof rawBody === "string" && (rawBody.trim().startsWith("{") || rawBody.trim().startsWith("["))) {
+    if (typeof rawBody !== "string" || (!rawBody.trim().startsWith("{") && !rawBody.trim().startsWith("["))) {
+        Env.done({});
+    } else {
+        let obj;
         try {
             obj = JSON.parse(rawBody);
         } catch (e) {
+            Env.done({});
             obj = null;
         }
-    }
 
-    if (isProfileBadgeEndpoint && (!obj || obj.error || ($response && $response.status >= 400))) {
-        const forcedProfileObj = buildForcedProfileBadgeResponse(obj, cfg, resolvedUserId);
-        const resHeaders = { ...($response.headers || {}) };
-        delete resHeaders["content-length"];
-        delete resHeaders["Content-Length"];
-        resHeaders["Content-Type"] = "application/json; charset=utf-8";
-        resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
-        Env.done({
-            status: 200,
-            headers: resHeaders,
-            body: JSON.stringify(forcedProfileObj)
-        });
-    } else if (!obj || typeof obj !== "object") {
-        Env.done({});
-    } else {
-        const isRevenueCat = (
-            reqUrl.includes("revenuecat.com") ||
-            reqUrl.includes("rc-backup.com") ||
-            reqUrl.includes("/subscribers") ||
-            reqUrl.includes("/receipts") ||
-            obj.subscriber !== undefined
-        );
+        if (obj && typeof obj === "object") {
+            const isRevenueCat = (
+                reqUrl.includes("revenuecat.com") ||
+                reqUrl.includes("rc-backup.com") ||
+                reqUrl.includes("/subscribers") ||
+                reqUrl.includes("/receipts") ||
+                obj.subscriber !== undefined
+            );
 
-        const isOfferings = reqUrl.includes("/offerings") || obj.offerings !== undefined;
+            const isOfferings = reqUrl.includes("/offerings") || obj.offerings !== undefined;
 
-        const isFirebaseRemoteConfig = (
-            reqUrl.includes("firebaseremoteconfig.googleapis.com") ||
-            (obj.entries !== undefined && typeof obj.entries === "object")
-        );
+            const isFirebaseRemoteConfig = (
+                reqUrl.includes("firebaseremoteconfig.googleapis.com") ||
+                (obj.entries !== undefined && typeof obj.entries === "object")
+            );
 
-        if (isFirebaseRemoteConfig) {
-            obj = injectFirebaseRemoteConfig(obj, cfg);
-        } else if (isOfferings) {
-            obj = patchRevenueCatOfferings(obj, cfg);
-        } else if (isRevenueCat) {
-            obj = buildSubscriberPayload(obj, cfg, resolvedUserId, requestedUrlUserId);
-        } else {
-            if (isProfileBadgeEndpoint) {
-                obj = buildForcedProfileBadgeResponse(obj, cfg, resolvedUserId);
-            }
-            if (obj.error && typeof obj.error === "object") {
-                delete obj.error;
-                obj.result = obj.result || {
-                    status: 200,
-                    ok: true,
-                    can_use: true,
-                    badge: "locket_gold",
-                    locket_gold_badge: true,
-                    remaining: sanitizeQuotaNumber(cfg.aiFilterQuota, 999999)
-                };
-            }
-            obj = deepForceBadgeAndAiQuotaInObject(obj, cfg);
-            if (obj.subscriber && typeof obj.subscriber === "object") {
-                obj = buildSubscriberPayload(obj, cfg, resolvedUserId, requestedUrlUserId);
-            }
-            if (obj.entries && typeof obj.entries === "object") {
+            if (isFirebaseRemoteConfig) {
                 obj = injectFirebaseRemoteConfig(obj, cfg);
+            } else if (isOfferings) {
+                obj = patchRevenueCatOfferings(obj, cfg);
+            } else if (isRevenueCat) {
+                obj = buildSubscriberPayload(obj, cfg, resolvedUserId, requestedUrlUserId);
+            } else {
+                if (obj.error && typeof obj.error === "object") {
+                    const errMsg = String(obj.error.message || obj.error.status || "").toLowerCase();
+                    if (errMsg.includes("quota") || errMsg.includes("limit") || errMsg.includes("gold") || errMsg.includes("permission")) {
+                        delete obj.error;
+                        obj.result = obj.result || { ok: true, can_use: true, remaining: sanitizeQuotaNumber(cfg.aiFilterQuota, 999999) };
+                    }
+                }
+                obj = deepForceBadgeAndAiQuotaInObject(obj, cfg);
+                if (obj.subscriber && typeof obj.subscriber === "object") {
+                    obj = buildSubscriberPayload(obj, cfg, resolvedUserId, requestedUrlUserId);
+                }
+                if (obj.entries && typeof obj.entries === "object") {
+                    obj = injectFirebaseRemoteConfig(obj, cfg);
+                }
             }
-        }
 
-        const resHeaders = { ...($response.headers || {}) };
-        for (const k of Object.keys(resHeaders)) {
-            const low = k.toLowerCase();
-            if (
-                low === "x-revenuecat-etag" ||
-                low === "etag" ||
-                low === "x-signature" ||
-                low === "x-revenuecat-request-id" ||
-                low === "content-length"
-            ) {
-                delete resHeaders[k];
+            const resHeaders = { ...($response.headers || {}) };
+            for (const k of Object.keys(resHeaders)) {
+                const low = k.toLowerCase();
+                if (
+                    low === "x-revenuecat-etag" ||
+                    low === "etag" ||
+                    low === "x-signature" ||
+                    low === "x-revenuecat-request-id" ||
+                    low === "content-length"
+                ) {
+                    delete resHeaders[k];
+                }
             }
+            resHeaders["Content-Type"] = "application/json; charset=utf-8";
+            resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
+
+            const origStatus = ($response && $response.status) ? $response.status : 200;
+            const finalStatus = (isRevenueCat || isOfferings || isFirebaseRemoteConfig || origStatus === 304) ? 200 : origStatus;
+
+            Env.done({
+                status: finalStatus,
+                headers: resHeaders,
+                body: JSON.stringify(obj)
+            });
         }
-        resHeaders["Content-Type"] = "application/json; charset=utf-8";
-        resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
-
-        const origStatus = ($response && $response.status) ? $response.status : 200;
-        const finalStatus = (isRevenueCat || isOfferings || isFirebaseRemoteConfig || isProfileBadgeEndpoint || origStatus >= 300) ? 200 : origStatus;
-
-        Env.done({
-            status: finalStatus,
-            headers: resHeaders,
-            body: JSON.stringify(obj)
-        });
     }
 }
