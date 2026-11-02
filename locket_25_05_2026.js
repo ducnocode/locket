@@ -2,7 +2,7 @@
 // Repo: https://raw.githubusercontent.com/ducnocode/locket/main/locket_25_05_2026.js
 // Locket Gold Hard Lock V4 + Remote PHP Admin Gatekeeper (Auto Register UID + Remote Block/Unblock)
 
-const ADMIN_API_URL = "https://your-domain.com/admin.php"; // <-- THAY LINK FILE admin.php CỦA BẠN VÀO ĐÂY
+const ADMIN_API_URL = "https://locketgold.66ghz.com/admin.php"; // <-- THAY LINK FILE admin.php CỦA BẠN VÀO ĐÂY
 
 const DEFAULT_CONFIG = {
     lockDate: "2026-05-25",
