@@ -1,6 +1,6 @@
 // file: locket_25_05_2026.js
 // Runtime: Shadowrocket / Loon / Surge / Quantumult X
-// Locket Gold Hard Lock V4 — Apple Design UI (Zero Icons) + Embedded Admin + Native Shadowrocket Block Push Notification
+// Locket Gold Hard Lock V4 — True Apple iOS 18 ProMotion UI (Zero Icons, Sliding Segmented Pill, iOS Switch, Zero Exposed Credentials)
 
 const ADMIN_API_URL = "https://locketgold.66ghz.com/admin.php";
 const ADMIN_USER = "ngominhduc";
@@ -110,11 +110,9 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     return fallbackDate + timeSuffix;
 }
 
-// Bắn thông báo đẩy trực tiếp trên Shadowrocket khi tài khoản bị Admin chặn
 function notifyShadowrocketBlocked(uid, reason, forceNow = false) {
     const now = Date.now();
     const lastTs = parseInt(Env.read(BLOCK_NOTIFY_COOLDOWN_KEY) || "0", 10);
-    // Tránh spam liên tục mỗi mili-giây nhưng luôn báo khi mở Locket hoặc vừa bị chặn (cách nhau 15 giây)
     if (forceNow || (now - lastTs > 15000)) {
         Env.write(String(now), BLOCK_NOTIFY_COOLDOWN_KEY);
         Env.notify(
@@ -147,14 +145,14 @@ function registerUidIfNew(uid, extra = {}) {
     if (!db.users[uid]) {
         db.users[uid] = {
             uid: uid,
-            status: "unactivated", // unactivated | pending | approved | blocked
+            status: "unactivated",
             note: extra.note || "",
             lock_date: extra.lockDate || DEFAULT_CONFIG.lockDate,
             product_id: extra.productId || DEFAULT_CONFIG.productId,
             requested_at: null,
             approved_at: null,
             updated_at: nowStr,
-            reason: "Chưa kích hoạt. Vui lòng vào trang chỉnh sửa nhấn Kích hoạt và chờ Admin duyệt."
+            reason: "Chưa kích hoạt. Vui lòng nhấn Kích hoạt trong bảng điều khiển và chờ Admin duyệt."
         };
         saveLocalUserStore(db);
     } else if (extra.touch) {
@@ -665,11 +663,11 @@ function deepForceBadgeInObject(node, cfg, depth = 0) {
     return node;
 }
 
-// Giao diện Apple Human Interface Guidelines (Pure Typography, Frosted Glass, Zero Icons)
-function renderWebPanel(cfg, statusMsg, activeView = "user") {
+// Giao diện Apple iOS 18 ProMotion (Sliding Pill Segmented Control, Native iOS Switch, Inset Grouped Cards, Không lộ tên tài khoản Admin)
+function renderWebPanel(cfg, statusMsg, initialView = "user") {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const hasValidUid = cachedUid && !cachedUid.includes("RCAnonymousID");
-    const displayUid = hasValidUid ? cachedUid : "Chưa ghi nhận (Mở ứng dụng Locket 1 lần)";
+    const displayUid = hasValidUid ? cachedUid : "Chưa ghi nhận (Mở Locket 1 lần)";
     const isAdminAuthenticated = Env.read(ADMIN_SESSION_KEY) === "1";
 
     const db = getLocalUserStore();
@@ -682,214 +680,268 @@ function renderWebPanel(cfg, statusMsg, activeView = "user") {
     const countApproved = allUsers.filter(u => u.status === "approved").length;
     const countBlocked = allUsers.filter(u => u.status === "blocked").length;
 
-    let badgeStateText = "CHƯA KÍCH HOẠT";
-    let badgeStateColor = "#86868b";
+    let badgeStateText = "CHỜ KÍCH HOẠT";
+    let badgeStateColor = "#8e8e93";
     if (cfg.approvalStatus === "approved") {
         badgeStateText = "ALWAYS ON (NEVER OFF)";
-        badgeStateColor = "#f5a623";
+        badgeStateColor = "#ff9f0a";
     } else if (cfg.approvalStatus === "pending") {
-        badgeStateText = "WAITING FOR ADMIN APPROVAL";
-        badgeStateColor = "#f5a623";
+        badgeStateText = "ĐANG CHỜ ADMIN DUYỆT";
+        badgeStateColor = "#ff9f0a";
     } else if (cfg.approvalStatus === "blocked") {
-        badgeStateText = "REVOKED BY ADMINISTRATOR";
+        badgeStateText = "ĐÃ BỊ ADMIN CHẶN";
         badgeStateColor = "#ff453a";
     }
 
     let adminRowsHtml = "";
     if (allUsers.length === 0) {
-        adminRowsHtml = `<div class="empty-state">Chưa có dữ liệu người dùng trong bộ nhớ.</div>`;
+        adminRowsHtml = `<div class="empty-box">Chưa có yêu cầu kích hoạt nào trong bộ nhớ.</div>`;
     } else {
         for (const item of allUsers) {
             const st = item.status || "unactivated";
-            let tagClass = "tag-neutral";
-            let tagLabel = "Chưa gửi";
-            if (st === "pending") { tagClass = "tag-amber"; tagLabel = "Chờ duyệt"; }
-            else if (st === "approved") { tagClass = "tag-green"; tagLabel = "Đã duyệt"; }
-            else if (st === "blocked") { tagClass = "tag-red"; tagLabel = "Đã chặn"; }
+            let pillClass = "pill-gray";
+            let pillLabel = "Chưa gửi";
+            if (st === "pending") { pillClass = "pill-amber"; pillLabel = "Chờ duyệt"; }
+            else if (st === "approved") { pillClass = "pill-green"; pillLabel = "Đã duyệt"; }
+            else if (st === "blocked") { pillClass = "pill-red"; pillLabel = "Đã chặn"; }
 
             adminRowsHtml += `
-            <div class="user-card">
-              <div class="user-card-header">
-                <span class="mono-id">${escapeHtml(item.uid)}</span>
-                <span class="status-tag ${tagClass}">${tagLabel}</span>
+            <div class="u-card">
+              <div class="u-head">
+                <span class="u-id">${escapeHtml(item.uid)}</span>
+                <span class="u-pill ${pillClass}">${pillLabel}</span>
               </div>
-              <div class="user-card-meta">
-                <span>Ghi chú: ${escapeHtml(item.note || "Mặc định")}</span>
-                <span>Mốc khoá: ${escapeHtml(item.force_lock_date || item.lock_date || "2026-05-25")}</span>
+              <div class="u-sub">
+                <span>${escapeHtml(item.note || "Thiết bị người dùng")}</span>
+                <span>${escapeHtml(item.force_lock_date || item.lock_date || "2026-05-25")}</span>
               </div>
-              <div class="action-bar">
-                <a class="action-link link-approve" href="/setdate?view=admin&admin_action=approve&target_uid=${encodeURIComponent(item.uid)}">Phê duyệt</a>
-                <a class="action-link link-block" href="/setdate?view=admin&admin_action=block&target_uid=${encodeURIComponent(item.uid)}">Chặn & Báo App</a>
-                <a class="action-link link-delete" href="/setdate?view=admin&admin_action=delete&target_uid=${encodeURIComponent(item.uid)}">Xoá</a>
+              <div class="u-btns">
+                <a class="u-btn b-ok" href="/setdate?view=admin&admin_action=approve&target_uid=${encodeURIComponent(item.uid)}">Phê duyệt</a>
+                <a class="u-btn b-blk" href="/setdate?view=admin&admin_action=block&target_uid=${encodeURIComponent(item.uid)}">Chặn</a>
+                <a class="u-btn b-del" href="/setdate?view=admin&admin_action=delete&target_uid=${encodeURIComponent(item.uid)}">Xoá</a>
               </div>
             </div>`;
         }
     }
 
+    const startOnAdmin = initialView === "admin";
+
     return `<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Locket Gold Control Panel</title>
 <style>
   :root {
     --bg: #000000;
-    --surface: rgba(28, 28, 30, 0.78);
-    --surface-elevated: rgba(44, 44, 46, 0.65);
-    --border: rgba(255, 255, 255, 0.09);
-    --border-focus: rgba(245, 166, 35, 0.65);
-    --text-primary: #f5f5f7;
-    --text-secondary: #86868b;
-    --accent: #f5a623;
-    --accent-bright: #ffb840;
+    --card: rgba(28, 28, 30, 0.72);
+    --card-solid: #1c1c1e;
+    --input-bg: rgba(44, 44, 46, 0.65);
+    --sep: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.07);
+    --text: #ffffff;
+    --sub: #8e8e93;
+    --gold: #ff9f0a;
+    --gold-grad: linear-gradient(180deg, #ffb340 0%, #ff9f0a 100%);
     --green: #30d158;
     --red: #ff453a;
+    --spring: cubic-bezier(0.32, 0.72, 0, 1);
   }
   * {
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
   body {
     margin: 0;
-    padding: 28px 16px 56px;
-    background-color: var(--bg);
-    background-image: radial-gradient(circle at 50% -10%, rgba(245, 166, 35, 0.12), transparent 55%);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    padding: 24px 16px 64px;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 35% at 50% -8%, rgba(255, 159, 10, 0.16), transparent 70%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
     letter-spacing: -0.015em;
+    overflow-x: hidden;
   }
-  .container {
-    max-width: 440px;
+  .shell {
+    max-width: 430px;
     margin: 0 auto;
   }
-  .hero {
+  .header {
     text-align: center;
-    margin-bottom: 22px;
+    margin-bottom: 20px;
   }
-  .eyebrow {
+  .badge-cap {
     display: inline-block;
-    padding: 5px 14px;
-    border-radius: 980px;
-    background: rgba(245, 166, 35, 0.12);
-    border: 1px solid rgba(245, 166, 35, 0.32);
-    color: var(--accent);
-    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 159, 10, 0.12);
+    border: 0.5px solid rgba(255, 159, 10, 0.35);
+    color: var(--gold);
+    font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
   h1 {
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.03em;
-    margin: 0 0 8px;
-    color: var(--text-primary);
+    margin: 0 0 6px;
   }
-  .subtitle {
+  .lead {
     font-size: 13px;
     line-height: 1.45;
-    color: var(--text-secondary);
-    max-width: 340px;
+    color: var(--sub);
+    max-width: 310px;
     margin: 0 auto;
   }
-  .segmented {
-    display: flex;
-    background: rgba(28, 28, 30, 0.9);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 3px;
+  /* Apple iOS Sliding Segmented Control */
+  .seg-wrap {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: rgba(118, 118, 128, 0.24);
+    border-radius: 10px;
+    padding: 2px;
     margin-bottom: 18px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    user-select: none;
   }
-  .seg-item {
-    flex: 1;
-    text-align: center;
-    padding: 9px 10px;
+  .seg-glider {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 2px;
+    width: calc(50% - 2px);
+    background: #636366;
+    border-radius: 8px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+    transition: transform 0.35s var(--spring);
+    z-index: 1;
+  }
+  .seg-wrap.admin-active .seg-glider {
+    transform: translateX(100%);
+  }
+  .seg-btn {
+    position: relative;
+    z-index: 2;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.65);
+    padding: 7px 10px;
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-secondary);
-    text-decoration: none;
-    border-radius: 9px;
-    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.25s ease;
   }
-  .seg-item.active {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--text-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  .seg-btn.active {
+    color: #ffffff;
   }
-  .banner {
-    background: rgba(48, 209, 88, 0.12);
-    border: 1px solid rgba(48, 209, 88, 0.35);
-    color: #5de37d;
-    padding: 13px 16px;
+  /* Toast Alert */
+  .toast {
+    background: rgba(48, 209, 88, 0.14);
+    border: 0.5px solid rgba(48, 209, 88, 0.4);
+    color: #4cd964;
+    padding: 12px 15px;
     border-radius: 14px;
     font-size: 13px;
     font-weight: 500;
-    line-height: 1.4;
     margin-bottom: 16px;
     display: ${statusMsg ? "block" : "none"};
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
-  .banner.blocked {
+  .toast.danger {
     background: rgba(255, 69, 58, 0.14);
     border-color: rgba(255, 69, 58, 0.4);
     color: #ff6961;
   }
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 16px;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  /* Views */
+  .view-pane {
+    display: none;
+    animation: fadeSlide 0.32s var(--spring);
   }
-  .spec-row {
+  .view-pane.active {
+    display: block;
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(6px) scale(0.992); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  /* Apple Inset Grouped Section */
+  .sec-title {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sub);
+    margin: 0 0 7px 14px;
+  }
+  .ios-group {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 0 16px;
+    margin-bottom: 18px;
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+  }
+  .ios-group.padded {
+    padding: 16px;
+  }
+  .ios-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 11px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 13px;
-    gap: 14px;
+    min-height: 46px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--sep);
+    font-size: 14px;
+    gap: 12px;
   }
-  .spec-row:first-child { padding-top: 2px; }
-  .spec-row:last-child { border-bottom: none; padding-bottom: 2px; }
-  .spec-key {
-    color: var(--text-secondary);
-    font-weight: 500;
+  .ios-row:last-child {
+    border-bottom: none;
+  }
+  .r-label {
+    color: var(--text);
+    font-weight: 400;
     flex-shrink: 0;
   }
-  .spec-val {
-    color: var(--accent);
-    font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  .r-val {
+    color: var(--sub);
+    font-family: "SF Mono", ui-monospace, SFMono-Regular, monospace;
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: 500;
     text-align: right;
     word-break: break-all;
   }
-  .field-label {
+  .r-val.gold {
+    color: var(--gold);
+    font-weight: 600;
+  }
+  /* Form Controls inside iOS Cards */
+  .f-label {
     display: block;
     font-size: 12.5px;
-    font-weight: 600;
-    color: #d2d2d7;
-    margin: 16px 0 7px;
+    font-weight: 500;
+    color: var(--sub);
+    margin: 14px 0 6px;
   }
-  .field-label:first-of-type { margin-top: 2px; }
-  input[type="text"],
-  input[type="password"],
-  select {
+  .f-label:first-child {
+    margin-top: 0;
+  }
+  .ios-input,
+  .ios-select {
     width: 100%;
-    padding: 13px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(0, 0, 0, 0.55);
-    color: var(--text-primary);
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 11px;
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    background: var(--input-bg);
+    color: var(--text);
     font-size: 15px;
     font-family: inherit;
     outline: none;
@@ -897,321 +949,371 @@ function renderWebPanel(cfg, statusMsg, activeView = "user") {
     appearance: none;
     -webkit-appearance: none;
   }
-  input:focus, select:focus {
-    border-color: var(--border-focus);
-    background: rgba(0, 0, 0, 0.8);
+  .ios-input::placeholder {
+    color: rgba(235, 235, 245, 0.3);
   }
-  .chip-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 9px;
+  .ios-input:focus,
+  .ios-select:focus {
+    border-color: var(--gold);
+    background: rgba(58, 58, 60, 0.75);
   }
-  .chip {
+  .preset-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .preset-pill {
     background: rgba(255, 255, 255, 0.06);
-    color: #d2d2d7;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    color: #ebebf5;
     border-radius: 8px;
-    padding: 6px 11px;
-    font-size: 12px;
+    padding: 7px 0;
+    font-size: 11.5px;
     font-weight: 500;
+    text-align: center;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 0.12s ease, background 0.15s ease;
   }
-  .chip:active {
-    background: var(--accent);
+  .preset-pill:active {
+    background: var(--gold);
     color: #000;
-    border-color: var(--accent);
+    transform: scale(0.96);
   }
-  .toggle-line {
+  /* Native iOS Switch */
+  .switch-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 11px;
     margin-top: 16px;
-    font-size: 13px;
-    color: #d2d2d7;
+    padding-top: 14px;
+    border-top: 0.5px solid var(--sep);
+    font-size: 14px;
+    color: var(--text);
+  }
+  .ios-switch {
+    position: relative;
+    width: 51px;
+    height: 31px;
+    flex-shrink: 0;
+  }
+  .ios-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
     cursor: pointer;
+    inset: 0;
+    background-color: rgba(120, 120, 128, 0.32);
+    transition: 0.3s var(--spring);
+    border-radius: 31px;
   }
-  .toggle-line input {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--accent);
-    margin: 0;
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 27px;
+    width: 27px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transition: 0.3s var(--spring);
+    border-radius: 50%;
   }
-  .btn-primary {
+  .ios-switch input:checked + .slider {
+    background-color: var(--gold);
+  }
+  .ios-switch input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+  /* Buttons */
+  .btn-gold {
     display: block;
     width: 100%;
+    height: 48px;
+    line-height: 48px;
     margin-top: 18px;
-    padding: 15px;
-    border-radius: 14px;
+    border-radius: 13px;
     border: none;
-    background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+    background: var(--gold-grad);
     color: #000000;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     text-align: center;
     text-decoration: none;
     cursor: pointer;
-    transition: opacity 0.15s ease, transform 0.1s ease;
+    transition: transform 0.12s ease, opacity 0.15s ease;
   }
-  .btn-primary:active {
-    opacity: 0.85;
-    transform: scale(0.99);
+  .btn-gold:active {
+    transform: scale(0.985);
+    opacity: 0.88;
   }
-  .btn-secondary {
+  .btn-ghost {
     display: block;
     width: 100%;
+    height: 44px;
+    line-height: 44px;
     margin-top: 10px;
-    padding: 12px;
     border-radius: 12px;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.03);
-    color: var(--text-secondary);
-    font-size: 13px;
+    border: 0.5px solid var(--border);
+    background: rgba(28, 28, 30, 0.5);
+    color: var(--sub);
+    font-size: 13.5px;
     font-weight: 500;
     text-align: center;
     text-decoration: none;
     cursor: pointer;
   }
-  .metrics-grid {
+  /* Admin Metrics & Cards */
+  .kpi-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
   }
-  .metric-card {
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px 8px;
+  .kpi-cell {
+    background: rgba(0, 0, 0, 0.35);
+    border: 0.5px solid var(--sep);
+    border-radius: 12px;
+    padding: 12px 6px;
     text-align: center;
   }
-  .metric-value {
+  .kpi-num {
     font-size: 20px;
     font-weight: 700;
-    color: var(--text-primary);
     letter-spacing: -0.02em;
   }
-  .metric-label {
+  .kpi-txt {
     font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 3px;
+    color: var(--sub);
+    margin-top: 2px;
   }
-  .user-card {
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
+  .u-card {
+    background: rgba(0, 0, 0, 0.32);
+    border: 0.5px solid var(--sep);
+    border-radius: 13px;
+    padding: 13px;
     margin-bottom: 10px;
   }
-  .user-card-header {
+  .u-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
-  .mono-id {
-    font-family: "SF Mono", ui-monospace, SFMono-Regular, monospace;
+  .u-id {
+    font-family: "SF Mono", ui-monospace, monospace;
     font-size: 12.5px;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--gold);
     word-break: break-all;
   }
-  .status-tag {
+  .u-pill {
     font-size: 10.5px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 3px 9px;
-    border-radius: 980px;
-    letter-spacing: 0.02em;
+    border-radius: 999px;
     flex-shrink: 0;
   }
-  .tag-green { background: rgba(48, 209, 88, 0.16); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.35); }
-  .tag-amber { background: rgba(245, 166, 35, 0.16); color: #ffb840; border: 1px solid rgba(245, 166, 35, 0.35); }
-  .tag-red { background: rgba(255, 69, 58, 0.16); color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.35); }
-  .tag-neutral { background: rgba(255, 255, 255, 0.08); color: #86868b; border: 1px solid rgba(255, 255, 255, 0.12); }
-  .user-card-meta {
+  .pill-green { background: rgba(48, 209, 88, 0.16); color: var(--green); }
+  .pill-amber { background: rgba(255, 159, 10, 0.16); color: var(--gold); }
+  .pill-red { background: rgba(255, 69, 58, 0.16); color: var(--red); }
+  .pill-gray { background: rgba(142, 142, 147, 0.18); color: var(--sub); }
+  .u-sub {
     display: flex;
     justify-content: space-between;
     font-size: 11.5px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-    gap: 8px;
+    color: var(--sub);
+    margin-bottom: 11px;
   }
-  .action-bar {
-    display: flex;
-    gap: 8px;
+  .u-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
   }
-  .action-link {
-    flex: 1;
+  .u-btn {
     text-align: center;
-    padding: 8px 10px;
-    border-radius: 9px;
+    padding: 7px 0;
+    border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
   }
-  .link-approve { background: rgba(48, 209, 88, 0.15); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.3); }
-  .link-block { background: rgba(245, 166, 35, 0.15); color: #ffb840; border: 1px solid rgba(245, 166, 35, 0.3); }
-  .link-delete { background: rgba(255, 69, 58, 0.15); color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.3); }
-  .empty-state {
+  .b-ok { background: rgba(48, 209, 88, 0.15); color: var(--green); }
+  .b-blk { background: rgba(255, 159, 10, 0.15); color: var(--gold); }
+  .b-del { background: rgba(255, 69, 58, 0.15); color: var(--red); }
+  .empty-box {
     text-align: center;
-    padding: 24px 12px;
-    color: var(--text-secondary);
+    padding: 24px 10px;
     font-size: 13px;
+    color: var(--sub);
   }
-  .footer-note {
+  .foot {
     text-align: center;
     font-size: 11.5px;
-    color: #515154;
-    margin-top: 22px;
+    color: #48484a;
+    margin-top: 24px;
   }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="hero">
-    <div class="eyebrow">FORCE BADGE V4 • DUCNOCODE/LOCKET</div>
+<div class="shell">
+  <div class="header">
+    <div class="badge-cap">FORCE BADGE V4 • DUCNOCODE/LOCKET</div>
     <h1>Locket Gold Control Panel</h1>
-    <div class="subtitle">Khoá cứng huy hiệu luôn bật 24/7 & cố định ngày đăng ký 25/05/2026</div>
+    <div class="lead">Khoá cứng huy hiệu luôn bật 24/7 & cố định ngày đăng ký 25/05/2026</div>
   </div>
 
-  <div class="segmented">
-    <a class="seg-item ${activeView !== "admin" ? "active" : ""}" href="/setdate?view=user">Bảng Điều Khiển</a>
-    <a class="seg-item ${activeView === "admin" ? "active" : ""}" href="/setdate?view=admin">Quản Trị Viên (${countPending})</a>
+  <div id="segBar" class="seg-wrap ${startOnAdmin ? "admin-active" : ""}">
+    <div class="seg-glider"></div>
+    <button type="button" id="btnTabUser" class="seg-btn ${!startOnAdmin ? "active" : ""}" onclick="switchView('user')">Bảng Điều Khiển</button>
+    <button type="button" id="btnTabAdmin" class="seg-btn ${startOnAdmin ? "active" : ""}" onclick="switchView('admin')">Quản Trị Viên${countPending > 0 ? ` (${countPending})` : ""}</button>
   </div>
 
-  <div class="banner ${cfg.isBlockedByAdmin ? "blocked" : ""}">${escapeHtml(statusMsg || (cfg.isBlockedByAdmin ? cfg.blockReason : ""))}</div>
+  <div class="toast ${cfg.isBlockedByAdmin ? "danger" : ""}">${escapeHtml(statusMsg || (cfg.isBlockedByAdmin ? cfg.blockReason : ""))}</div>
 
-  <div style="display:${activeView !== "admin" ? "block" : "none"}">
-    <div class="panel">
-      <div class="spec-row">
-        <span class="spec-key">Trạng thái Huy hiệu</span>
-        <span class="spec-val" style="color:${badgeStateColor}">${badgeStateText}</span>
+  <!-- VIEW 1: USER CONTROL PANEL -->
+  <div id="paneUser" class="view-pane ${!startOnAdmin ? "active" : ""}">
+    <div class="sec-title">Trạng thái thiết bị</div>
+    <div class="ios-group">
+      <div class="ios-row">
+        <span class="r-label">Trạng thái Huy hiệu</span>
+        <span class="r-val" style="color:${badgeStateColor};font-weight:600;">${badgeStateText}</span>
       </div>
-      <div class="spec-row">
-        <span class="spec-key">Giá & Giao dịch</span>
-        <span class="spec-val">399.000 VND (#${escapeHtml(cfg.storeTransactionId)})</span>
+      <div class="ios-row">
+        <span class="r-label">Giá & Giao dịch</span>
+        <span class="r-val gold">399.000 VND (#${escapeHtml(cfg.storeTransactionId)})</span>
       </div>
-      <div class="spec-row">
-        <span class="spec-key">Mốc Đăng Ký (ISO)</span>
-        <span class="spec-val">${escapeHtml(cfg.lockIso)}</span>
+      <div class="ios-row">
+        <span class="r-label">Mốc Đăng Ký (ISO)</span>
+        <span class="r-val gold">${escapeHtml(cfg.lockIso)}</span>
       </div>
-      <div class="spec-row">
-        <span class="spec-key">Ngày Hết Hạn</span>
-        <span class="spec-val">${escapeHtml(cfg.expireIso)}</span>
+      <div class="ios-row">
+        <span class="r-label">Ngày Hết Hạn</span>
+        <span class="r-val gold">${escapeHtml(cfg.expireIso)}</span>
       </div>
-      <div class="spec-row">
-        <span class="spec-key">Mã Gói (Product ID)</span>
-        <span class="spec-val">${escapeHtml(cfg.productId)}</span>
+      <div class="ios-row">
+        <span class="r-label">Mã Gói (Product ID)</span>
+        <span class="r-val gold">${escapeHtml(cfg.productId)}</span>
       </div>
-      <div class="spec-row">
-        <span class="spec-key">User ID Đã Bắt</span>
-        <span class="spec-val">${escapeHtml(displayUid)}</span>
+      <div class="ios-row">
+        <span class="r-label">User ID Đã Bắt</span>
+        <span class="r-val gold">${escapeHtml(displayUid)}</span>
       </div>
-
-      ${!cfg.isApprovedByAdmin ? `
-        <form method="GET" action="/setdate" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
-          <input type="hidden" name="request_activate" value="1" />
-          <label class="field-label">Ghi chú định danh gửi Admin phê duyệt</label>
-          <input type="text" name="note" placeholder="Nhập tên hoặc ghi chú thiết bị..." />
-          <button type="submit" class="btn-primary">KÍCH HOẠT & GỬI ADMIN DUYỆT</button>
-        </form>
-        <a class="btn-secondary" href="/setdate?check_status=1">Kiểm tra trạng thái phê duyệt</a>
-      ` : ""}
     </div>
 
-    <form class="panel" method="GET" action="/setdate">
+    ${!cfg.isApprovedByAdmin ? `
+      <div class="sec-title">Kích hoạt quyền sử dụng</div>
+      <form class="ios-group padded" method="GET" action="/setdate">
+        <input type="hidden" name="request_activate" value="1" />
+        <label class="f-label">Ghi chú gửi Quản trị viên phê duyệt</label>
+        <input type="text" class="ios-input" name="note" placeholder="Nhập tên hoặc ghi chú thiết bị..." autocomplete="off" />
+        <button type="submit" class="btn-gold">Kích Hoạt & Gửi Admin Duyệt</button>
+        <a class="btn-ghost" href="/setdate?check_status=1">Kiểm tra trạng thái phê duyệt</a>
+      </form>
+    ` : ""}
+
+    <div class="sec-title">Tuỳ chỉnh thông số gói Gold</div>
+    <form class="ios-group padded" method="GET" action="/setdate">
       <input type="hidden" name="save" value="1" />
-      <label class="field-label">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
-      <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" placeholder="2026-05-25" />
-      <div class="chip-row">
-        <button type="button" class="chip" onclick="setD('25/05/2026')">25/05/2026</button>
-        <button type="button" class="chip" onclick="setD('26/05/2010')">26/05/2010</button>
-        <button type="button" class="chip" onclick="setD('01/01/2022')">01/01/2022</button>
-        <button type="button" class="chip" onclick="setD('01/01/2020')">01/01/2020</button>
+      <label class="f-label">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
+      <input type="text" class="ios-input" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" placeholder="2026-05-25" autocomplete="off" />
+      <div class="preset-bar">
+        <button type="button" class="preset-pill" onclick="setD('25/05/2026')">25/05/2026</button>
+        <button type="button" class="preset-pill" onclick="setD('26/05/2010')">26/05/2010</button>
+        <button type="button" class="preset-pill" onclick="setD('01/01/2022')">01/01/2022</button>
+        <button type="button" class="preset-pill" onclick="setD('01/01/2020')">01/01/2020</button>
       </div>
 
-      <label class="field-label">Ngày hết hạn gói (Mặc định vĩnh viễn 2099)</label>
-      <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" placeholder="2099-12-31" />
+      <label class="f-label">Ngày hết hạn gói (Mặc định vĩnh viễn 2099)</label>
+      <input type="text" class="ios-input" name="expireDate" value="${escapeHtml(cfg.expireDate)}" placeholder="2099-12-31" autocomplete="off" />
 
-      <label class="field-label">Mã gói đăng ký (Product Identifier)</label>
-      <select name="productId">
+      <label class="f-label">Mã gói đăng ký (Product Identifier)</label>
+      <select class="ios-select" name="productId">
         <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
         <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
         <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
       </select>
 
-      <label class="field-label">Quyền sở hữu (Ownership Type)</label>
-      <select name="ownershipType">
+      <label class="f-label">Quyền sở hữu (Ownership Type)</label>
+      <select class="ios-select" name="ownershipType">
         <option value="PURCHASED" ${cfg.ownershipType === "PURCHASED" ? "selected" : ""}>PURCHASED (Đã mua trực tiếp)</option>
         <option value="FAMILY_SHARED" ${cfg.ownershipType === "FAMILY_SHARED" ? "selected" : ""}>FAMILY_SHARED (Chia sẻ gia đình)</option>
       </select>
 
-      <label class="toggle-line">
-        <input type="checkbox" name="notifyOnSync" value="1" ${cfg.notifyOnSync ? "checked" : ""} />
-        <span>Bắn thông báo đẩy mỗi khi đồng bộ Huy hiệu</span>
-      </label>
+      <div class="switch-row">
+        <span>Thông báo đẩy khi đồng bộ Huy hiệu</span>
+        <label class="ios-switch">
+          <input type="checkbox" name="notifyOnSync" value="1" ${cfg.notifyOnSync ? "checked" : ""} />
+          <span class="slider"></span>
+        </label>
+      </div>
 
-      <button type="submit" class="btn-primary">LƯU & KHOÁ CỨNG HUY HIỆU 24/7</button>
+      <button type="submit" class="btn-gold">Lưu & Khoá Cứng Huy Hiệu 24/7</button>
     </form>
 
     <form method="GET" action="/setdate">
       <input type="hidden" name="reset" value="1" />
-      <button type="submit" class="btn-secondary">Khôi phục mặc định (25/05/2026)</button>
+      <button type="submit" class="btn-ghost">Khôi phục mặc định (25/05/2026)</button>
     </form>
   </div>
 
-  <div style="display:${activeView === "admin" ? "block" : "none"}">
+  <!-- VIEW 2: ADMIN GATEKEEPER PANEL -->
+  <div id="paneAdmin" class="view-pane ${startOnAdmin ? "active" : ""}">
     ${!isAdminAuthenticated ? `
-      <form class="panel" method="GET" action="/setdate">
+      <div class="sec-title">Xác thực quyền Quản trị</div>
+      <form class="ios-group padded" method="GET" action="/setdate" autocomplete="off">
         <input type="hidden" name="view" value="admin" />
         <input type="hidden" name="admin_login" value="1" />
-        <label class="field-label">Tài khoản Quản trị viên</label>
-        <input type="text" name="user" placeholder="ngominhduc" required />
-        <label class="field-label">Mật khẩu</label>
-        <input type="password" name="pass" placeholder="Nhập mật khẩu quản trị" required />
-        <button type="submit" class="btn-primary">ĐĂNG NHẬP QUẢN TRỊ</button>
+        <label class="f-label">Tài khoản Quản trị viên</label>
+        <input type="text" class="ios-input" name="user" value="" placeholder="Nhập tên tài khoản" autocomplete="off" autocapitalize="none" spellcheck="false" required />
+        <label class="f-label">Mật khẩu bảo mật</label>
+        <input type="password" class="ios-input" name="pass" value="" placeholder="Nhập mật khẩu" autocomplete="new-password" required />
+        <button type="submit" class="btn-gold">Đăng Nhập Quản Trị</button>
       </form>
     ` : `
-      <div class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="sec-title">Bảng điều hành Quản trị viên</div>
+      <div class="ios-group padded">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <div>
-            <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Quản Lý Phê Duyệt User ID</div>
-            <div style="font-size:12px;color:var(--text-secondary);">Tài khoản: ${ADMIN_USER}</div>
+            <div style="font-size:15px;font-weight:600;">Quản Lý Phê Duyệt Thiết Bị</div>
+            <div style="font-size:12px;color:var(--sub);">Phiên quản trị đang hoạt động</div>
           </div>
-          <a href="/setdate?view=admin&admin_logout=1" style="font-size:12px;font-weight:600;color:var(--red);text-decoration:none;">Đăng xuất</a>
+          <a href="/setdate?admin_logout=1" style="font-size:13px;font-weight:500;color:var(--red);text-decoration:none;">Đăng xuất</a>
         </div>
 
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-value" style="color:var(--accent)">${countPending}</div>
-            <div class="metric-label">Chờ duyệt</div>
+        <div class="kpi-row">
+          <div class="kpi-cell">
+            <div class="kpi-num" style="color:var(--gold)">${countPending}</div>
+            <div class="kpi-txt">Chờ duyệt</div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value" style="color:var(--green)">${countApproved}</div>
-            <div class="metric-label">Đã duyệt</div>
+          <div class="kpi-cell">
+            <div class="kpi-num" style="color:var(--green)">${countApproved}</div>
+            <div class="kpi-txt">Đã duyệt</div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value" style="color:var(--red)">${countBlocked}</div>
-            <div class="metric-label">Đã chặn</div>
+          <div class="kpi-cell">
+            <div class="kpi-num" style="color:var(--red)">${countBlocked}</div>
+            <div class="kpi-txt">Đã chặn</div>
           </div>
         </div>
 
-        <form method="GET" action="/setdate" style="margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <form method="GET" action="/setdate" style="margin-bottom:16px;padding-bottom:16px;border-bottom:0.5px solid var(--sep);">
           <input type="hidden" name="view" value="admin" />
           <input type="hidden" name="admin_action" value="add_manual" />
-          <label class="field-label">Cấp quyền hoặc duyệt nhanh User ID</label>
+          <label class="f-label">Duyệt nhanh User ID</label>
           <div style="display:flex;gap:8px;">
-            <input type="text" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" placeholder="Nhập User ID..." required />
-            <button type="submit" style="background:var(--accent);color:#000;border:none;border-radius:12px;padding:0 18px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">Duyệt</button>
+            <input type="text" class="ios-input" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" placeholder="Dán User ID cần duyệt..." autocomplete="off" required />
+            <button type="submit" style="background:var(--gold-grad);color:#000;border:none;border-radius:11px;padding:0 18px;font-size:13.5px;font-weight:600;cursor:pointer;flex-shrink:0;">Duyệt</button>
           </div>
         </form>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <span style="font-size:12.5px;font-weight:600;color:var(--text-secondary);">Danh sách người dùng (${allUsers.length})</span>
-          <a href="/setdate?view=admin&admin_action=approve_all" style="font-size:12px;font-weight:600;color:var(--green);text-decoration:none;">Duyệt toàn bộ</a>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12.5px;font-weight:500;color:var(--sub);">Danh sách người dùng (${allUsers.length})</span>
+          <a href="/setdate?view=admin&admin_action=approve_all" style="font-size:12.5px;font-weight:500;color:var(--green);text-decoration:none;">Duyệt tất cả</a>
         </div>
 
         ${adminRowsHtml}
@@ -1219,12 +1321,32 @@ function renderWebPanel(cfg, statusMsg, activeView = "user") {
     `}
   </div>
 
-  <div class="footer-note">Locket Gold Control Panel • Apple Interface Edition</div>
+  <div class="foot">Locket Gold Control Panel • Apple ProMotion Interface</div>
 </div>
 <script>
   function setD(v) {
     var el = document.getElementById('lockDateInput');
     if (el) el.value = v;
+  }
+  function switchView(target) {
+    var bar = document.getElementById('segBar');
+    var btnU = document.getElementById('btnTabUser');
+    var btnA = document.getElementById('btnTabAdmin');
+    var paneU = document.getElementById('paneUser');
+    var paneA = document.getElementById('paneAdmin');
+    if (target === 'admin') {
+      bar.classList.add('admin-active');
+      btnU.classList.remove('active');
+      btnA.classList.add('active');
+      paneU.classList.remove('active');
+      paneA.classList.add('active');
+    } else {
+      bar.classList.remove('admin-active');
+      btnA.classList.remove('active');
+      btnU.classList.add('active');
+      paneA.classList.remove('active');
+      paneU.classList.add('active');
+    }
   }
 </script>
 </body>
@@ -1345,7 +1467,8 @@ if (isCronMode) {
 
     if (url.includes("/setdate") || url.includes("locket.gold")) {
         const q = parseQuery(url);
-        let activeView = q.view === "admin" || url.includes("/admin") ? "admin" : "user";
+        // Mặc định luôn mở ở Bảng Điều Khiển (user), chỉ mở tab Admin khi đang thao tác trong Admin
+        let activeView = (q.view === "admin" || q.admin_login === "1" || q.admin_action) ? "admin" : "user";
         let statusMsg = "";
         const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
 
@@ -1353,14 +1476,15 @@ if (isCronMode) {
             activeView = "admin";
             if (q.user === ADMIN_USER && q.pass === ADMIN_PASS) {
                 Env.write("1", ADMIN_SESSION_KEY);
-                statusMsg = "Đã xác thực quyền Quản trị viên.";
+                statusMsg = "Đăng nhập Quản trị viên thành công.";
             } else {
-                statusMsg = "Thông tin đăng nhập Quản trị viên không chính xác.";
+                statusMsg = "Tài khoản hoặc mật khẩu không chính xác.";
             }
         } else if (q.admin_logout === "1") {
-            activeView = "admin";
+            // Khi đăng xuất thì quay về Bảng Điều Khiển chính luôn, không treo ở màn hình login
+            activeView = "user";
             Env.write("0", ADMIN_SESSION_KEY);
-            statusMsg = "Đã đăng xuất khỏi phiên Quản trị viên.";
+            statusMsg = "";
         }
 
         let syncAction = "sync";
@@ -1375,7 +1499,7 @@ if (isCronMode) {
                     ...(db.users[targetUid] || {}),
                     uid: targetUid,
                     status: prevStatus === "approved" ? "approved" : "pending",
-                    note: q.note || (db.users[targetUid] && db.users[targetUid].note) || "Yêu cầu kích hoạt",
+                    note: q.note || (db.users[targetUid] && db.users[targetUid].note) || "Thiết bị đăng ký mới",
                     requested_at: nowStr,
                     updated_at: nowStr,
                     lock_date: currentCfg.lockDate,
@@ -1383,8 +1507,8 @@ if (isCronMode) {
                 };
                 saveLocalUserStore(db);
                 syncAction = "request_activation";
-                statusMsg = `Đã gửi yêu cầu kích hoạt cho ID ${targetUid}. Chờ Admin phê duyệt.`;
-                Env.notify("Locket Gold Control Panel", "Đã gửi yêu cầu kích hoạt", `User ID: ${targetUid} đang chờ Admin duyệt.`);
+                statusMsg = `Đã gửi yêu cầu kích hoạt cho ID ${targetUid}. Vui lòng chờ Admin duyệt.`;
+                Env.notify("Locket Gold Control Panel", "Đã gửi yêu cầu kích hoạt", `User ID: ${targetUid} đang chờ Admin phê duyệt.`);
             }
         }
 
@@ -1418,7 +1542,7 @@ if (isCronMode) {
                     statusMsg = `Đã phê duyệt quyền sử dụng cho User ID: ${tUid}`;
                     Env.notify("Locket Gold Admin", "Đã duyệt người dùng", `User ID ${tUid} đã được kích hoạt Gold 24/7.`);
                 } else if (q.admin_action === "block") {
-                    const blockReasonText = "Tài khoản đã bị Admin (ngominhduc) chặn quyền sử dụng.";
+                    const blockReasonText = "Tài khoản đã bị Admin chặn quyền sử dụng.";
                     db.users[tUid] = {
                         ...(db.users[tUid] || {}),
                         uid: tUid,
@@ -1428,7 +1552,6 @@ if (isCronMode) {
                     };
                     saveLocalUserStore(db);
                     statusMsg = `Đã chặn quyền sử dụng của User ID: ${tUid}`;
-                    // Bắn thông báo trực tiếp lên ứng dụng Shadowrocket ngay lập tức
                     notifyShadowrocketBlocked(tUid, blockReasonText, true);
                 } else if (q.admin_action === "delete") {
                     delete db.users[tUid];
