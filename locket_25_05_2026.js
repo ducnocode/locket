@@ -1,17 +1,25 @@
-// file: locket_gold_always_on_merged.js
-// Locket Gold Hard Lock V4 - Unified Cron-Sync + Force Badge Edition + Web Control Panel (http://locket.gold)
-// Tích hợp cả 3 chế độ trong 1 file duy nhất:
-// 1. http-request : Web UI (http://locket.gold) + Xoá ETag/Signature/Cache + Bắt Token/UID + Khoá cờ tắt huy hiệu khi app gửi request
-// 2. http-response: Ép hiện Huy hiệu Gold trên cả RevenueCat lẫn API Locket (Deep Patch JSON + Full Swift Codable Schema)
-// 3. cron         : Tự động đồng bộ ngầm (Keep-Alive Badge Sync) giữ huy hiệu luôn bật 24/7 không bao giờ tắt
+/**
+ * File: locket_25_05_2026.js
+ * Locket Gold Hard Lock V4 Ultra (Merged Deobfuscated Payload + Force Badge + Cron Sync + Web UI)
+ * Tích hợp đầy đủ:
+ * - Thông số giải mã từ bản Obfuscated: purchaseDate "2026-05-25T08:30:00Z", price 399000 VND (0x61698), store_transaction_id "490001234567893"
+ * - Khoá cứng subscriber_attributes & Deep Patch JSON trên api.locketcamera.com + firestore.googleapis.com
+ * - Chặn triệt để 304 Not Modified, X-Signature, X-Post-Params-Hash và cờ tắt huy hiệu từ phía client
+ * - Bảng điều khiển trực tiếp tại http://locket.gold
+ */
 
 const DEFAULT_CONFIG = {
     lockDate: "2026-05-25",
+    lockTime: "T08:30:00Z",
     expireDate: "2099-12-31",
+    expireTime: "T23:59:59Z",
     productId: "locket_1600_1y",
     ownershipType: "PURCHASED",
     periodType: "normal",
     store: "app_store",
+    storeTransactionId: "490001234567893",
+    priceAmount: 399000,
+    priceCurrency: "VND",
     appVersion: "1.0",
     forceSandboxFalse: true,
     alwaysForceBadge: true,
@@ -19,13 +27,13 @@ const DEFAULT_CONFIG = {
     notifyOnSync: false
 };
 
-const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V3";
+const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V4";
 const USER_ID_CACHE_KEY = "LOCKET_LAST_APP_USER_ID";
 const AUTH_TOKEN_CACHE_KEY = "LOCKET_LAST_AUTH_BEARER";
 const RC_API_KEY_CACHE_KEY = "LOCKET_LAST_RC_API_KEY";
 
 // ============================================================================
-// 1. TIỆN ÍCH NỀN TẢNG (CROSS-CLIENT ADAPTER: SHADOWROCKET / LOON / SURGE / QX)
+// 1. CROSS-CLIENT ADAPTER (SHADOWROCKET / LOON / SURGE / QUANTUMULT X)
 // ============================================================================
 const Env = (() => {
     const isQuanX = typeof $prefs !== "undefined";
@@ -65,23 +73,7 @@ const Env = (() => {
                         (err) => callback(err, null, null)
                     );
                 } else {
-                    callback(new Error("No HTTP client available"), null, null);
-                }
-            } catch (e) {
-                callback(e, null, null);
-            }
-        },
-        httpGet(options, callback) {
-            try {
-                if (typeof $httpClient !== "undefined" && typeof $httpClient.get === "function") {
-                    $httpClient.get(options, callback);
-                } else if (typeof $task !== "undefined" && typeof $task.fetch === "function") {
-                    $task.fetch({ method: "GET", ...options }).then(
-                        (resp) => callback(null, resp, resp.body),
-                        (err) => callback(err, null, null)
-                    );
-                } else {
-                    callback(new Error("No HTTP client available"), null, null);
+                    callback(new Error("No HTTP client"), null, null);
                 }
             } catch (e) {
                 callback(e, null, null);
@@ -94,35 +86,35 @@ const Env = (() => {
 })();
 
 // ============================================================================
-// 2. XỬ LÝ CẤU HÌNH & THỜI GIAN
+// 2. XỬ LÝ ĐỊNH DẠNG NGÀY & CẤU HÌNH LƯU TRỮ
 // ============================================================================
-function toIsoDate(raw, fallbackDate) {
-    if (!raw || typeof raw !== "string") return fallbackDate + "T00:00:00Z";
+function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
+    if (!raw || typeof raw !== "string") return fallbackDate + timeSuffix;
     const s = raw.trim();
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(s)) {
         return s.endsWith("Z") ? s : s + "Z";
     }
     const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (dmy) {
-        return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}T00:00:00Z`;
+        return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}${timeSuffix}`;
     }
     const ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
     if (ymd) {
-        return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}T00:00:00Z`;
+        return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}${timeSuffix}`;
     }
-    return fallbackDate + "T00:00:00Z";
+    return fallbackDate + timeSuffix;
 }
 
 function loadConfig() {
     let cfg = { ...DEFAULT_CONFIG };
     try {
-        const raw = Env.read(STORE_KEY) || Env.read("LOCKET_GOLD_MAX_CONFIG_V2");
+        const raw =
+            Env.read(STORE_KEY) ||
+            Env.read("LOCKET_GOLD_MAX_CONFIG_V3") ||
+            Env.read("LOCKET_GOLD_MAX_CONFIG_V2");
         if (raw) {
             const parsed = JSON.parse(raw);
             cfg = { ...cfg, ...parsed };
-        } else {
-            const oldDate = Env.read("locket_custom_date_lock");
-            if (oldDate) cfg.lockDate = oldDate.slice(0, 10);
         }
     } catch (e) {}
 
@@ -130,19 +122,19 @@ function loadConfig() {
         const arg = $argument.trim();
         const kv = arg.match(/date=([^&\s]+)/i);
         const dateVal = kv ? decodeURIComponent(kv[1]) : arg;
-        cfg.lockDate = toIsoDate(dateVal, DEFAULT_CONFIG.lockDate).slice(0, 10);
+        cfg.lockDate = toIsoDate(dateVal, DEFAULT_CONFIG.lockDate, "T08:30:00Z").slice(0, 10);
     }
 
     cfg.alwaysForceBadge = true;
-    cfg.lockIso = toIsoDate(cfg.lockDate, DEFAULT_CONFIG.lockDate);
-    cfg.expireIso = toIsoDate(cfg.expireDate, DEFAULT_CONFIG.expireDate).replace("T00:00:00Z", "T23:59:59Z");
+    cfg.lockIso = toIsoDate(cfg.lockDate, DEFAULT_CONFIG.lockDate, cfg.lockTime || "T08:30:00Z");
+    cfg.expireIso = toIsoDate(cfg.expireDate, DEFAULT_CONFIG.expireDate, cfg.expireTime || "T23:59:59Z");
     return cfg;
 }
 
 function saveConfig(newCfg) {
     newCfg.alwaysForceBadge = true;
     Env.write(JSON.stringify(newCfg), STORE_KEY);
-    Env.write(toIsoDate(newCfg.lockDate, DEFAULT_CONFIG.lockDate), "locket_custom_date_lock");
+    Env.write(toIsoDate(newCfg.lockDate, DEFAULT_CONFIG.lockDate, "T08:30:00Z"), "locket_custom_date_lock");
 }
 
 function extractAndCacheCredentials(url, headers) {
@@ -164,8 +156,6 @@ function extractAndCacheCredentials(url, headers) {
                 } else if (/^appl_|^goog_|^rcb_/i.test(val.replace(/^Bearer\s+/i, ""))) {
                     Env.write(val, RC_API_KEY_CACHE_KEY);
                 }
-            } else if (low === "x-client-version" || low === "x-observer-mode-enabled") {
-                // Giữ thông tin client
             }
         }
     }
@@ -192,7 +182,7 @@ function parseQuery(url) {
 }
 
 // ============================================================================
-// 3. CORE ENGINE: BƠM DỮ LIỆU HUY HIỆU VÀO REVENUECAT & LOCKET API
+// 3. CORE ENGINE: BƠM GÓI GOLD + GIÁ 399K + MÃ GIAO DỊCH + KHOÁ CỨNG HUY HIỆU
 // ============================================================================
 function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
     const LOCK_DATE = cfg.lockIso;
@@ -202,6 +192,7 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
     const nowMs = Date.now();
 
     const obj = (existingObj && typeof existingObj === "object") ? existingObj : {};
+    obj.Attention = "Locket Gold Hard Lock 25/05/2026 Activated";
     obj.request_date = nowIso;
     obj.request_date_ms = nowMs;
 
@@ -229,7 +220,7 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
         obj.subscriber.subscriber_attributes = {};
     }
 
-    // Khoá cứng toàn bộ thuộc tính huy hiệu trong subscriber_attributes
+    // Ép toàn bộ thuộc tính huy hiệu trong subscriber_attributes
     const forcedAttributes = {
         "locket_gold_badge": "true",
         "badge": "locket_gold",
@@ -246,31 +237,43 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
         };
     }
 
-    const buildSubEntry = () => ({
+    // Gộp đầy đủ cấu trúc từ bản Obfuscated (price 399000 VND + store_transaction_id + display_name)
+    const buildSubEntry = (pid) => ({
         auto_resume_date: null,
+        display_name: pid,
+        is_sandbox: false,
+        ownership_type: cfg.ownershipType || "PURCHASED",
         billing_issues_detected_at: null,
+        management_url: "https://apps.apple.com/account/subscriptions",
+        period_type: cfg.periodType || "normal",
+        price: {
+            amount: cfg.priceAmount || 399000,
+            currency: cfg.priceCurrency || "VND"
+        },
         expires_date: EXPIRE_DATE,
         grace_period_expires_date: null,
-        is_sandbox: false,
-        original_purchase_date: LOCK_DATE,
-        ownership_type: cfg.ownershipType || "PURCHASED",
-        period_type: cfg.periodType || "normal",
-        purchase_date: LOCK_DATE,
         refunded_at: null,
+        unsubscribe_detected_at: null,
+        original_purchase_date: LOCK_DATE,
+        purchase_date: LOCK_DATE,
         store: cfg.store || "app_store",
-        unsubscribe_detected_at: null
+        store_transaction_id: cfg.storeTransactionId || "490001234567893"
     });
 
     const buildEntEntry = (pid) => ({
-        expires_date: EXPIRE_DATE,
         grace_period_expires_date: null,
+        purchase_date: LOCK_DATE,
+        original_purchase_date: LOCK_DATE,
         product_identifier: pid,
-        purchase_date: LOCK_DATE
+        expires_date: EXPIRE_DATE,
+        ownership_type: cfg.ownershipType || "PURCHASED",
+        store: cfg.store || "app_store"
     });
 
     const allProductIds = [
         PRIMARY_PID,
         "locket_1600_1y",
+        "locket_3600_1y",
         "locket_399_1m",
         "locket_199_1m",
         "gold",
@@ -278,8 +281,9 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
         "locket_gold_1m",
         "locket_gold_lifetime"
     ];
+
     for (const pid of allProductIds) {
-        obj.subscriber.subscriptions[pid] = buildSubEntry();
+        obj.subscriber.subscriptions[pid] = buildSubEntry(pid);
     }
 
     const allEntitlements = ["Gold", "gold", "pro", "Pro", "locket_gold", "premium", "plus"];
@@ -290,7 +294,7 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
     return obj;
 }
 
-// Quét sâu mọi JSON trả về từ Locket Backend / Firestore để ép bật huy hiệu không bao giờ tắt
+// Quét sâu mọi nhánh JSON từ Locket Backend / Firestore để bật huy hiệu không bao giờ tắt
 function deepForceBadgeInObject(node, cfg, depth = 0) {
     if (!node || typeof node !== "object" || depth > 8) return node;
 
@@ -301,7 +305,6 @@ function deepForceBadgeInObject(node, cfg, depth = 0) {
         return node;
     }
 
-    // Nếu node là một đối tượng User của Locket hoặc chứa trường badge / uid
     const hasUserShape = (
         "badge" in node ||
         "locket_gold_badge" in node ||
@@ -321,7 +324,6 @@ function deepForceBadgeInObject(node, cfg, depth = 0) {
         node.expires_date = cfg.expireIso;
     }
 
-    // Nếu là cấu trúc Firestore Document fields
     if (node.fields && typeof node.fields === "object") {
         if (node.fields.uid || node.fields.username || node.fields.badge || node.fields.profile_picture_url) {
             node.fields.badge = { stringValue: "locket_gold" };
@@ -386,16 +388,16 @@ function renderWebPanel(cfg, statusMsg) {
 <body>
 <div class="wrap">
   <div style="text-align:center">
-    <span class="badge">FORCE BADGE V4 • CRON SYNC + CODABLE</span>
+    <span class="badge">FORCE BADGE V4 • MERGED DEOBFUSCATED</span>
     <h1>Locket Gold Control Panel</h1>
-    <div class="desc">Khoá cứng huy hiệu luôn bật 24/7 & tuỳ chỉnh ngày đăng ký</div>
+    <div class="desc">Khoá cứng huy hiệu luôn bật 24/7 & cố định ngày đăng ký 25/05/2026</div>
   </div>
 
   <div class="alert">${statusMsg || ""}</div>
 
   <div class="card">
     <div class="stat-row"><span class="stat-label">Trạng thái Huy hiệu</span><span class="stat-val">ALWAYS ON (NEVER OFF)</span></div>
-    <div class="stat-row"><span class="stat-label">Đồng bộ Cron Ngầm</span><span class="stat-val">ACTIVE (RC + API)</span></div>
+    <div class="stat-row"><span class="stat-label">Giá & Giao dịch</span><span class="stat-val">399.000 VND (#${cfg.storeTransactionId})</span></div>
     <div class="stat-row"><span class="stat-label">Mốc Đăng Ký (ISO)</span><span class="stat-val">${cfg.lockIso}</span></div>
     <div class="stat-row"><span class="stat-label">Ngày Hết Hạn</span><span class="stat-val">${cfg.expireIso}</span></div>
     <div class="stat-row"><span class="stat-label">Mã Gói (Product ID)</span><span class="stat-val">${cfg.productId}</span></div>
@@ -419,7 +421,7 @@ function renderWebPanel(cfg, statusMsg) {
 
     <label>Mã gói đăng ký (Product Identifier)</label>
     <select name="productId">
-      <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - Chuẩn)</option>
+      <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
       <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
       <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
     </select>
@@ -456,7 +458,7 @@ function setD(v) { document.getElementById('lockDateInput').value = v; }
 }
 
 // ============================================================================
-// 5. CRON SYNC ARTIFACTS ENGINE (CHẠY ĐỊNH KỲ HOẶC KEEP-ALIVE NGẦM)
+// 5. CRON SYNC ENGINE (ĐỒNG BỘ NGẦM 24/7 GIỮ HUY HIỆU LUÔN BẬT)
 // ============================================================================
 function runCronBadgeSync() {
     const cfg = loadConfig();
@@ -465,7 +467,6 @@ function runCronBadgeSync() {
     const bearer = Env.read(AUTH_TOKEN_CACHE_KEY);
     const nowMs = Date.now();
 
-    // Lưu lại bản chụp (snapshot) cấu hình và trạng thái mới nhất vào bộ nhớ bền vững
     saveConfig(cfg);
 
     if (!uid && !bearer) {
@@ -484,7 +485,6 @@ function runCronBadgeSync() {
         }
     };
 
-    // 1. Đẩy subscriber_attributes trực tiếp lên RevenueCat nếu đã bắt được RC API Key & UID
     if (uid && rcKey) {
         pending++;
         const attrUrl = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}/attributes`;
@@ -506,7 +506,6 @@ function runCronBadgeSync() {
         }, () => finishOne());
     }
 
-    // 2. Đẩy cờ badge: "locket_gold" lên API Locket nếu đã bắt được Bearer Token
     if (bearer) {
         pending++;
         Env.httpPost({
@@ -530,7 +529,7 @@ function runCronBadgeSync() {
 }
 
 // ============================================================================
-// 6. ĐIỀU PHỐI CHÍNH (ROUTER: CRON / HTTP-REQUEST / HTTP-RESPONSE)
+// 6. MAIN ROUTER (CRON / HTTP-REQUEST / HTTP-RESPONSE)
 // ============================================================================
 const isCronMode = typeof $request === "undefined" && typeof $response === "undefined";
 const isRequestMode = typeof $request !== "undefined" && typeof $response === "undefined";
@@ -542,7 +541,6 @@ if (isCronMode) {
     const url = $request.url || "";
     const headers = $request.headers || {};
 
-    // Giao diện Web Control Panel
     if (url.includes("/setdate") || url.includes("locket.gold")) {
         const q = parseQuery(url);
         let statusMsg = "";
@@ -555,21 +553,16 @@ if (isCronMode) {
             statusMsg = "Đã khôi phục mốc mặc định 25/05/2026!";
         } else if (q.save === "1" || q.d || q.lockDate) {
             const rawLock = q.lockDate || q.d || current.lockDate;
-            const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate);
+            const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
             const rawExp = q.expireDate || current.expireDate;
-            const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate);
+            const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T23:59:59Z");
 
             const updated = {
+                ...DEFAULT_CONFIG,
                 lockDate: isoLock.slice(0, 10),
                 expireDate: isoExp.slice(0, 10),
                 productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
                 ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
-                periodType: "normal",
-                store: "app_store",
-                appVersion: "1.0",
-                forceSandboxFalse: true,
-                alwaysForceBadge: true,
-                cronKeepAlive: true,
                 notifyOnSync: q.notifyOnSync === "1",
                 preferWebOverArg: true
             };
@@ -591,10 +584,8 @@ if (isCronMode) {
             }
         });
     } else {
-        // Tự động thu thập User ID & Token để dự phòng cho 304 và Cron Sync
         extractAndCacheCredentials(url, headers);
 
-        // Xoá toàn bộ các header gây 304 Not Modified hoặc kiểm tra chữ ký từ RevenueCat
         for (const k of Object.keys(headers)) {
             const low = k.toLowerCase();
             if (
@@ -607,9 +598,9 @@ if (isCronMode) {
                 delete headers[k];
             }
         }
+        headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        headers["Pragma"] = "no-cache";
 
-        // Nếu App gửi request cập nhật thông tin hoặc thuộc tính (attributes / changeProfileInfo)
-        // thì chặn hành vi tắt huy hiệu ngay từ trong body gửi đi
         let modifiedBody = $request.body;
         if (typeof modifiedBody === "string" && modifiedBody.trim().startsWith("{")) {
             try {
@@ -617,7 +608,6 @@ if (isCronMode) {
                 let touched = false;
                 const nowMs = Date.now();
 
-                // Nếu là request gửi attributes lên RevenueCat
                 if (reqJson.attributes && typeof reqJson.attributes === "object") {
                     reqJson.attributes.locket_gold_badge = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.badge = { value: "locket_gold", updated_at_ms: nowMs };
@@ -625,7 +615,6 @@ if (isCronMode) {
                     touched = true;
                 }
 
-                // Nếu là request cập nhật hồ sơ lên api.locketcamera.com
                 if (reqJson.data && typeof reqJson.data === "object") {
                     if ("badge" in reqJson.data || url.includes("changeProfileInfo") || url.includes("updateUser")) {
                         reqJson.data.badge = "locket_gold";
@@ -662,6 +651,7 @@ if (isCronMode) {
 
     const isRevenueCat = (
         reqUrl.includes("revenuecat.com") ||
+        reqUrl.includes("rc-backup.com") ||
         reqUrl.includes("/subscribers") ||
         reqUrl.includes("/receipts") ||
         obj.subscriber !== undefined
@@ -670,9 +660,7 @@ if (isCronMode) {
     if (isRevenueCat) {
         obj = buildSubscriberPayload(obj, cfg, resolvedUserId);
     } else {
-        // Nếu là phản hồi từ Locket API hoặc Firestore thì quét sâu và ép bật huy hiệu
         obj = deepForceBadgeInObject(obj, cfg);
-        // Nếu trong response cũng tình cờ có trường subscriber thì bơm luôn gói Gold
         if (obj.subscriber && typeof obj.subscriber === "object") {
             obj = buildSubscriberPayload(obj, cfg, resolvedUserId);
         }
