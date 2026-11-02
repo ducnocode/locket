@@ -1,12 +1,6 @@
-/**
- * File: locket_25_05_2026.js
- * Locket Gold Hard Lock V4 Ultra (Merged Deobfuscated Payload + Force Badge + Cron Sync + Web UI)
- * Tích hợp đầy đủ:
- * - Thông số giải mã từ bản Obfuscated: purchaseDate "2026-05-25T08:30:00Z", price 399000 VND (0x61698), store_transaction_id "490001234567893"
- * - Khoá cứng subscriber_attributes & Deep Patch JSON trên api.locketcamera.com + firestore.googleapis.com
- * - Chặn triệt để 304 Not Modified, X-Signature, X-Post-Params-Hash và cờ tắt huy hiệu từ phía client
- * - Bảng điều khiển trực tiếp tại http://locket.gold
- */
+// file: locket_25_05_2026.js
+// Repo: https://raw.githubusercontent.com/ducnocode/locket/main/locket_25_05_2026.js
+// Locket Gold Hard Lock V4 - Unified Cron-Sync + Force Badge Edition + Deobfuscated Payload + Web Control Panel (http://locket.gold)
 
 const DEFAULT_CONFIG = {
     lockDate: "2026-05-25",
@@ -32,9 +26,6 @@ const USER_ID_CACHE_KEY = "LOCKET_LAST_APP_USER_ID";
 const AUTH_TOKEN_CACHE_KEY = "LOCKET_LAST_AUTH_BEARER";
 const RC_API_KEY_CACHE_KEY = "LOCKET_LAST_RC_API_KEY";
 
-// ============================================================================
-// 1. CROSS-CLIENT ADAPTER (SHADOWROCKET / LOON / SURGE / QUANTUMULT X)
-// ============================================================================
 const Env = (() => {
     const isQuanX = typeof $prefs !== "undefined";
     const isSurgeLoon = typeof $persistentStore !== "undefined";
@@ -85,9 +76,6 @@ const Env = (() => {
     };
 })();
 
-// ============================================================================
-// 2. XỬ LÝ ĐỊNH DẠNG NGÀY & CẤU HÌNH LƯU TRỮ
-// ============================================================================
 function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     if (!raw || typeof raw !== "string") return fallbackDate + timeSuffix;
     const s = raw.trim();
@@ -181,9 +169,6 @@ function parseQuery(url) {
     return q;
 }
 
-// ============================================================================
-// 3. CORE ENGINE: BƠM GÓI GOLD + GIÁ 399K + MÃ GIAO DỊCH + KHOÁ CỨNG HUY HIỆU
-// ============================================================================
 function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
     const LOCK_DATE = cfg.lockIso;
     const EXPIRE_DATE = cfg.expireIso;
@@ -220,7 +205,6 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
         obj.subscriber.subscriber_attributes = {};
     }
 
-    // Ép toàn bộ thuộc tính huy hiệu trong subscriber_attributes
     const forcedAttributes = {
         "locket_gold_badge": "true",
         "badge": "locket_gold",
@@ -237,7 +221,6 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
         };
     }
 
-    // Gộp đầy đủ cấu trúc từ bản Obfuscated (price 399000 VND + store_transaction_id + display_name)
     const buildSubEntry = (pid) => ({
         auto_resume_date: null,
         display_name: pid,
@@ -294,7 +277,6 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
     return obj;
 }
 
-// Quét sâu mọi nhánh JSON từ Locket Backend / Firestore để bật huy hiệu không bao giờ tắt
 function deepForceBadgeInObject(node, cfg, depth = 0) {
     if (!node || typeof node !== "object" || depth > 8) return node;
 
@@ -347,9 +329,6 @@ function deepForceBadgeInObject(node, cfg, depth = 0) {
     return node;
 }
 
-// ============================================================================
-// 4. WEB CONTROL PANEL (http://locket.gold)
-// ============================================================================
 function renderWebPanel(cfg, statusMsg) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "Chưa ghi nhận (Mở Locket để tự bắt)";
     return `<!DOCTYPE html>
@@ -388,13 +367,11 @@ function renderWebPanel(cfg, statusMsg) {
 <body>
 <div class="wrap">
   <div style="text-align:center">
-    <span class="badge">FORCE BADGE V4 • MERGED DEOBFUSCATED</span>
+    <span class="badge">FORCE BADGE V4 • DUCNOCODE/LOCKET</span>
     <h1>Locket Gold Control Panel</h1>
     <div class="desc">Khoá cứng huy hiệu luôn bật 24/7 & cố định ngày đăng ký 25/05/2026</div>
   </div>
-
   <div class="alert">${statusMsg || ""}</div>
-
   <div class="card">
     <div class="stat-row"><span class="stat-label">Trạng thái Huy hiệu</span><span class="stat-val">ALWAYS ON (NEVER OFF)</span></div>
     <div class="stat-row"><span class="stat-label">Giá & Giao dịch</span><span class="stat-val">399.000 VND (#${cfg.storeTransactionId})</span></div>
@@ -403,10 +380,8 @@ function renderWebPanel(cfg, statusMsg) {
     <div class="stat-row"><span class="stat-label">Mã Gói (Product ID)</span><span class="stat-val">${cfg.productId}</span></div>
     <div class="stat-row"><span class="stat-label">User ID Đã Bắt</span><span class="stat-val">${cachedUid}</span></div>
   </div>
-
   <form class="card" method="GET" action="/setdate">
     <input type="hidden" name="save" value="1" />
-
     <label>Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
     <input type="text" id="lockDateInput" name="lockDate" value="${cfg.lockDate}" placeholder="VD: 25/05/2026 hoặc 2026-05-25" />
     <div class="presets">
@@ -415,51 +390,36 @@ function renderWebPanel(cfg, statusMsg) {
       <button type="button" class="preset-btn" onclick="setD('01/01/2022')">01/01/2022</button>
       <button type="button" class="preset-btn" onclick="setD('01/01/2020')">01/01/2020</button>
     </div>
-
     <label>Ngày hết hạn gói (Mặc định vĩnh viễn 2099)</label>
     <input type="text" name="expireDate" value="${cfg.expireDate}" placeholder="2099-12-31" />
-
     <label>Mã gói đăng ký (Product Identifier)</label>
     <select name="productId">
       <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
       <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
       <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
     </select>
-
     <label>Quyền sở hữu (Ownership Type)</label>
     <select name="ownershipType">
       <option value="PURCHASED" ${cfg.ownershipType === "PURCHASED" ? "selected" : ""}>PURCHASED (Đã mua trực tiếp)</option>
       <option value="FAMILY_SHARED" ${cfg.ownershipType === "FAMILY_SHARED" ? "selected" : ""}>FAMILY_SHARED (Chia sẻ gia đình)</option>
     </select>
-
     <label class="check-row">
       <input type="checkbox" name="notifyOnSync" value="1" ${cfg.notifyOnSync ? "checked" : ""} />
       <span>Bắn thông báo đẩy mỗi khi đồng bộ Huy hiệu</span>
     </label>
-
     <button type="submit" class="btn-main">LƯU & KHOÁ CỨNG HUY HIỆU 24/7</button>
   </form>
-
   <form method="GET" action="/setdate">
     <input type="hidden" name="reset" value="1" />
     <button type="submit" class="btn-reset">Khôi phục mặc định (25/05/2026)</button>
   </form>
-
-  <div class="footer">
-    Truy cập nhanh bằng địa chỉ: <b>http://locket.gold</b><br>
-    Huy hiệu được khoá cứng ở cả tầng Request, Response và Cron Sync.
-  </div>
+  <div class="footer">Truy cập nhanh bằng địa chỉ: <b>http://locket.gold</b></div>
 </div>
-<script>
-function setD(v) { document.getElementById('lockDateInput').value = v; }
-</script>
+<script>function setD(v) { document.getElementById('lockDateInput').value = v; }</script>
 </body>
 </html>`;
 }
 
-// ============================================================================
-// 5. CRON SYNC ENGINE (ĐỒNG BỘ NGẦM 24/7 GIỮ HUY HIỆU LUÔN BẬT)
-// ============================================================================
 function runCronBadgeSync() {
     const cfg = loadConfig();
     const uid = Env.read(USER_ID_CACHE_KEY);
@@ -468,7 +428,6 @@ function runCronBadgeSync() {
     const nowMs = Date.now();
 
     saveConfig(cfg);
-
     if (!uid && !bearer) {
         Env.done();
         return;
@@ -528,9 +487,6 @@ function runCronBadgeSync() {
     }
 }
 
-// ============================================================================
-// 6. MAIN ROUTER (CRON / HTTP-REQUEST / HTTP-RESPONSE)
-// ============================================================================
 const isCronMode = typeof $request === "undefined" && typeof $response === "undefined";
 const isRequestMode = typeof $request !== "undefined" && typeof $response === "undefined";
 const isResponseMode = typeof $response !== "undefined";
