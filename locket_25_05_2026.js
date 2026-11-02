@@ -1,6 +1,8 @@
 // file: locket_25_05_2026.js
 // Repo: https://raw.githubusercontent.com/ducnocode/locket/main/locket_25_05_2026.js
-// Locket Gold Hard Lock V4 - Unified Cron-Sync + Force Badge Edition + Deobfuscated Payload + Web Control Panel (http://locket.gold)
+// Locket Gold Hard Lock V4 + Remote PHP Admin Gatekeeper (Auto Register UID + Remote Block/Unblock)
+
+const ADMIN_API_URL = "https://your-domain.com/admin.php"; // <-- THAY LINK FILE admin.php CỦA BẠN VÀO ĐÂY
 
 const DEFAULT_CONFIG = {
     lockDate: "2026-05-25",
@@ -25,6 +27,7 @@ const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V4";
 const USER_ID_CACHE_KEY = "LOCKET_LAST_APP_USER_ID";
 const AUTH_TOKEN_CACHE_KEY = "LOCKET_LAST_AUTH_BEARER";
 const RC_API_KEY_CACHE_KEY = "LOCKET_LAST_RC_API_KEY";
+const REMOTE_AUTH_CACHE_KEY = "LOCKET_REMOTE_ADMIN_STATE";
 
 const Env = (() => {
     const isQuanX = typeof $prefs !== "undefined";
@@ -93,6 +96,53 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     return fallbackDate + timeSuffix;
 }
 
+function getRemoteState() {
+    try {
+        const raw = Env.read(REMOTE_AUTH_CACHE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { blocked: false, status: "active", force_lock_date: null, reason: "" };
+}
+
+function syncWithAdminServer(uid, cfg, callback) {
+    if (!ADMIN_API_URL || ADMIN_API_URL.includes("your-domain.com") || !uid || uid.includes("RCAnonymousID")) {
+        if (callback) callback(getRemoteState());
+        return;
+    }
+
+    const syncUrl = ADMIN_API_URL + (ADMIN_API_URL.includes("?") ? "&" : "?") + "api=sync";
+    const payload = JSON.stringify({
+        uid: uid,
+        lockDate: cfg.lockDate,
+        productId: cfg.productId,
+        ts: Date.now()
+    });
+
+    Env.httpPost({
+        url: syncUrl,
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        timeout: 4
+    }, (err, resp, body) => {
+        let state = getRemoteState();
+        if (!err && body) {
+            try {
+                const parsed = JSON.parse(body);
+                if (parsed && typeof parsed === "object" && parsed.ok) {
+                    state = {
+                        blocked: !!parsed.blocked || parsed.status === "blocked",
+                        status: parsed.status || "active",
+                        force_lock_date: parsed.force_lock_date || null,
+                        reason: parsed.reason || "Đã bị Admin chặn quyền sử dụng."
+                    };
+                    Env.write(JSON.stringify(state), REMOTE_AUTH_CACHE_KEY);
+                }
+            } catch (e) {}
+        }
+        if (callback) callback(state);
+    });
+}
+
 function loadConfig() {
     let cfg = { ...DEFAULT_CONFIG };
     try {
@@ -106,21 +156,20 @@ function loadConfig() {
         }
     } catch (e) {}
 
-    if (typeof $argument === "string" && $argument.trim() !== "" && !cfg.preferWebOverArg) {
-        const arg = $argument.trim();
-        const kv = arg.match(/date=([^&\s]+)/i);
-        const dateVal = kv ? decodeURIComponent(kv[1]) : arg;
-        cfg.lockDate = toIsoDate(dateVal, DEFAULT_CONFIG.lockDate, "T08:30:00Z").slice(0, 10);
+    const remote = getRemoteState();
+    if (remote && remote.force_lock_date) {
+        cfg.lockDate = remote.force_lock_date.slice(0, 10);
     }
 
-    cfg.alwaysForceBadge = true;
+    cfg.alwaysForceBadge = !remote.blocked;
+    cfg.isBlockedByAdmin = !!remote.blocked;
+    cfg.blockReason = remote.reason || "Tài khoản đã bị Admin khoá quyền sử dụng.";
     cfg.lockIso = toIsoDate(cfg.lockDate, DEFAULT_CONFIG.lockDate, cfg.lockTime || "T08:30:00Z");
     cfg.expireIso = toIsoDate(cfg.expireDate, DEFAULT_CONFIG.expireDate, cfg.expireTime || "T23:59:59Z");
     return cfg;
 }
 
 function saveConfig(newCfg) {
-    newCfg.alwaysForceBadge = true;
     Env.write(JSON.stringify(newCfg), STORE_KEY);
     Env.write(toIsoDate(newCfg.lockDate, DEFAULT_CONFIG.lockDate, "T08:30:00Z"), "locket_custom_date_lock");
 }
@@ -169,7 +218,70 @@ function parseQuery(url) {
     return q;
 }
 
+// Khi bị Admin chặn: Xoá sạch gói Gold và tắt toàn bộ huy hiệu trả về cho App
+function buildRevokedPayload(existingObj, resolvedUserId) {
+    const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
+    const obj = (existingObj && typeof existingObj === "object") ? existingObj : {};
+    obj.Attention = "Access Blocked by Admin";
+    obj.request_date = nowIso;
+    obj.request_date_ms = nowMs;
+    obj.subscriber = {
+        original_app_user_id: resolvedUserId || "blocked_user",
+        first_seen: nowIso,
+        last_seen: nowIso,
+        original_application_version: "1.0",
+        original_purchase_date: null,
+        management_url: null,
+        other_purchases: {},
+        non_subscriptions: {},
+        subscriptions: {},
+        entitlements: {},
+        subscriber_attributes: {
+            locket_gold_badge: { value: "false", updated_at_ms: nowMs },
+            badge: { value: "none", updated_at_ms: nowMs },
+            is_gold: { value: "false", updated_at_ms: nowMs }
+        }
+    };
+    return obj;
+}
+
+function deepStripBadgeInObject(node, depth = 0) {
+    if (!node || typeof node !== "object" || depth > 8) return node;
+    if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) deepStripBadgeInObject(node[i], depth + 1);
+        return node;
+    }
+    if ("badge" in node || "locket_gold_badge" in node || "is_gold" in node) {
+        node.badge = null;
+        node.locket_gold_badge = false;
+        node.has_gold_badge = false;
+        node.gold_badge = false;
+        node.is_gold = false;
+        node.gold_subscription = false;
+        node.subscription_status = "none";
+    }
+    if (node.fields && typeof node.fields === "object") {
+        if (node.fields.badge || node.fields.locket_gold_badge) {
+            node.fields.badge = { nullValue: null };
+            node.fields.locket_gold_badge = { booleanValue: false };
+            node.fields.has_gold_badge = { booleanValue: false };
+            node.fields.is_gold = { booleanValue: false };
+        }
+    }
+    for (const k of Object.keys(node)) {
+        if (typeof node[k] === "object" && node[k] !== null) {
+            deepStripBadgeInObject(node[k], depth + 1);
+        }
+    }
+    return node;
+}
+
 function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
+    if (cfg.isBlockedByAdmin) {
+        return buildRevokedPayload(existingObj, resolvedUserId);
+    }
+
     const LOCK_DATE = cfg.lockIso;
     const EXPIRE_DATE = cfg.expireIso;
     const PRIMARY_PID = cfg.productId || "locket_1600_1y";
@@ -278,6 +390,9 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId) {
 }
 
 function deepForceBadgeInObject(node, cfg, depth = 0) {
+    if (cfg.isBlockedByAdmin) {
+        return deepStripBadgeInObject(node, depth);
+    }
     if (!node || typeof node !== "object" || depth > 8) return node;
 
     if (Array.isArray(node)) {
@@ -331,6 +446,34 @@ function deepForceBadgeInObject(node, cfg, depth = 0) {
 
 function renderWebPanel(cfg, statusMsg) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "Chưa ghi nhận (Mở Locket để tự bắt)";
+
+    if (cfg.isBlockedByAdmin) {
+        return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Truy cập bị từ chối — Locket Gold V4</title>
+<style>
+  body { margin:0; padding:24px 16px; background:#09090b; color:#f4f4f5; font-family:-apple-system,BlinkMacSystemFont,sans-serif; display:flex; align-items:center; justify-content:center; min-height:90vh; }
+  .card { max-width:420px; width:100%; background:#18181b; border:1px solid rgba(255,69,58,0.5); border-radius:20px; padding:26px 20px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.6); }
+  .pill { display:inline-block; background:rgba(255,69,58,0.18); color:#ff453a; border:1px solid rgba(255,69,58,0.45); font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  h1 { font-size:22px; margin:0 0 10px; color:#fff; }
+  p { font-size:14px; color:#a1a1aa; line-height:1.5; margin-bottom:18px; }
+  .uid-box { background:#09090b; border:1px solid #27272a; padding:12px; border-radius:12px; font-family:monospace; font-size:13px; color:#fbbf24; word-break:break-all; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="pill">ACCESS REVOKED BY ADMIN</div>
+    <h1>Tài khoản đã bị khoá Module</h1>
+    <p>${cfg.blockReason}</p>
+    <div class="uid-box">User ID: ${cachedUid}</div>
+  </div>
+</body>
+</html>`;
+    }
+
     return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -427,64 +570,71 @@ function runCronBadgeSync() {
     const bearer = Env.read(AUTH_TOKEN_CACHE_KEY);
     const nowMs = Date.now();
 
-    saveConfig(cfg);
-    if (!uid && !bearer) {
-        Env.done();
-        return;
-    }
+    syncWithAdminServer(uid, cfg, (remoteState) => {
+        if (remoteState && remoteState.blocked) {
+            Env.done();
+            return;
+        }
 
-    let pending = 0;
-    const finishOne = () => {
-        pending--;
-        if (pending <= 0) {
-            if (cfg.notifyOnSync) {
-                Env.notify("Locket Gold V4 Cron", "Đã đồng bộ giữ huy hiệu", `UID: ${uid || "Auto"}`);
+        if (!uid && !bearer) {
+            Env.done();
+            return;
+        }
+
+        let pending = 0;
+        const finishOne = () => {
+            pending--;
+            if (pending <= 0) {
+                if (cfg.notifyOnSync) {
+                    Env.notify("Locket Gold V4 Cron", "Đã đồng bộ giữ huy hiệu", `UID: ${uid || "Auto"}`);
+                }
+                Env.done();
             }
+        };
+
+        if (uid && rcKey) {
+            pending++;
+            const attrUrl = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}/attributes`;
+            const attrBody = JSON.stringify({
+                attributes: {
+                    locket_gold_badge: { value: "true", updated_at_ms: nowMs },
+                    badge: { value: "locket_gold", updated_at_ms: nowMs },
+                    is_gold: { value: "true", updated_at_ms: nowMs }
+                }
+            });
+            Env.httpPost({
+                url: attrUrl,
+                headers: {
+                    "Authorization": rcKey,
+                    "Content-Type": "application/json",
+                    "X-Platform": "iOS"
+                },
+                body: attrBody
+            }, () => finishOne());
+        }
+
+        if (bearer) {
+            pending++;
+            Env.httpPost({
+                url: "https://api.locketcamera.com/changeProfileInfo",
+                headers: {
+                    "Authorization": bearer,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    data: {
+                        badge: "locket_gold",
+                        locket_gold_badge: true
+                    }
+                })
+            })
+            , () => finishOne();
+        }
+
+        if (pending === 0) {
             Env.done();
         }
-    };
-
-    if (uid && rcKey) {
-        pending++;
-        const attrUrl = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}/attributes`;
-        const attrBody = JSON.stringify({
-            attributes: {
-                locket_gold_badge: { value: "true", updated_at_ms: nowMs },
-                badge: { value: "locket_gold", updated_at_ms: nowMs },
-                is_gold: { value: "true", updated_at_ms: nowMs }
-            }
-        });
-        Env.httpPost({
-            url: attrUrl,
-            headers: {
-                "Authorization": rcKey,
-                "Content-Type": "application/json",
-                "X-Platform": "iOS"
-            },
-            body: attrBody
-        }, () => finishOne());
-    }
-
-    if (bearer) {
-        pending++;
-        Env.httpPost({
-            url: "https://api.locketcamera.com/changeProfileInfo",
-            headers: {
-                "Authorization": bearer,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                data: {
-                    badge: "locket_gold",
-                    locket_gold_badge: true
-                }
-            })
-        }, () => finishOne());
-    }
-
-    if (pending === 0) {
-        Env.done();
-    }
+    });
 }
 
 const isCronMode = typeof $request === "undefined" && typeof $response === "undefined";
@@ -496,52 +646,54 @@ if (isCronMode) {
 } else if (isRequestMode) {
     const url = $request.url || "";
     const headers = $request.headers || {};
+    const uid = extractAndCacheCredentials(url, headers);
+    const currentCfg = loadConfig();
 
     if (url.includes("/setdate") || url.includes("locket.gold")) {
-        const q = parseQuery(url);
-        let statusMsg = "";
-        let current = loadConfig();
+        syncWithAdminServer(uid, currentCfg, () => {
+            const q = parseQuery(url);
+            let statusMsg = "";
+            let current = loadConfig();
 
-        if (q.reset === "1") {
-            const resetCfg = { ...DEFAULT_CONFIG, preferWebOverArg: true };
-            saveConfig(resetCfg);
-            current = loadConfig();
-            statusMsg = "Đã khôi phục mốc mặc định 25/05/2026!";
-        } else if (q.save === "1" || q.d || q.lockDate) {
-            const rawLock = q.lockDate || q.d || current.lockDate;
-            const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
-            const rawExp = q.expireDate || current.expireDate;
-            const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T23:59:59Z");
+            if (!current.isBlockedByAdmin) {
+                if (q.reset === "1") {
+                    const resetCfg = { ...DEFAULT_CONFIG, preferWebOverArg: true };
+                    saveConfig(resetCfg);
+                    current = loadConfig();
+                    statusMsg = "Đã khôi phục mốc mặc định 25/05/2026!";
+                } else if (q.save === "1" || q.d || q.lockDate) {
+                    const rawLock = q.lockDate || q.d || current.lockDate;
+                    const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
+                    const rawExp = q.expireDate || current.expireDate;
+                    const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T23:59:59Z");
 
-            const updated = {
-                ...DEFAULT_CONFIG,
-                lockDate: isoLock.slice(0, 10),
-                expireDate: isoExp.slice(0, 10),
-                productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
-                ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
-                notifyOnSync: q.notifyOnSync === "1",
-                preferWebOverArg: true
-            };
-            saveConfig(updated);
-            current = loadConfig();
-            statusMsg = `Đã khoá cứng ngày đăng ký: ${current.lockIso} (Huy hiệu: LUÔN BẬT)`;
-
-            Env.notify("Locket Gold V4", "Đã lưu mốc ngày & khoá Huy hiệu", `Ngày đăng ký: ${current.lockIso}`);
-        }
-
-        Env.done({
-            response: {
-                status: 200,
-                headers: {
-                    "Content-Type": "text/html; charset=utf-8",
-                    "Cache-Control": "no-store, no-cache, must-revalidate"
-                },
-                body: renderWebPanel(current, statusMsg)
+                    const updated = {
+                        ...DEFAULT_CONFIG,
+                        lockDate: isoLock.slice(0, 10),
+                        expireDate: isoExp.slice(0, 10),
+                        productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
+                        ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
+                        notifyOnSync: q.notifyOnSync === "1",
+                        preferWebOverArg: true
+                    };
+                    saveConfig(updated);
+                    current = loadConfig();
+                    statusMsg = `Đã khoá cứng ngày đăng ký: ${current.lockIso} (Huy hiệu: LUÔN BẬT)`;
+                }
             }
+
+            Env.done({
+                response: {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "text/html; charset=utf-8",
+                        "Cache-Control": "no-store, no-cache, must-revalidate"
+                    },
+                    body: renderWebPanel(current, statusMsg)
+                }
+            });
         });
     } else {
-        extractAndCacheCredentials(url, headers);
-
         for (const k of Object.keys(headers)) {
             const low = k.toLowerCase();
             if (
@@ -564,18 +716,31 @@ if (isCronMode) {
                 let touched = false;
                 const nowMs = Date.now();
 
-                if (reqJson.attributes && typeof reqJson.attributes === "object") {
-                    reqJson.attributes.locket_gold_badge = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.badge = { value: "locket_gold", updated_at_ms: nowMs };
-                    reqJson.attributes.is_gold = { value: "true", updated_at_ms: nowMs };
-                    touched = true;
-                }
-
-                if (reqJson.data && typeof reqJson.data === "object") {
-                    if ("badge" in reqJson.data || url.includes("changeProfileInfo") || url.includes("updateUser")) {
-                        reqJson.data.badge = "locket_gold";
-                        reqJson.data.locket_gold_badge = true;
+                if (currentCfg.isBlockedByAdmin) {
+                    if (reqJson.attributes && typeof reqJson.attributes === "object") {
+                        reqJson.attributes.locket_gold_badge = { value: "false", updated_at_ms: nowMs };
+                        reqJson.attributes.badge = { value: "none", updated_at_ms: nowMs };
+                        reqJson.attributes.is_gold = { value: "false", updated_at_ms: nowMs };
                         touched = true;
+                    }
+                    if (reqJson.data && typeof reqJson.data === "object") {
+                        reqJson.data.badge = null;
+                        reqJson.data.locket_gold_badge = false;
+                        touched = true;
+                    }
+                } else {
+                    if (reqJson.attributes && typeof reqJson.attributes === "object") {
+                        reqJson.attributes.locket_gold_badge = { value: "true", updated_at_ms: nowMs };
+                        reqJson.attributes.badge = { value: "locket_gold", updated_at_ms: nowMs };
+                        reqJson.attributes.is_gold = { value: "true", updated_at_ms: nowMs };
+                        touched = true;
+                    }
+                    if (reqJson.data && typeof reqJson.data === "object") {
+                        if ("badge" in reqJson.data || url.includes("changeProfileInfo") || url.includes("updateUser")) {
+                            reqJson.data.badge = "locket_gold";
+                            reqJson.data.locket_gold_badge = true;
+                            touched = true;
+                        }
                     }
                 }
 
@@ -592,59 +757,58 @@ if (isCronMode) {
         }
     }
 } else if (isResponseMode) {
-    const cfg = loadConfig();
     const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
     const reqHeaders = (typeof $request !== "undefined" && $request.headers) ? $request.headers : {};
     const resolvedUserId = extractAndCacheCredentials(reqUrl, reqHeaders);
+    const initialCfg = loadConfig();
 
-    let obj;
-    try {
-        obj = JSON.parse($response.body || "{}");
-    } catch (e) {
-        obj = {};
-    }
-    if (!obj || typeof obj !== "object") obj = {};
+    syncWithAdminServer(resolvedUserId, initialCfg, () => {
+        const cfg = loadConfig();
+        let obj;
+        try {
+            obj = JSON.parse($response.body || "{}");
+        } catch (e) {
+            obj = {};
+        }
+        if (!obj || typeof obj !== "object") obj = {};
 
-    const isRevenueCat = (
-        reqUrl.includes("revenuecat.com") ||
-        reqUrl.includes("rc-backup.com") ||
-        reqUrl.includes("/subscribers") ||
-        reqUrl.includes("/receipts") ||
-        obj.subscriber !== undefined
-    );
+        const isRevenueCat = (
+            reqUrl.includes("revenuecat.com") ||
+            reqUrl.includes("rc-backup.com") ||
+            reqUrl.includes("/subscribers") ||
+            reqUrl.includes("/receipts") ||
+            obj.subscriber !== undefined
+        );
 
-    if (isRevenueCat) {
-        obj = buildSubscriberPayload(obj, cfg, resolvedUserId);
-    } else {
-        obj = deepForceBadgeInObject(obj, cfg);
-        if (obj.subscriber && typeof obj.subscriber === "object") {
+        if (isRevenueCat) {
             obj = buildSubscriberPayload(obj, cfg, resolvedUserId);
+        } else {
+            obj = deepForceBadgeInObject(obj, cfg);
+            if (obj.subscriber && typeof obj.subscriber === "object") {
+                obj = buildSubscriberPayload(obj, cfg, resolvedUserId);
+            }
         }
-    }
 
-    const resHeaders = { ...($response.headers || {}) };
-    for (const k of Object.keys(resHeaders)) {
-        const low = k.toLowerCase();
-        if (
-            low === "x-revenuecat-etag" ||
-            low === "etag" ||
-            low === "x-signature" ||
-            low === "x-revenuecat-request-id" ||
-            low === "content-length"
-        ) {
-            delete resHeaders[k];
+        const resHeaders = { ...($response.headers || {}) };
+        for (const k of Object.keys(resHeaders)) {
+            const low = k.toLowerCase();
+            if (
+                low === "x-revenuecat-etag" ||
+                low === "etag" ||
+                low === "x-signature" ||
+                low === "x-revenuecat-request-id" ||
+                low === "content-length"
+            ) {
+                delete resHeaders[k];
+            }
         }
-    }
-    resHeaders["Content-Type"] = "application/json; charset=utf-8";
-    resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
+        resHeaders["Content-Type"] = "application/json; charset=utf-8";
+        resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
 
-    if (cfg.notifyOnSync) {
-        Env.notify("Locket Gold V4 Synced", "Huy hiệu Gold luôn bật", `Ngày đăng ký: ${cfg.lockIso.slice(0, 10)}`);
-    }
-
-    Env.done({
-        status: 200,
-        headers: resHeaders,
-        body: JSON.stringify(obj)
+        Env.done({
+            status: 200,
+            headers: resHeaders,
+            body: JSON.stringify(obj)
+        });
     });
 }
