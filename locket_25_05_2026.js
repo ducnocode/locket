@@ -1,12 +1,12 @@
 // file: locket_25_05_2026.js
-// Locket Gold Hard Lock V4 — Tích Hợp Cơ Chế locket_4.py (StoreKit 2 Restore Inject + UID Resolver) + Fake iPhone 18 Pro Max (iPhone19,3) + Apple Bento UI
+// Locket Gold Hard Lock V4 — Tích Hợp Cơ Chế locket_4.py (StoreKit 2 Restore Inject + UID Resolver) + Fake iPhone 18 Pro Max (iPhone19,3) + Apple Bento UI & Trang Chỉnh Sửa
 
 const ADMIN_API_URL = "https://locketgold.66ghz.com/index.php";
 const ROOT_ADMIN_USER = "ngominhduc";
 const ROOT_ADMIN_PASS_1 = "ducff123#";
 const ROOT_ADMIN_PASS_2 = "Ducnocode2505@";
 
-// CẤU HÌNH GIẢ LẬP IPHONE 18 PRO MAX (iPhone19,3) & STOREKIT 2 HEADERS (ĐỒNG BỘ TỪ LOCKET_4.PY)
+// CẤU HÌNH GIẢ LẬP IPHONE 18 PRO MAX (iPhone19,3) & STOREKIT 2 HEADERS
 const IPHONE_18_PRO_MAX_PROFILE = {
     deviceName: "iPhone 18 Pro Max",
     machineId: "iPhone19,3",
@@ -213,9 +213,6 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     return fallbackDate + timeSuffix;
 }
 
-// ============================================================================
-// CƠ CHẾ LOCKET_4.PY: 1. PHÂN GIẢI UID TỪ LOCKET.CAM/{USERNAME} (resolve_uid)
-// ============================================================================
 function extractInviteUidFromText(text) {
     if (!text || typeof text !== "string") return null;
     const m = text.match(/\/invites\/([A-Za-z0-9]{28})/);
@@ -261,9 +258,6 @@ function resolveUidByUsername(username, callback) {
     });
 }
 
-// ============================================================================
-// CƠ CHẾ LOCKET_4.PY: 2. KIỂM TRA TRẠNG THÁI GOLD (check_status)
-// ============================================================================
 function buildSpoofedHeaders(cfg) {
     const h = { ...SK2_DEFAULT_HEADERS };
     const devModel = (cfg && cfg.deviceModel) ? cfg.deviceModel : IPHONE_18_PRO_MAX_PROFILE.machineId;
@@ -299,9 +293,6 @@ function checkRevenueCatGoldStatus(uid, cfg, callback) {
     });
 }
 
-// ============================================================================
-// CƠ CHẾ LOCKET_4.PY: 3. TIÊM BIÊN LAI STOREKIT 2 (inject_gold - 5 LẦN THỬ)
-// ============================================================================
 function buildFallbackFetchToken(pid) {
     const rawReceipt = JSON.stringify({
         environment: "Production",
@@ -1505,7 +1496,6 @@ const isRequestMode = typeof $request !== "undefined" && typeof $response === "u
 const isResponseMode = typeof $response !== "undefined";
 
 if (isCronMode) {
-    // CHẠY CRON: KIỂM TRA STATUS TRƯỚC, NẾU MẤT GOLD THÌ KÍCH LẠI STOREKIT 2 (CHUẨN LOCKET_4.PY)
     const cfg = loadConfig();
     const uid = Env.read(USER_ID_CACHE_KEY) || Env.read("RC_UID");
     syncRealtimeWithServer(uid, cfg, "cron_sync", () => {
@@ -1552,7 +1542,6 @@ if (isCronMode) {
             return;
         }
 
-        // XỬ LÝ TÁC VỤ LOCKET_4.PY TRÊN WEB PANEL (RESOLVE UID + INJECT STOREKIT 2)
         if (q.sk2_action === "resolve_and_inject" && q.target_username) {
             resolveUidByUsername(q.target_username, (resolvedUid) => {
                 if (!resolvedUid) {
@@ -1753,7 +1742,6 @@ if (isCronMode) {
             }
         });
     } else {
-        // SỬA LỖI MẤT HUY HIỆU KHI MỚI MỞ APP (0MS) + ÉP HEADER IPHONE 18 PRO MAX (iPhone19,3) & STOREKIT 2
         syncRealtimeWithServer(uid, currentCfg, "sync");
 
         for (const k of Object.keys(headers)) {
@@ -1768,7 +1756,6 @@ if (isCronMode) {
             }
         }
 
-        // Gắn bộ Header giả lập iPhone 18 Pro Max (iPhone19,3) & StoreKit 2 từ locket_4.py
         headers["X-Platform"] = "iOS";
         headers["X-Platform-Version"] = currentCfg.osVersion || IPHONE_18_PRO_MAX_PROFILE.osVersion;
         headers["X-Platform-Device"] = currentCfg.deviceModel || IPHONE_18_PRO_MAX_PROFILE.machineId;
@@ -1797,7 +1784,6 @@ if (isCronMode) {
                 let touched = false;
                 const nowMs = Date.now();
 
-                // Nếu là endpoint /v1/receipts -> Biến đổi sang cấu trúc StoreKit 2 Restore của locket_4.py
                 if (url.includes("/v1/receipts")) {
                     reqJson.product_id = currentCfg.productId || "locket_199_1m";
                     reqJson.app_user_id = reqJson.app_user_id || uid;
@@ -1861,7 +1847,6 @@ if (isCronMode) {
         }
     }
 } else if (isResponseMode) {
-    // PHẢN HỒI TỨC THÌ 0MS NGAY LẬP TỨC KHI MỞ LOCKET + TỰ ĐỘNG BẮT UID TỪ LOCKET.CAM
     const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
     const reqHeaders = (typeof $request !== "undefined" && $request.headers) ? $request.headers : {};
     const resolvedUserId = extractAndCacheCredentials(reqUrl, reqHeaders, $response.body);
