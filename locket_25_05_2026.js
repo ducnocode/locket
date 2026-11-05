@@ -1,13 +1,13 @@
 // ============================================================================
-// FILE: locket_25_05_2026.js (PHẦN 1/2 — ĐÃ FIX HIỆN THÔNG BÁO NGAY KHI MỞ APP LOCKET)
+// FILE: locket_25_05_2026.js (BẢN V6 FINAL — ĐÃ FIX CRASH ADMIN_API_URL & LỖI 7117)
 // Runtime: Shadowrocket / Loon / Surge / Quantumult X
 // ============================================================================
 
 const ROOT_ADMIN_USER = "ngominhduc";
 const ROOT_ADMIN_PASS_1 = "ducff123#";
 const ROOT_ADMIN_PASS_2 = "Ducnocode2505@";
+const ADMIN_API_URL = ""; // Đã khai báo đầy đủ chống ReferenceError làm sập Web UI
 
-// Ảnh SVG/Data-URI mặc định mô phỏng thẻ mèo đen "ĐÃ KÍCH HOẠT GOLD THÀNH CÔNG" (Admin có thể đổi sang bất kỳ link ảnh .png/.jpg/.gif nào)
 const DEFAULT_GOLD_POPUP_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
   <defs>
@@ -71,14 +71,12 @@ const DEFAULT_CONFIG = {
     alwaysForceBadge: true,
     cronKeepAlive: true,
     notifyOnSync: true,
-    // Mở khoá Hiệu Ứng Ngày Lễ & Số lượt Filter AI
     unlockAllCameraEffects: true,
     aiFilterEnabled: true,
     aiFilterQuota: 999999,
     aiFilterDailyLimit: 999999,
     aiFilterUsed: 0,
     aiFilterUnlimited: true,
-    // Cấu hình Thông Báo & Popup Khi Lên Gold (Admin chỉnh sửa Tiêu đề & Ảnh trực tiếp)
     popupEnabled: true,
     popupAutoShow: true,
     popupBadge: "LOCKET GOLD",
@@ -87,7 +85,6 @@ const DEFAULT_CONFIG = {
     popupSubtitle: "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛",
     popupImage: DEFAULT_GOLD_POPUP_SVG,
     popupBtnText: "Done",
-    // Cấu hình Thông Báo Đẩy Shadowrocket ngay khi mở app Locket
     pushNotifyOnActivate: true,
     pushCooldownSeconds: 12,
     pushTitle: "LOCKET GOLD — Đã Kích Hoạt 💛",
@@ -126,7 +123,6 @@ const Env = (() => {
             } catch (e) {}
             return false;
         },
-        // Sử dụng chuẩn 3 tham số gốc đảm bảo 100% hiện banner thông báo trên mọi bản Shadowrocket / Loon / Surge / QuanX
         notify(title, subtitle, body) {
             try {
                 const t = String(title || "LOCKET GOLD — Đã Kích Hoạt 💛");
@@ -194,7 +190,6 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     return fallbackDate + timeSuffix;
 }
 
-// BẮN THÔNG BÁO ĐẨY SHADOWROCKET TỨC THÌ (DÙNG CHO NÚT BẤM & ADMIN)
 function triggerShadowrocketPush(cfg, customTitle, customSub, customBody) {
     const title = customTitle || `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
     const sub = customSub || cfg.popupTitle || "Youtube @NightmarketServer ✨";
@@ -203,7 +198,6 @@ function triggerShadowrocketPush(cfg, customTitle, customSub, customBody) {
     Env.notify(title, sub, body);
 }
 
-// BẮN THÔNG BÁO NGAY TRONG APP LOCKET KHI MỞ APP (CHẠY TRÊN CẢ REQUEST & RESPONSE)
 function triggerInAppGoldWelcomeAlert(uid, cfg, forceImmediate = false) {
     if (cfg.isBlockedByAdmin) return;
     if (!forceImmediate && cfg.pushNotifyOnActivate === false) return;
@@ -358,14 +352,15 @@ function syncRealtimeWithServer(uid, cfg, actionName, callback) {
         });
     }
 
-    if (!ADMIN_API_URL || ADMIN_API_URL.includes("your-domain.com") || !cleanUid || cleanUid.includes("RCAnonymousID")) {
+    const remoteEndpoint = typeof ADMIN_API_URL !== "undefined" ? ADMIN_API_URL : "";
+    if (!remoteEndpoint || remoteEndpoint.includes("your-domain.com") || !cleanUid || cleanUid.includes("RCAnonymousID")) {
         const st = evaluateRealtimeState(cleanUid);
         triggerInAppLocketBlockAlert(cleanUid, st.reason, st.blocked, false);
         if (callback) callback(st);
         return;
     }
 
-    const syncUrl = ADMIN_API_URL + (ADMIN_API_URL.includes("?") ? "&" : "?") + "api=realtime_sync&t=" + Date.now();
+    const syncUrl = remoteEndpoint + (remoteEndpoint.includes("?") ? "&" : "?") + "api=realtime_sync&t=" + Date.now();
     const db = getLocalStore();
     const userRec = db.users[cleanUid] || {};
 
@@ -584,17 +579,18 @@ function parseQuery(url) {
         if (!p) continue;
         const eq = p.indexOf("=");
         if (eq === -1) {
-            q[decodeURIComponent(p)] = "";
+            try { q[decodeURIComponent(p)] = ""; } catch (e) { q[p] = ""; }
         } else {
-            const k = decodeURIComponent(p.slice(0, eq));
-            const v = decodeURIComponent(p.slice(eq + 1).replace(/\+/g, " "));
-            q[k] = v;
+            try {
+                const k = decodeURIComponent(p.slice(0, eq));
+                const v = decodeURIComponent(p.slice(eq + 1).replace(/\+/g, " "));
+                q[k] = v;
+            } catch (e) {}
         }
     }
     return q;
 }
 
-// 1. REVENUECAT FULL SUBSCRIBER PAYLOAD — MỞ KHOÁ ENTITLEMENT + BẮN THÔNG BÁO TRONG LOCKET
 function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUserId) {
     if (cfg.isBlockedByAdmin) {
         triggerInAppLocketBlockAlert(resolvedUserId, cfg.blockReason, true, false);
@@ -735,31 +731,10 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
     }
 
     const allEntitlements = [
-        "Gold",
-        "gold",
-        "pro",
-        "Pro",
-        "locket_gold",
-        "LocketGold",
-        "locket_gold_v2",
-        "premium",
-        "Premium",
-        "plus",
-        "Plus",
-        "vip",
-        "all_access",
-        "unlimited",
-        "ai_filters",
-        "ai_looks",
-        "ai_camera",
-        "unlimited_ai",
-        "camera_effects",
-        "holiday_effects",
-        "festive_effects",
-        "seasonal_effects",
-        "lut_filters",
-        "filters",
-        "effects"
+        "Gold", "gold", "pro", "Pro", "locket_gold", "LocketGold", "locket_gold_v2",
+        "premium", "Premium", "plus", "Plus", "vip", "all_access", "unlimited",
+        "ai_filters", "ai_looks", "ai_camera", "unlimited_ai", "camera_effects",
+        "holiday_effects", "festive_effects", "seasonal_effects", "lut_filters", "filters", "effects"
     ];
     for (const entKey of allEntitlements) {
         obj.subscriber.entitlements[entKey] = buildEntEntry(PRIMARY_PID);
@@ -768,7 +743,6 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
     return obj;
 }
 
-// 2. BƠM GIAO DIỆN POPUP "ĐÃ KÍCH HOẠT GOLD" VÀO REVENUECAT OFFERINGS / PAYWALLS V2
 function patchRevenueCatOfferings(obj, cfg) {
     if (!obj || typeof obj !== "object") return obj;
     const PRIMARY_PID = cfg.productId || "locket_1600_1y";
@@ -805,42 +779,23 @@ function patchRevenueCatOfferings(obj, cfg) {
                 config: {
                     packages: ["$rc_annual"],
                     default_package: "$rc_annual",
-                    images: {
-                        header: imgFile,
-                        background: imgFile,
-                        icon: imgFile
-                    },
+                    images: { header: imgFile, background: imgFile, icon: imgFile },
                     colors: {
                         light: {
-                            background: "#12110E",
-                            text_1: "#FFFFFF",
-                            text_2: "#A1A1AA",
-                            text_3: "#F5B427",
-                            call_to_action_background: "#F5B427",
-                            call_to_action_foreground: "#171717",
-                            accent_1: "#F5B427",
-                            accent_2: "#FCD34D"
+                            background: "#12110E", text_1: "#FFFFFF", text_2: "#A1A1AA", text_3: "#F5B427",
+                            call_to_action_background: "#F5B427", call_to_action_foreground: "#171717",
+                            accent_1: "#F5B427", accent_2: "#FCD34D"
                         },
                         dark: {
-                            background: "#12110E",
-                            text_1: "#FFFFFF",
-                            text_2: "#A1A1AA",
-                            text_3: "#F5B427",
-                            call_to_action_background: "#F5B427",
-                            call_to_action_foreground: "#171717",
-                            accent_1: "#F5B427",
-                            accent_2: "#FCD34D"
+                            background: "#12110E", text_1: "#FFFFFF", text_2: "#A1A1AA", text_3: "#F5B427",
+                            call_to_action_background: "#F5B427", call_to_action_foreground: "#171717",
+                            accent_1: "#F5B427", accent_2: "#FCD34D"
                         }
                     },
                     blurred_background_image: false,
                     display_restore_purchases: false
                 },
-                localized_strings: {
-                    vi: locData,
-                    vi_VN: locData,
-                    en: locData,
-                    en_US: locData
-                }
+                localized_strings: { vi: locData, vi_VN: locData, en: locData, en_US: locData }
             };
             if (Array.isArray(off.packages)) {
                 for (const pkg of off.packages) {
@@ -854,7 +809,6 @@ function patchRevenueCatOfferings(obj, cfg) {
     return obj;
 }
 
-// 3. BƠM CẤU HÌNH MỞ KHOÁ HIỆU ỨNG, FILTER AI & POPUP GOLD VÀO FIREBASE REMOTE CONFIG
 function injectFirebaseRemoteConfig(obj, cfg) {
     if (!obj || typeof obj !== "object") obj = {};
     const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
@@ -988,7 +942,6 @@ function injectFirebaseRemoteConfig(obj, cfg) {
     return obj;
 }
 
-// 4. MỞ KHOÁ FULL HIỆU ỨNG CAMERA & BỘ LỌC AI (TÁCH BIỆT USER VÀ EFFECT ĐỂ KHÔNG BỊ LỖI BỘ LỌC)
 function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     if (!node || typeof node !== "object" || depth > 12) return node;
 
@@ -1003,31 +956,14 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     }
 
     const isEffectOrFilterItem = (
-        "effect_id" in node ||
-        "effectId" in node ||
-        "filter_id" in node ||
-        "filterId" in node ||
-        "look_id" in node ||
-        "lookId" in node ||
-        "lens_id" in node ||
-        "lut_url" in node ||
-        "lutUrl" in node ||
-        "overlay_url" in node ||
-        "shader_url" in node ||
-        "is_gold_only" in node ||
-        "isGoldOnly" in node ||
-        "requires_gold" in node ||
-        "requiresGold" in node ||
-        "gold_only" in node ||
-        "goldOnly" in node ||
+        "effect_id" in node || "effectId" in node || "filter_id" in node || "filterId" in node ||
+        "look_id" in node || "lookId" in node || "lens_id" in node || "lut_url" in node ||
+        "lutUrl" in node || "overlay_url" in node || "shader_url" in node || "is_gold_only" in node ||
+        "isGoldOnly" in node || "requires_gold" in node || "requiresGold" in node ||
+        "gold_only" in node || "goldOnly" in node ||
         ("id" in node && !("uid" in node) && !("username" in node) && (
-            "category" in node ||
-            "icon_url" in node ||
-            "thumbnail_url" in node ||
-            "preview_url" in node ||
-            "asset_url" in node ||
-            "filter_type" in node ||
-            "effect_type" in node
+            "category" in node || "icon_url" in node || "thumbnail_url" in node ||
+            "preview_url" in node || "asset_url" in node || "filter_type" in node || "effect_type" in node
         ))
     );
 
@@ -1058,42 +994,17 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     }
 
     if (isEffectOrFilterItem) {
-        node.is_gold = false;
-        node.isGold = false;
-        node.gold = false;
-        node.is_gold_only = false;
-        node.isGoldOnly = false;
-        node.gold_only = false;
-        node.goldOnly = false;
-        node.requires_gold = false;
-        node.requiresGold = false;
-        node.require_gold = false;
-        node.requireGold = false;
-        node.is_locked = false;
-        node.isLocked = false;
-        node.locked = false;
-        node.is_premium = false;
-        node.isPremium = false;
-        node.premium_only = false;
-        node.premiumOnly = false;
-        node.is_free = true;
-        node.isFree = true;
-        node.free = true;
-        node.unlocked = true;
-        node.is_unlocked = true;
-        node.isUnlocked = true;
-        node.can_use = true;
-        node.canUse = true;
-        node.has_access = true;
-        node.hasAccess = true;
-        node.blur = false;
-        node.is_blurred = false;
-        node.isBlurred = false;
-        node.blur_preview = false;
-        node.blurPreview = false;
-        node.show_paywall = false;
-        node.showPaywall = false;
-        node.paywall = false;
+        node.is_gold = false; node.isGold = false; node.gold = false;
+        node.is_gold_only = false; node.isGoldOnly = false; node.gold_only = false; node.goldOnly = false;
+        node.requires_gold = false; node.requiresGold = false; node.require_gold = false; node.requireGold = false;
+        node.is_locked = false; node.isLocked = false; node.locked = false;
+        node.is_premium = false; node.isPremium = false; node.premium_only = false; node.premiumOnly = false;
+        node.is_free = true; node.isFree = true; node.free = true;
+        node.unlocked = true; node.is_unlocked = true; node.isUnlocked = true;
+        node.can_use = true; node.canUse = true; node.has_access = true; node.hasAccess = true;
+        node.blur = false; node.is_blurred = false; node.isBlurred = false;
+        node.blur_preview = false; node.blurPreview = false;
+        node.show_paywall = false; node.showPaywall = false; node.paywall = false;
         if ("tier" in node) node.tier = "free";
         if ("access_level" in node) node.access_level = "free";
         if ("accessLevel" in node) node.accessLevel = "free";
@@ -1103,63 +1014,24 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     }
 
     const hasQuotaOrAccessShape = !isEffectOrFilterItem && (
-        "remaining" in node ||
-        "remaining_uses" in node ||
-        "remainingUses" in node ||
-        "remaining_count" in node ||
-        "remainingCount" in node ||
-        "quota" in node ||
-        "daily_limit" in node ||
-        "dailyLimit" in node ||
-        "max_uses" in node ||
-        "maxUses" in node ||
-        "credits" in node ||
-        "ai_credits" in node ||
-        "filter_quota" in node ||
-        "can_generate" in node ||
-        "canGenerate" in node ||
-        "is_allowed" in node ||
-        "isAllowed" in node
+        "remaining" in node || "remaining_uses" in node || "remainingUses" in node ||
+        "remaining_count" in node || "remainingCount" in node || "quota" in node ||
+        "daily_limit" in node || "dailyLimit" in node || "max_uses" in node || "maxUses" in node ||
+        "credits" in node || "ai_credits" in node || "filter_quota" in node ||
+        "can_generate" in node || "canGenerate" in node || "is_allowed" in node || "isAllowed" in node
     );
 
     if (hasQuotaOrAccessShape) {
-        node.remaining = quotaNum;
-        node.remaining_uses = quotaNum;
-        node.remainingUses = quotaNum;
-        node.remaining_count = quotaNum;
-        node.remainingCount = quotaNum;
-        node.quota = quotaNum;
-        node.daily_limit = quotaNum;
-        node.dailyLimit = quotaNum;
-        node.max_uses = quotaNum;
-        node.maxUses = quotaNum;
-        node.limit = quotaNum;
-        node.total_limit = quotaNum;
-        node.credits = quotaNum;
-        node.ai_credits = quotaNum;
-        node.used = usedNum;
-        node.used_count = usedNum;
-        node.usedCount = usedNum;
-        node.uses_today = usedNum;
-        node.is_unlimited = true;
-        node.unlimited = true;
-        node.can_generate = true;
-        node.canGenerate = true;
-        node.can_use = true;
-        node.canUse = true;
-        node.allowed = true;
-        node.is_allowed = true;
-        node.isAllowed = true;
-        node.has_access = true;
-        node.hasAccess = true;
-        node.is_locked = false;
-        node.isLocked = false;
-        node.locked = false;
-        node.requires_gold = false;
-        node.requiresGold = false;
-        node.paywall = false;
-        node.show_paywall = false;
-        node.blur = false;
+        node.remaining = quotaNum; node.remaining_uses = quotaNum; node.remainingUses = quotaNum;
+        node.remaining_count = quotaNum; node.remainingCount = quotaNum; node.quota = quotaNum;
+        node.daily_limit = quotaNum; node.dailyLimit = quotaNum; node.max_uses = quotaNum; node.maxUses = quotaNum;
+        node.limit = quotaNum; node.total_limit = quotaNum; node.credits = quotaNum; node.ai_credits = quotaNum;
+        node.used = usedNum; node.used_count = usedNum; node.usedCount = usedNum; node.uses_today = usedNum;
+        node.is_unlimited = true; node.unlimited = true; node.can_generate = true; node.canGenerate = true;
+        node.can_use = true; node.canUse = true; node.allowed = true; node.is_allowed = true; node.isAllowed = true;
+        node.has_access = true; node.hasAccess = true; node.is_locked = false; node.isLocked = false;
+        node.locked = false; node.requires_gold = false; node.requiresGold = false;
+        node.paywall = false; node.show_paywall = false; node.blur = false;
     }
 
     if (node.fields && typeof node.fields === "object") {
@@ -1199,66 +1071,28 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         } else if (
             typeof val === "boolean" &&
             (
-                low === "is_gold_only" ||
-                low === "isgoldonly" ||
-                low === "gold_only" ||
-                low === "goldonly" ||
-                low === "requires_gold" ||
-                low === "requiresgold" ||
-                low === "require_gold" ||
-                low === "requiregold" ||
-                low === "is_locked" ||
-                low === "islocked" ||
-                low === "locked" ||
-                low === "is_premium" ||
-                low === "ispremium" ||
-                low === "premium_only" ||
-                low === "premiumonly" ||
-                low === "requires_subscription" ||
-                low === "requiressubscription" ||
-                low === "limit_reached" ||
-                low === "limitreached" ||
-                low === "quota_exceeded" ||
-                low === "quotaexceeded" ||
-                low === "blur" ||
-                low === "is_blurred" ||
-                low === "isblurred" ||
-                low === "blur_preview" ||
-                low === "blurpreview" ||
-                low === "should_blur" ||
-                low === "shouldblur" ||
-                low === "show_paywall" ||
-                low === "showpaywall" ||
-                low === "paywall" ||
-                low === "is_paywalled" ||
-                low === "ispaywalled"
+                low === "is_gold_only" || low === "isgoldonly" || low === "gold_only" || low === "goldonly" ||
+                low === "requires_gold" || low === "requiresgold" || low === "require_gold" || low === "requiregold" ||
+                low === "is_locked" || low === "islocked" || low === "locked" || low === "is_premium" ||
+                low === "ispremium" || low === "premium_only" || low === "premiumonly" ||
+                low === "requires_subscription" || low === "requiressubscription" || low === "limit_reached" ||
+                low === "limitreached" || low === "quota_exceeded" || low === "quotaexceeded" ||
+                low === "blur" || low === "is_blurred" || low === "isblurred" || low === "blur_preview" ||
+                low === "blurpreview" || low === "should_blur" || low === "shouldblur" ||
+                low === "show_paywall" || low === "showpaywall" || low === "paywall" ||
+                low === "is_paywalled" || low === "ispaywalled"
             )
         ) {
             node[k] = false;
         } else if (
             typeof val === "boolean" &&
             (
-                low === "can_generate" ||
-                low === "cangenerate" ||
-                low === "can_use_ai" ||
-                low === "canuseai" ||
-                low === "can_use" ||
-                low === "canuse" ||
-                low === "ai_enabled" ||
-                low === "aienabled" ||
-                low === "ai_filter_enabled" ||
-                low === "is_unlocked" ||
-                low === "isunlocked" ||
-                low === "unlocked" ||
-                low === "is_free" ||
-                low === "isfree" ||
-                low === "has_access" ||
-                low === "hasaccess" ||
-                low === "allowed" ||
-                low === "is_allowed" ||
-                low === "isallowed" ||
-                low === "holiday_effects_enabled" ||
-                low === "camera_effects_enabled"
+                low === "can_generate" || low === "cangenerate" || low === "can_use_ai" || low === "canuseai" ||
+                low === "can_use" || low === "canuse" || low === "ai_enabled" || low === "aienabled" ||
+                low === "ai_filter_enabled" || low === "is_unlocked" || low === "isunlocked" ||
+                low === "unlocked" || low === "is_free" || low === "isfree" || low === "has_access" ||
+                low === "hasaccess" || low === "allowed" || low === "is_allowed" || low === "isallowed" ||
+                low === "holiday_effects_enabled" || low === "camera_effects_enabled"
             )
         ) {
             node[k] = true;
@@ -1271,37 +1105,18 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         } else if (
             typeof val === "number" &&
             (
-                low === "remaining" ||
-                low === "remaining_uses" ||
-                low === "remaininguses" ||
-                low === "remaining_count" ||
-                low === "remainingcount" ||
-                low === "remaining_generations" ||
-                low === "remaininggenerations" ||
-                low === "ai_filter_quota" ||
-                low === "ai_filter_remaining" ||
-                low === "ai_looks_remaining" ||
-                low === "ai_credits" ||
-                low === "filter_credits" ||
-                low === "free_uses_remaining" ||
-                low === "daily_remaining" ||
-                low === "max_generations" ||
-                low === "generation_limit" ||
-                low === "free_uses" ||
-                low === "freeuses"
+                low === "remaining" || low === "remaining_uses" || low === "remaininguses" ||
+                low === "remaining_count" || low === "remainingcount" || low === "remaining_generations" ||
+                low === "remaininggenerations" || low === "ai_filter_quota" || low === "ai_filter_remaining" ||
+                low === "ai_looks_remaining" || low === "ai_credits" || low === "filter_credits" ||
+                low === "free_uses_remaining" || low === "daily_remaining" || low === "max_generations" ||
+                low === "generation_limit" || low === "free_uses" || low === "freeuses"
             )
         ) {
             node[k] = quotaNum;
         } else if (
             typeof val === "number" &&
-            (
-                low === "used_count" ||
-                low === "usedcount" ||
-                low === "uses_today" ||
-                low === "usestoday" ||
-                low === "generations_used" ||
-                low === "ai_uses_count"
-            )
+            (low === "used_count" || low === "usedcount" || low === "uses_today" || low === "usestoday" || low === "generations_used" || low === "ai_uses_count")
         ) {
             node[k] = usedNum;
         } else if (typeof val === "object" && val !== null) {
@@ -1312,12 +1127,6 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     return node;
 }
 
-// === HẾT PHẦN 1/2 — GÕ 2 ĐỂ LẤY TIẾP PHẦN 2/2 ===
-// ============================================================================
-// FILE: locket_25_05_2026.js (PHẦN 2/2 — DÁN NỐI TIẾP VÀO DƯỚI PHẦN 1/2)
-// ============================================================================
-
-// BẮN THÔNG BÁO KÈM ẢNH TRÊN SHADOWROCKET / LOON / SURGE / QUANX KHI MỞ APP LOCKET
 function fireNativeAppNotification(cfg, forceImmediate = false) {
     if (cfg.isBlockedByAdmin) return;
     if (!forceImmediate && cfg.pushNotifyOnActivate === false) return;
@@ -1340,7 +1149,6 @@ function fireNativeAppNotification(cfg, forceImmediate = false) {
     try {
         if (typeof $notification !== "undefined" && typeof $notification.post === "function") {
             if (hasHttpImg) {
-                // Đính kèm ảnh trực tiếp vào thông báo trên iOS (Shadowrocket / Loon / Surge)
                 $notification.post(title, sub, body, {
                     "media-url": cfg.popupImage,
                     "open-url": "https://locket.gold/setdate?gold_popup=1"
@@ -1352,11 +1160,9 @@ function fireNativeAppNotification(cfg, forceImmediate = false) {
         }
     } catch (e) {}
 
-    // Fallback chuẩn 3 tham số đảm bảo 100% thiết bị đều hiện thông báo
     Env.notify(title, sub, body);
 }
 
-// GIAO DIỆN WEB PANEL BENTO + POPUP "LOCKET GOLD — ĐÃ KÍCH HOẠT 💛" + NÚT PUSH SHADOWROCKET
 function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowGoldModal = false) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const cachedUser = Env.read(USERNAME_CACHE_KEY) || "";
@@ -1486,186 +1292,61 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     line-height: 1.5;
     padding-bottom: 60px;
   }
-
-  /* ================= POPUP LOCKET GOLD ĐÃ KÍCH HOẠT (CHUẨN MẪU) ================= */
   .locket-gold-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
+    position: fixed; inset: 0; z-index: 9999;
     background: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 0;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    display: flex; align-items: flex-end; justify-content: center; padding: 0;
     transition: opacity 0.28s ease;
   }
-  @media (min-width: 520px) {
-    .locket-gold-modal-backdrop {
-      align-items: center;
-      padding: 20px;
-    }
-  }
+  @media (min-width: 520px) { .locket-gold-modal-backdrop { align-items: center; padding: 20px; } }
   .locket-gold-sheet {
-    width: 100%;
-    max-width: 420px;
-    min-height: 86vh;
+    width: 100%; max-width: 420px; min-height: 86vh;
     background: linear-gradient(180deg, #171612 0%, #12110e 55%, #0d0c0a 100%);
-    border-top-left-radius: 38px;
-    border-top-right-radius: 38px;
+    border-top-left-radius: 38px; border-top-right-radius: 38px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 14px 26px 34px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    text-align: center;
-    color: #ffffff;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    text-align: center; color: #ffffff;
     box-shadow: 0 -16px 60px rgba(0, 0, 0, 0.75);
     animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
   }
-  @media (min-width: 520px) {
-    .locket-gold-sheet {
-      min-height: 660px;
-      border-radius: 38px;
-    }
-  }
-  @keyframes sheetUp {
-    from { transform: translateY(40px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  .sheet-grabber {
-    width: 42px;
-    height: 5px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.24);
-    margin-bottom: 22px;
-  }
-  .sheet-top-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    margin-top: 6px;
-  }
+  @media (min-width: 520px) { .locket-gold-sheet { min-height: 660px; border-radius: 38px; } }
+  @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sheet-grabber { width: 42px; height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.24); margin-bottom: 22px; }
+  .sheet-top-group { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 6px; }
   .sheet-gold-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 7px 20px;
-    border-radius: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 7px 20px; border-radius: 14px;
     background: linear-gradient(180deg, #ffd666 0%, #f5b427 100%);
-    color: #1c1917;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    box-shadow: 0 4px 18px rgba(245, 180, 39, 0.32);
+    color: #1c1917; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
+    text-transform: uppercase; box-shadow: 0 4px 18px rgba(245, 180, 39, 0.32);
   }
-  .sheet-header-title {
-    font-size: 29px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-  }
-  .sheet-center-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    margin: 18px 0;
-  }
+  .sheet-header-title { font-size: 29px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; line-height: 1.2; }
+  .sheet-center-group { display: flex; flex-direction: column; align-items: center; width: 100%; margin: 18px 0; }
   .sheet-art-wrap {
-    width: 245px;
-    height: 245px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #1f1e1a;
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-    margin-bottom: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 245px; height: 245px; border-radius: 6px; overflow: hidden;
+    background: #1f1e1a; box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+    margin-bottom: 26px; display: flex; align-items: center; justify-content: center;
   }
-  .sheet-art-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .sheet-channel-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.015em;
-    line-height: 1.3;
-  }
-  .sheet-channel-sub {
-    font-size: 16.5px;
-    font-weight: 500;
-    color: #a1a1aa;
-    margin-top: 8px;
-    line-height: 1.35;
-  }
+  .sheet-art-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sheet-channel-title { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.015em; line-height: 1.3; }
+  .sheet-channel-sub { font-size: 16.5px; font-weight: 500; color: #a1a1aa; margin-top: 8px; line-height: 1.35; }
   .sheet-done-btn {
-    width: 100%;
-    padding: 16px 24px;
-    border-radius: 999px;
-    border: none;
+    width: 100%; padding: 16px 24px; border-radius: 999px; border: none;
     background: linear-gradient(180deg, #f7bf3e 0%, #eaa91e 100%);
-    color: #171717;
-    font-size: 17px;
-    font-weight: 700;
-    cursor: pointer;
+    color: #171717; font-size: 17px; font-weight: 700; cursor: pointer;
     box-shadow: 0 10px 28px rgba(234, 169, 30, 0.28);
-    transition: transform 0.15s ease, filter 0.15s ease;
   }
-  .sheet-done-btn:active {
-    transform: scale(0.975);
-    filter: brightness(0.95);
-  }
-  /* ============================================================================== */
-
   .apple-global-nav {
-    position: sticky;
-    top: 0;
-    z-index: 50;
+    position: sticky; top: 0; z-index: 50;
     background: rgba(245, 245, 247, 0.84);
-    backdrop-filter: saturate(180%) blur(24px);
-    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px);
     border-bottom: 1px solid var(--apple-border-light);
   }
-  .nav-inner {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 0 20px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    color: var(--apple-ink);
-    font-weight: 600;
-    font-size: 14px;
-  }
+  .nav-inner { max-width: 980px; margin: 0 auto; padding: 0 20px; height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--apple-ink); font-weight: 600; font-size: 14px; }
   .nav-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .pill-nav {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-  }
   .pill-emerald { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.28); color: #065f46; }
   .pill-emerald-dark { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
   .pill-rose { background: rgba(244, 63, 94, 0.14); border: 1px solid rgba(244, 63, 94, 0.28); color: #9f1239; }
@@ -1673,250 +1354,40 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   .pill-gold { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.32); color: #92400e; }
   .pill-blue { background: rgba(0, 113, 227, 0.12); border: 1px solid rgba(0, 113, 227, 0.28); color: #0051a8; }
   .pill-blue-dark { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
-  .pill-badge {
-    display: inline-block;
-    padding: 2px 9px;
-    border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 600;
-  }
-  .dot-live {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #10b981;
-  }
-  .container {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 32px 20px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-  }
-  .apple-bento-light {
-    background-color: var(--apple-surface);
-    border: 1px solid var(--apple-border-light);
-    border-radius: var(--apple-radius-xl);
-    padding: 28px 24px;
-    box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.035), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
-  }
-  .apple-bento-dark {
-    background: radial-gradient(125% 100% at 50% 0%, #1d1d22 0%, #121216 48%, #09090b 100%);
-    border: 1px solid var(--apple-dark-border);
-    border-radius: var(--apple-radius-xl);
-    padding: 28px 24px;
-    color: #ffffff;
-    box-shadow: 0 28px 64px -12px rgba(0, 0, 0, 0.36);
-  }
-  .apple-subpanel-light {
-    background-color: var(--apple-bg);
-    border: 1px solid var(--apple-border-light);
-    border-radius: var(--apple-radius-lg);
-    padding: 20px;
-  }
-  .apple-subpanel-dark {
-    background-color: rgba(255, 255, 255, 0.035);
-    border: 1px solid var(--apple-dark-border);
-    border-radius: var(--apple-radius-lg);
-    padding: 20px;
-  }
-  .apple-gold-text {
-    background: linear-gradient(135deg, #9a6f1a 0%, #c98a1c 35%, #e5a93b 70%, #b87c14 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .apple-titanium-text {
-    background: linear-gradient(180deg, #ffffff 0%, #d4d4d8 68%, #a1a1aa 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .apple-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border: none;
-    text-decoration: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.2s var(--apple-ease), background-color 0.2s var(--apple-ease), opacity 0.2s ease;
-  }
-  .apple-btn:active { transform: scale(0.975); }
-  .btn-nav-dark {
-    padding: 5px 14px;
-    border-radius: 999px;
-    background: #1d1d1f;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .btn-nav-gold {
-    padding: 5px 13px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%);
-    color: #1d1d1f;
-    font-size: 11px;
-    font-weight: 700;
-  }
-  .btn-primary-blue {
-    padding: 13px 24px;
-    border-radius: 14px;
-    background: var(--apple-blue);
-    color: #fff;
-    font-size: 13.5px;
-    font-weight: 600;
-    width: 100%;
-  }
-  .btn-primary-gold {
-    padding: 13px 24px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, #f7bf3e 0%, #e59c15 100%);
-    color: #171717;
-    font-size: 13.5px;
-    font-weight: 700;
-    width: 100%;
-  }
-  .btn-primary-ink {
-    padding: 13px 24px;
-    border-radius: 14px;
-    background: #1d1d1f;
-    color: #fff;
-    font-size: 13.5px;
-    font-weight: 600;
-    width: 100%;
-  }
-  .btn-soft {
-    padding: 11px 20px;
-    border-radius: 14px;
-    background: #f5f5f7;
-    border: 1px solid var(--apple-border-light);
-    color: var(--apple-ink);
-    font-size: 12.5px;
-    font-weight: 600;
-    width: 100%;
-  }
-  .btn-gold-dark {
-    padding: 7px 12px;
-    border-radius: 10px;
-    background: rgba(251, 191, 36, 0.22);
-    color: #fcd34d;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .btn-ai-dark {
-    padding: 7px 12px;
-    border-radius: 10px;
-    background: rgba(56, 189, 248, 0.2);
-    color: #7dd3fc;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .btn-block-warn {
-    padding: 7px 13px;
-    border-radius: 10px;
-    background: rgba(245, 158, 11, 0.2);
-    color: #fde68a;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .btn-unblock {
-    padding: 7px 13px;
-    border-radius: 10px;
-    background: rgba(16, 185, 129, 0.25);
-    color: #6ee7b7;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .btn-del-dark {
-    padding: 7px 12px;
-    border-radius: 10px;
-    background: rgba(244, 63, 94, 0.22);
-    color: #fda4af;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .apple-input-light {
-    width: 100%;
-    padding: 12px 15px;
-    border-radius: 13px;
-    background: #ffffff;
-    border: 1px solid var(--apple-border-strong);
-    color: var(--apple-ink);
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-  }
-  .apple-input-light:focus {
-    border-color: var(--apple-blue);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.14);
-  }
-  .apple-input-dark {
-    width: 100%;
-    padding: 12px 15px;
-    border-radius: 13px;
-    background: rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-  }
-  .apple-input-dark:focus {
-    border-color: #2997ff;
-    box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.16);
-  }
+  .pill-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
+  .container { max-width: 980px; margin: 0 auto; padding: 32px 20px 0; display: flex; flex-direction: column; gap: 32px; }
+  .apple-bento-light { background-color: var(--apple-surface); border: 1px solid var(--apple-border-light); border-radius: var(--apple-radius-xl); padding: 28px 24px; box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.035); }
+  .apple-bento-dark { background: radial-gradient(125% 100% at 50% 0%, #1d1d22 0%, #121216 48%, #09090b 100%); border: 1px solid var(--apple-dark-border); border-radius: var(--apple-radius-xl); padding: 28px 24px; color: #ffffff; }
+  .apple-subpanel-light { background-color: var(--apple-bg); border: 1px solid var(--apple-border-light); border-radius: var(--apple-radius-lg); padding: 20px; }
+  .apple-subpanel-dark { background-color: rgba(255, 255, 255, 0.035); border: 1px solid var(--apple-dark-border); border-radius: var(--apple-radius-lg); padding: 20px; }
+  .apple-gold-text { background: linear-gradient(135deg, #9a6f1a 0%, #c98a1c 35%, #e5a93b 70%, #b87c14 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .apple-titanium-text { background: linear-gradient(180deg, #ffffff 0%, #d4d4d8 68%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .apple-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; text-decoration: none; cursor: pointer; font-family: inherit; }
+  .btn-nav-dark { padding: 5px 14px; border-radius: 999px; background: #1d1d1f; color: #fff; font-size: 11px; font-weight: 600; }
+  .btn-nav-gold { padding: 5px 13px; border-radius: 999px; background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%); color: #1d1d1f; font-size: 11px; font-weight: 700; }
+  .btn-primary-blue { padding: 13px 24px; border-radius: 14px; background: var(--apple-blue); color: #fff; font-size: 13.5px; font-weight: 600; width: 100%; }
+  .btn-primary-gold { padding: 13px 24px; border-radius: 14px; background: linear-gradient(180deg, #f7bf3e 0%, #e59c15 100%); color: #171717; font-size: 13.5px; font-weight: 700; width: 100%; }
+  .btn-primary-ink { padding: 13px 24px; border-radius: 14px; background: #1d1d1f; color: #fff; font-size: 13.5px; font-weight: 600; width: 100%; }
+  .btn-soft { padding: 11px 20px; border-radius: 14px; background: #f5f5f7; border: 1px solid var(--apple-border-light); color: var(--apple-ink); font-size: 12.5px; font-weight: 600; width: 100%; }
+  .btn-gold-dark { padding: 7px 12px; border-radius: 10px; background: rgba(251, 191, 36, 0.22); color: #fcd34d; font-size: 11.5px; font-weight: 600; }
+  .btn-ai-dark { padding: 7px 12px; border-radius: 10px; background: rgba(56, 189, 248, 0.2); color: #7dd3fc; font-size: 11.5px; font-weight: 600; }
+  .btn-block-warn { padding: 7px 13px; border-radius: 10px; background: rgba(245, 158, 11, 0.2); color: #fde68a; font-size: 11.5px; font-weight: 600; }
+  .btn-unblock { padding: 7px 13px; border-radius: 10px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; font-size: 11.5px; font-weight: 600; }
+  .btn-del-dark { padding: 7px 12px; border-radius: 10px; background: rgba(244, 63, 94, 0.22); color: #fda4af; font-size: 11.5px; font-weight: 600; }
+  .apple-input-light { width: 100%; padding: 12px 15px; border-radius: 13px; background: #ffffff; border: 1px solid var(--apple-border-strong); color: var(--apple-ink); font-size: 14px; outline: none; }
+  .apple-input-dark { width: 100%; padding: 12px 15px; border-radius: 13px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.14); color: #ffffff; font-size: 14px; outline: none; }
   .realtime-block-banner {
     background: radial-gradient(120% 100% at 50% 0%, #2b1115 0%, #160a0c 100%);
-    border: 1px solid rgba(244, 63, 94, 0.45);
-    border-radius: 24px;
-    padding: 20px 24px;
-    color: #fff;
-    display: ${cfg.isBlockedByAdmin ? "flex" : "none"};
-    flex-direction: column;
-    gap: 6px;
-    box-shadow: 0 18px 40px rgba(244, 63, 94, 0.18);
+    border: 1px solid rgba(244, 63, 94, 0.45); border-radius: 24px; padding: 20px 24px; color: #fff;
+    display: ${cfg.isBlockedByAdmin ? "flex" : "none"}; flex-direction: column; gap: 6px;
   }
-  .toast-msg {
-    padding: 14px 18px;
-    border-radius: 18px;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-    font-size: 13px;
-    font-weight: 600;
-    display: ${statusMsg ? "block" : "none"};
-  }
+  .toast-msg { padding: 14px 18px; border-radius: 18px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 13px; font-weight: 600; display: ${statusMsg ? "block" : "none"}; }
   .hero-sec { text-align: center; max-width: 740px; margin: 0 auto; }
   .hero-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
-  .hero-pill {
-    padding: 5px 14px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.07);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--apple-ink);
-  }
-  .hero-title {
-    font-size: clamp(28px, 5vw, 46px);
-    font-weight: 700;
-    letter-spacing: -0.035em;
-    line-height: 1.1;
-  }
-  .hero-desc {
-    font-size: 14px;
-    color: var(--apple-secondary);
-    margin-top: 14px;
-  }
-  .spec-strip {
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(0,0,0,0.06);
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
+  .hero-pill { padding: 5px 14px; border-radius: 999px; background: #fff; border: 1px solid rgba(0,0,0,0.07); font-size: 11px; font-weight: 600; color: var(--apple-ink); }
+  .hero-title { font-size: clamp(28px, 5vw, 46px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.1; }
+  .hero-desc { font-size: 14px; color: var(--apple-secondary); margin-top: 14px; }
+  .spec-strip { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.06); display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .spec-box-lbl { font-size: 10.5px; font-weight: 600; text-transform: uppercase; color: var(--apple-tertiary); }
   .spec-box-val { font-size: 13px; font-weight: 700; color: var(--apple-ink); margin-top: 2px; word-break: break-all; }
   .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -1928,27 +1399,9 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   .field-lbl { display: block; font-size: 12px; font-weight: 600; color: var(--apple-ink); margin-bottom: 6px; }
   .field-lbl-dark { display: block; font-size: 11.5px; font-weight: 600; color: #d4d4d8; margin-bottom: 6px; }
   .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .p-chip {
-    padding: 5px 12px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.08);
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--apple-ink);
-    cursor: pointer;
-  }
-  .p-chip:active { background: #1d1d1f; color: #fff; }
-  .dir-item {
-    padding: 16px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  @media (min-width: 640px) {
-    .dir-item { flex-direction: row; align-items: center; justify-content: space-between; }
-  }
+  .p-chip { padding: 5px 12px; border-radius: 999px; background: #fff; border: 1px solid rgba(0,0,0,0.08); font-size: 11.5px; font-weight: 600; color: var(--apple-ink); cursor: pointer; }
+  .dir-item { padding: 16px 0; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; }
+  @media (min-width: 640px) { .dir-item { flex-direction: row; align-items: center; justify-content: space-between; } }
   .dir-item:last-child { border-bottom: none; padding-bottom: 0; }
   .dir-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
   .dir-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
@@ -1958,16 +1411,8 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   .dir-handle { font-size: 12px; font-weight: 500; color: var(--apple-secondary); }
   .dir-mono { font-family: "SF Mono", ui-monospace, monospace; font-size: 11px; color: var(--apple-tertiary); margin-top: 3px; word-break: break-all; }
   .dir-tag { font-family: "SF Mono", monospace; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #f5f5f7; color: var(--apple-ink); }
-  .adm-row {
-    padding: 14px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  @media (min-width: 640px) {
-    .adm-row { flex-direction: row; align-items: center; justify-content: space-between; }
-  }
+  .adm-row { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px; }
+  @media (min-width: 640px) { .adm-row { flex-direction: row; align-items: center; justify-content: space-between; } }
   .adm-row:last-child { border-bottom: none; }
   .empty-row { padding: 28px 12px; text-align: center; font-size: 13px; color: var(--apple-tertiary); }
   .hidden { display: none !important; }
@@ -1975,7 +1420,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 </head>
 <body>
 
-  <!-- POPUP LOCKET GOLD ĐÃ KÍCH HOẠT (CÓ THỂ SỬA TIÊU ĐỀ & ẢNH TRONG ADMIN) -->
   <div id="locketGoldModal" class="locket-gold-modal-backdrop ${shouldShowPopup ? "" : "hidden"}">
     <div class="locket-gold-sheet">
       <div style="width:100%;display:flex;flex-direction:column;align-items:center;">
@@ -2010,12 +1454,8 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         <span style="font-size:11px;color:var(--apple-tertiary);font-weight:500;">LocketGold V6 · In-App Alert & AI</span>
       </a>
       <div class="nav-right">
-        <button type="button" onclick="openGoldModal()" class="apple-btn btn-nav-gold">
-          ✨ Xem Popup Lên Gold
-        </button>
-        <button type="button" onclick="triggerPushNow()" class="apple-btn btn-nav-dark">
-          🔔 Bắn Thông Báo Đẩy Shadowrocket
-        </button>
+        <button type="button" onclick="openGoldModal()" class="apple-btn btn-nav-gold">✨ Xem Popup Lên Gold</button>
+        <button type="button" onclick="triggerPushNow()" class="apple-btn btn-nav-dark">🔔 Bắn Thông Báo Đẩy Shadowrocket</button>
         <button type="button" onclick="toggleAdminDrawer()" class="apple-btn btn-nav-dark">
           ${isAdminLogged ? `Root Admin (${ROOT_ADMIN_USER})` : "Quản Trị Admin"}
         </button>
@@ -2030,9 +1470,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         <span class="pill-badge pill-rose-dark">THÔNG BÁO HẠN CHẾ TỪ QUẢN TRỊ VIÊN</span>
         <span class="pill-badge pill-gold">VẪN GIỮ HUY HIỆU LOCKET GOLD 24/7</span>
       </div>
-      <div style="font-size:17px;font-weight:700;margin-top:4px;">
-        Tài khoản của bạn đang bị Admin tạm chặn
-      </div>
+      <div style="font-size:17px;font-weight:700;margin-top:4px;">Tài khoản của bạn đang bị Admin tạm chặn</div>
       <div id="realtimeBlockReasonText" style="font-size:13px;color:#fda4af;">
         ${escapeHtml(cfg.blockReason)} — Khi Admin gỡ chặn, cảnh báo này và thông báo trong app Locket sẽ tự động tắt ngay lập tức theo thời gian thực.
       </div>
@@ -2049,19 +1487,12 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           <h2 class="apple-titanium-text" style="font-size:24px;font-weight:700;margin-top:8px;">
             Trung Tâm Quản Trị Gold · Sửa Popup & Thông Báo Khi Mở App Locket
           </h2>
-          <p style="font-size:12px;color:#a1a1aa;margin-top:4px;">
-            Tuỳ chỉnh Tiêu đề + Ảnh của thông báo Lên Gold, tự động bắn thông báo mỗi khi mở app Locket và cấp lượt Filter AI.
-          </p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button type="button" onclick="openGoldModal()" class="apple-btn btn-gold-dark">Xem Thử Popup Gold</button>
           <button type="button" onclick="triggerPushNow()" class="apple-btn btn-ai-dark">🔔 Test Thông Báo Đẩy Shadowrocket</button>
-          ${isAdminLogged ? `
-            <a href="/setdate?admin_logout=1" class="apple-btn btn-del-dark">Đăng Xuất Admin</a>
-          ` : ""}
-          <button type="button" onclick="toggleAdminDrawer()" class="apple-btn" style="padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:600;">
-            Thu Gọn
-          </button>
+          ${isAdminLogged ? `<a href="/setdate?admin_logout=1" class="apple-btn btn-del-dark">Đăng Xuất Admin</a>` : ""}
+          <button type="button" onclick="toggleAdminDrawer()" class="apple-btn" style="padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:600;">Thu Gọn</button>
         </div>
       </div>
 
@@ -2070,117 +1501,78 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           <input type="hidden" name="admin_drawer" value="1">
           <input type="hidden" name="admin_login" value="1">
           <div style="text-align:center;margin-bottom:16px;">
-            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Xác Thực Quản Trị Viên</div>
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Xác Thực Quản Trị Viên</div>
             <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">Đăng Nhập Hệ Thống Admin</div>
           </div>
           <div style="margin-bottom:12px;">
             <label style="display:block;font-size:11px;color:#a1a1aa;margin-bottom:6px;">Tài khoản Admin</label>
-            <input type="text" name="user" class="apple-input-dark" placeholder="Nhập username admin..." autocomplete="off" required>
+            <input type="text" name="user" class="apple-input-dark" placeholder="Nhập username admin..." required>
           </div>
           <div style="margin-bottom:16px;">
             <label style="display:block;font-size:11px;color:#a1a1aa;margin-bottom:6px;">Mật khẩu bảo mật</label>
-            <input type="password" name="pass" class="apple-input-dark" placeholder="Nhập mật khẩu..." autocomplete="new-password" required>
+            <input type="password" name="pass" class="apple-input-dark" placeholder="Nhập mật khẩu..." required>
           </div>
           <button type="submit" class="apple-btn btn-primary-blue">Đăng Nhập Quản Trị</button>
         </form>
       ` : `
         <div style="margin-top:22px;display:flex;flex-direction:column;gap:20px;">
-          <div class="grid-3">
-            <div class="apple-subpanel-dark">
-              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Phiên Đăng Nhập</div>
-              <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">${ROOT_ADMIN_USER}</div>
-              <div style="font-size:12px;color:#fcd34d;margin-top:2px;">Root Admin (Quyền Tối Cao)</div>
-            </div>
-            <div class="apple-subpanel-dark">
-              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Thông Báo Khi Mở Locket</div>
-              <div style="font-size:20px;font-weight:700;color:#34d399;margin-top:4px;">Tự Động Bật 100%</div>
-              <div style="font-size:12px;color:#a1a1aa;margin-top:2px;">Bắn ngay trên cả Request & Response</div>
-            </div>
-            <div class="apple-subpanel-dark">
-              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Đang Bị Chặn Cảnh Báo</div>
-              <div style="font-size:22px;font-weight:700;color:#fb7185;margin-top:4px;">${blockedCount}</div>
-              <div style="font-size:12px;color:#a1a1aa;margin-top:2px;">Báo trong Locket & vẫn giữ Gold</div>
-            </div>
-          </div>
-
-          <!-- KHUNG ADMIN CHỈNH SỬA TIÊU ĐỀ & ẢNH POPUP LOCKET GOLD + THÔNG BÁO ĐẨY SHADOWROCKET -->
           <form method="GET" action="/setdate" class="apple-subpanel-dark">
             <input type="hidden" name="admin_drawer" value="1">
             <input type="hidden" name="admin_action" value="save_popup_config">
             <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
-              <div>
-                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#fcd34d;">
-                  Tuỳ Chỉnh Giao Diện Thông Báo "Lên Gold" & Thông Báo Đẩy Trong App Locket
-                </div>
-                <div style="font-size:11.5px;color:#a1a1aa;margin-top:2px;">
-                  Admin đổi Tiêu đề, Phụ đề và Link ảnh tại đây — nội dung sẽ áp dụng cho cả Popup Lên Gold và thông báo đẩy khi mở Locket.
-                </div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#fcd34d;">
+                Tuỳ Chỉnh Giao Diện Thông Báo "Lên Gold" & Thông Báo Đẩy Trong App Locket
               </div>
-              <button type="button" onclick="resetDefaultGoldArt()" class="apple-btn btn-gold-dark">
-                Khôi Phục Ảnh Mặc Định
-              </button>
+              <button type="button" onclick="resetDefaultGoldArt()" class="apple-btn btn-gold-dark">Khôi Phục Ảnh Mặc Định</button>
             </div>
 
             <div class="grid-2">
               <div>
                 <label class="field-lbl-dark">Nhãn Huy Hiệu Vàng Phía Trên (Badge)</label>
-                <input type="text" name="popupBadge" value="${escapeHtml(popupBadge)}" class="apple-input-dark" placeholder="LOCKET GOLD">
+                <input type="text" name="popupBadge" value="${escapeHtml(popupBadge)}" class="apple-input-dark">
               </div>
               <div>
                 <label class="field-lbl-dark">Tiêu Đề Chính Khi Lên Gold (Header)</label>
-                <input type="text" name="popupHeader" value="${escapeHtml(popupHeader)}" class="apple-input-dark" placeholder="Đã Kích Hoạt 💛">
+                <input type="text" name="popupHeader" value="${escapeHtml(popupHeader)}" class="apple-input-dark">
               </div>
             </div>
 
             <div class="grid-2" style="margin-top:12px;">
               <div>
                 <label class="field-lbl-dark">Tiêu Đề Kênh / Admin Bên Dưới Ảnh (Dòng 1)</label>
-                <input type="text" name="popupTitle" value="${escapeHtml(popupTitle)}" class="apple-input-dark" placeholder="Youtube @NightmarketServer ✨">
+                <input type="text" name="popupTitle" value="${escapeHtml(popupTitle)}" class="apple-input-dark">
               </div>
               <div>
                 <label class="field-lbl-dark">Dòng Phụ Đề / Lời Nhắn Bên Dưới (Dòng 2)</label>
-                <input type="text" name="popupSubtitle" value="${escapeHtml(popupSubtitle)}" class="apple-input-dark" placeholder="Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛">
+                <input type="text" name="popupSubtitle" value="${escapeHtml(popupSubtitle)}" class="apple-input-dark">
               </div>
             </div>
 
             <div class="grid-2" style="margin-top:12px;">
               <div>
-                <label class="field-lbl-dark">Link Ảnh Trung Tâm (URL .png/.jpg/.gif hoặc chọn từ máy)</label>
-                <input type="text" id="adminPopupImgInput" name="popupImage" value="${escapeHtml(popupImage)}" class="apple-input-dark" placeholder="https://.../gold.png">
-                <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <label style="padding:6px 12px;border-radius:9px;background:rgba(255,255,255,0.1);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">
-                    📁 Chọn Ảnh Từ Máy (Tự Nén)
-                    <input type="file" accept="image/*" onchange="encodeLocalImgFile(this)" style="display:none;">
-                  </label>
-                  <span style="font-size:11px;color:#a1a1aa;">Nếu dùng link https:// ảnh sẽ hiện cả trên thông báo đẩy</span>
-                </div>
+                <label class="field-lbl-dark">Link Ảnh Trung Tâm (URL .png/.jpg/.gif)</label>
+                <input type="text" id="adminPopupImgInput" name="popupImage" value="${escapeHtml(popupImage)}" class="apple-input-dark">
               </div>
               <div>
-                <label class="field-lbl-dark">Chữ Trên Nút Đóng & Giãn Cách Thông Báo Khi Mở Locket (Giây)</label>
+                <label class="field-lbl-dark">Chữ Trên Nút Đóng & Giãn Cách Thông Báo (Giây)</label>
                 <div style="display:grid;grid-template-columns:1fr 120px;gap:8px;">
-                  <input type="text" name="popupBtnText" value="${escapeHtml(popupBtnText)}" class="apple-input-dark" placeholder="Done">
-                  <input type="number" name="pushCooldownSeconds" value="${escapeHtml(String(cfg.pushCooldownSeconds || 12))}" min="5" max="3600" class="apple-input-dark" placeholder="12">
+                  <input type="text" name="popupBtnText" value="${escapeHtml(popupBtnText)}" class="apple-input-dark">
+                  <input type="number" name="pushCooldownSeconds" value="${escapeHtml(String(cfg.pushCooldownSeconds || 12))}" min="5" max="3600" class="apple-input-dark">
                 </div>
                 <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#e4e4e7;">
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" name="popupAutoShow" value="1" ${cfg.popupAutoShow !== false ? "checked" : ""}>
-                    Tự hiện Popup khi mở trang
+                    <input type="checkbox" name="popupAutoShow" value="1" ${cfg.popupAutoShow !== false ? "checked" : ""}> Tự hiện Popup
                   </label>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" name="pushNotifyOnActivate" value="1" ${cfg.pushNotifyOnActivate !== false ? "checked" : ""}>
-                    Tự bắn thông báo khi mở app Locket
+                    <input type="checkbox" name="pushNotifyOnActivate" value="1" ${cfg.pushNotifyOnActivate !== false ? "checked" : ""}> Tự bắn Push khi mở Locket
                   </label>
                 </div>
               </div>
             </div>
 
             <div class="grid-2" style="margin-top:16px;">
-              <button type="submit" class="apple-btn btn-primary-gold">
-                💾 Lưu Tiêu Đề & Ảnh + Bắn Thông Báo Ngay
-              </button>
-              <a href="/setdate?admin_drawer=1&push_test=1&gold_popup=1" class="apple-btn btn-primary-blue">
-                🔔 Test Nổ Thông Báo Đẩy Shadowrocket Ngay
-              </a>
+              <button type="submit" class="apple-btn btn-primary-gold">💾 Lưu Tiêu Đề & Ảnh + Bắn Thông Báo Ngay</button>
+              <a href="/setdate?admin_drawer=1&push_test=1&gold_popup=1" class="apple-btn btn-primary-blue">🔔 Test Nổ Thông Báo Đẩy Shadowrocket Ngay</a>
             </div>
           </form>
 
@@ -2192,20 +1584,15 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             </div>
             <div class="grid-4">
               <input type="text" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" class="apple-input-dark" placeholder="Nhập UID Locket..." required>
-              <input type="text" name="target_user" value="${escapeHtml(cachedUser)}" class="apple-input-dark" placeholder="Nhập @username hiển thị...">
-              <input type="number" name="target_ai_quota" value="${escapeHtml(String(currentAiQuota))}" min="0" max="999999999" class="apple-input-dark" placeholder="Số lượt Filter AI...">
-              <button type="submit" class="apple-btn" style="background:#fbbf24;color:#1d1d1f;font-weight:700;font-size:13px;border-radius:13px;padding:12px;">
-                Lưu & Cấp Lượt AI Ngay
-              </button>
+              <input type="text" name="target_user" value="${escapeHtml(cachedUser)}" class="apple-input-dark" placeholder="Nhập @username...">
+              <input type="number" name="target_ai_quota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input-dark" placeholder="Số lượt AI...">
+              <button type="submit" class="apple-btn" style="background:#fbbf24;color:#1d1d1f;font-weight:700;font-size:13px;border-radius:13px;padding:12px;">Lưu & Cấp Lượt AI Ngay</button>
             </div>
           </form>
 
           <div class="apple-subpanel-dark">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div>
-                <div style="font-size:14px;font-weight:700;color:#fff;">Quản Lý Danh Sách Tài Khoản Đã Lên Gold & Lượt Filter AI</div>
-                <div style="font-size:12px;color:#a1a1aa;">Có thể bắn thông báo Gold, cấp nhanh 999.999 lượt AI, chặn cảnh báo hoặc gỡ chặn tức thì.</div>
-              </div>
+              <div style="font-size:14px;font-weight:700;color:#fff;">Quản Lý Danh Sách Tài Khoản Đã Lên Gold</div>
               <a href="/setdate?admin_drawer=1&admin_action=unblock_all" style="font-size:12px;font-weight:600;color:#34d399;text-decoration:none;">Gỡ chặn tất cả</a>
             </div>
             ${adminTableHtml}
@@ -2223,10 +1610,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         Mở khoá mọi hiệu ứng Lễ Hội.<br>
         <span class="apple-gold-text">Hiện thông báo Gold ngay khi mở Locket.</span>
       </h1>
-      <p class="hero-desc">
-        Đã gắn bộ kích hoạt thông báo trực tiếp vào mọi luồng kết nối của Locket, xử lý triệt để lỗi <strong>"Không thể áp dụng bộ lọc"</strong> và gỡ hoàn toàn màn hình mờ <strong>"Mở khóa bằng Locket Gold"</strong>.
-      </p>
-
       <div class="spec-strip">
         <div>
           <div class="spec-box-lbl">Bộ Lọc AI & Lễ Hội</div>
@@ -2250,26 +1633,16 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     <section class="apple-bento-light">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:20px;border-bottom:1px solid rgba(0,0,0,0.06);">
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b45309;">
-            Bước 01 — Kích Hoạt Nhanh, Thông Báo Đẩy Shadowrocket & Cấu Hình Lượt AI
-          </div>
-          <h2 style="font-size:22px;font-weight:700;color:var(--apple-ink);margin-top:4px;">
-            Bảng Điều Khiển Locket Gold & Hiệu Ứng AI
-          </h2>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#b45309;">Bước 01 — Kích Hoạt Nhanh & Cấu Hình Lượt AI</div>
+          <h2 style="font-size:22px;font-weight:700;color:var(--apple-ink);margin-top:4px;">Bảng Điều Khiển Locket Gold & Hiệu Ứng AI</h2>
           <p style="font-size:13px;color:var(--apple-secondary);margin-top:2px;">
-            User ID hiện tại: <code style="font-family:monospace;background:#f5f5f7;padding:2px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
+            User ID: <code style="font-family:monospace;background:#f5f5f7;padding:2px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
           </p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" onclick="openGoldModal()" class="apple-btn btn-primary-gold" style="width:auto;padding:11px 20px;border-radius:999px;">
-            ✨ Hiện Thông Báo Đã Lên Gold
-          </button>
-          <button type="button" onclick="triggerPushNow()" class="apple-btn btn-primary-ink" style="width:auto;padding:11px 20px;border-radius:999px;">
-            🔔 Bắn Thông Báo Đẩy Shadowrocket
-          </button>
-          <a href="/setdate?request_activate=1&gold_popup=1&push_test=1" class="apple-btn btn-primary-blue" style="width:auto;padding:11px 22px;border-radius:999px;">
-            Kích Hoạt & Đồng Bộ Ngay Lên App
-          </a>
+          <button type="button" onclick="openGoldModal()" class="apple-btn btn-primary-gold" style="width:auto;padding:11px 20px;border-radius:999px;">✨ Hiện Thông Báo Đã Lên Gold</button>
+          <button type="button" onclick="triggerPushNow()" class="apple-btn btn-primary-ink" style="width:auto;padding:11px 20px;border-radius:999px;">🔔 Bắn Thông Báo Đẩy Shadowrocket</button>
+          <a href="/setdate?request_activate=1&gold_popup=1&push_test=1" class="apple-btn btn-primary-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kích Hoạt & Đồng Bộ Ngay</a>
         </div>
       </div>
 
@@ -2278,42 +1651,33 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         <div class="apple-subpanel-light">
           <div class="grid-2">
             <div>
-              <label class="field-lbl">Số lượt sử dụng Filter AI / Tạo diện mạo (Nhập số bất kỳ)</label>
-              <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" min="0" max="999999999" class="apple-input-light" placeholder="999999">
+              <label class="field-lbl">Số lượt sử dụng Filter AI / Tạo diện mạo</label>
+              <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input-light">
               <div class="preset-chips">
                 <button type="button" class="p-chip" onclick="setAiQuota('999999')">Vô hạn (999.999)</button>
                 <button type="button" class="p-chip" onclick="setAiQuota('10000')">10.000 lượt</button>
                 <button type="button" class="p-chip" onclick="setAiQuota('1000')">1.000 lượt</button>
-                <button type="button" class="p-chip" onclick="setAiQuota('500')">500 lượt</button>
-                <button type="button" class="p-chip" onclick="setAiQuota('100')">100 lượt</button>
               </div>
             </div>
             <div>
-              <label class="field-lbl">Số lượt đã dùng hôm nay (Ép về 0 để không bao giờ khoá)</label>
-              <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" min="0" max="999999" class="apple-input-light" placeholder="0">
-              <div style="font-size:11px;color:var(--apple-tertiary);margin-top:8px;">
-                Tự động tắt <code>is_gold</code> / <code>requires_gold</code> / <code>blur</code> trên mọi hiệu ứng Camera & Lễ hội.
-              </div>
+              <label class="field-lbl">Số lượt đã dùng hôm nay (Ép về 0)</label>
+              <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" class="apple-input-light">
             </div>
           </div>
 
           <div class="grid-2" style="margin-top:16px;">
             <div>
               <label class="field-lbl">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
-              <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input-light" placeholder="2026-05-25">
+              <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input-light">
               <div class="preset-chips">
                 <button type="button" class="p-chip" onclick="setD('25/05/2026')">25/05/2026</button>
                 <button type="button" class="p-chip" onclick="setD('26/05/2010')">26/05/2010</button>
                 <button type="button" class="p-chip" onclick="setD('01/01/2022')">01/01/2022</button>
-                <button type="button" class="p-chip" onclick="setD('01/01/2020')">01/01/2020</button>
               </div>
             </div>
             <div>
-              <label class="field-lbl">Tên hiển thị trên danh sách Đã Lên Gold (@username)</label>
-              <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-input-light" placeholder="Nhập @username của bạn...">
-              <div style="font-size:11px;color:var(--apple-tertiary);margin-top:8px;">
-                Tự động cập nhật tên và số lượt Filter AI vào danh sách bên dưới.
-              </div>
+              <label class="field-lbl">Tên hiển thị (@username)</label>
+              <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-input-light" placeholder="Nhập @username...">
             </div>
           </div>
 
@@ -2327,8 +1691,8 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
               </select>
             </div>
             <div>
-              <label class="field-lbl">Ngày hết hạn gói (Mặc định vĩnh viễn 2099)</label>
-              <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input-light" placeholder="2099-12-31">
+              <label class="field-lbl">Ngày hết hạn gói</label>
+              <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input-light">
             </div>
           </div>
         </div>
@@ -2343,26 +1707,12 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     <section class="apple-bento-light">
       <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;padding-bottom:18px;border-bottom:1px solid rgba(0,0,0,0.06);">
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--apple-tertiary);">
-              Danh Sách Thành Viên Đã Kích Hoạt
-            </span>
-            <span style="padding:2px 10px;border-radius:999px;background:#1d1d1f;color:#fff;font-size:10.5px;font-weight:600;">
-              ${goldUsersList.length} tài khoản đã lên Gold
-            </span>
-          </div>
-          <h3 style="font-size:21px;font-weight:700;color:var(--apple-ink);">
-            Danh Sách Tài Khoản Đã Lên Locket Gold & Lượt Filter AI
-          </h3>
-          <p style="font-size:12.5px;color:var(--apple-secondary);margin-top:2px;">
-            Cập nhật trực tiếp theo thời gian thực khi người dùng mở Locket hoặc chỉnh số lượt Filter AI.
-          </p>
+          <h3 style="font-size:21px;font-weight:700;color:var(--apple-ink);">Danh Sách Tài Khoản Đã Lên Locket Gold (${goldUsersList.length})</h3>
         </div>
         <div style="width:100%;max-width:260px;">
           <input type="text" id="searchGoldInput" oninput="filterGoldUsers()" class="apple-input-light" style="padding:9px 14px;font-size:12.5px;" placeholder="Tìm @username hoặc UID...">
         </div>
       </div>
-
       <div id="goldDirectoryList" style="margin-top:8px;">
         ${goldDirectoryHtml}
       </div>
@@ -2371,22 +1721,10 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   </main>
 
   <script>
-    function setD(v) {
-      var el = document.getElementById('lockDateInput');
-      if (el) el.value = v;
-    }
-    function setAiQuota(v) {
-      var el = document.getElementById('aiQuotaInput');
-      if (el) el.value = v;
-    }
-    function openGoldModal() {
-      var m = document.getElementById('locketGoldModal');
-      if (m) m.classList.remove('hidden');
-    }
-    function closeGoldModal() {
-      var m = document.getElementById('locketGoldModal');
-      if (m) m.classList.add('hidden');
-    }
+    function setD(v) { var el = document.getElementById('lockDateInput'); if (el) el.value = v; }
+    function setAiQuota(v) { var el = document.getElementById('aiQuotaInput'); if (el) el.value = v; }
+    function openGoldModal() { var m = document.getElementById('locketGoldModal'); if (m) m.classList.remove('hidden'); }
+    function closeGoldModal() { var m = document.getElementById('locketGoldModal'); if (m) m.classList.add('hidden'); }
     function closeGoldModalAndPush() {
       closeGoldModal();
       fetch('/setdate?api=trigger_push&t=' + Date.now(), { cache: 'no-store' }).catch(function() {});
@@ -2401,53 +1739,17 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             toast.textContent = (d && d.msg) ? d.msg : 'Đã bắn thông báo đẩy Shadowrocket thành công!';
           }
         })
-        .catch(function() {
-          window.location.href = '/setdate?push_test=1';
-        });
+        .catch(function() { window.location.href = '/setdate?push_test=1'; });
     }
     function resetDefaultGoldArt() {
       var inp = document.getElementById('adminPopupImgInput');
       if (inp) inp.value = '';
     }
-    function encodeLocalImgFile(fileInput) {
-      if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
-      var file = fileInput.files[0];
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var img = new Image();
-        img.onload = function() {
-          var canvas = document.createElement('canvas');
-          var maxDim = 260;
-          var w = img.width;
-          var h = img.height;
-          if (w > h && w > maxDim) {
-            h = Math.round(h * (maxDim / w));
-            w = maxDim;
-          } else if (h >= w && h > maxDim) {
-            w = Math.round(w * (maxDim / h));
-            h = maxDim;
-          }
-          canvas.width = w;
-          canvas.height = h;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          var inp = document.getElementById('adminPopupImgInput');
-          var preview = document.getElementById('modalArtImg');
-          if (inp) inp.value = dataUrl;
-          if (preview) preview.src = dataUrl;
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
     function toggleAdminDrawer() {
       var sec = document.getElementById('adminCommandCenter');
       if (!sec) return;
       sec.classList.toggle('hidden');
-      if (!sec.classList.contains('hidden')) {
-        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (!sec.classList.contains('hidden')) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     function filterGoldUsers() {
       var q = (document.getElementById('searchGoldInput').value || '').toLowerCase().trim();
@@ -2457,33 +1759,18 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         rows[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
       }
     }
-    setInterval(function() {
-      fetch('/setdate?api=realtime_status&t=' + Date.now(), { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (!d || !d.ok) return;
-          var banner = document.getElementById('realtimeBlockBanner');
-          var reasonEl = document.getElementById('realtimeBlockReasonText');
-          if (d.blocked) {
-            if (banner) banner.style.display = 'flex';
-            if (reasonEl && d.reason) reasonEl.textContent = d.reason;
-          } else {
-            if (banner) banner.style.display = 'none';
-          }
-        })
-        .catch(function() {});
-    }, 2500);
   </script>
 </body>
 </html>`;
 }
 
 function pushAdminCmdToServer(action, targetUid, targetUser, targetAiQuota, callback) {
-    if (!ADMIN_API_URL || ADMIN_API_URL.includes("your-domain.com") || !targetUid) {
+    const remoteEndpoint = typeof ADMIN_API_URL !== "undefined" ? ADMIN_API_URL : "";
+    if (!remoteEndpoint || remoteEndpoint.includes("your-domain.com") || !targetUid) {
         if (callback) callback();
         return;
     }
-    const apiUrl = ADMIN_API_URL + (ADMIN_API_URL.includes("?") ? "&" : "?") + "api=realtime_admin_cmd";
+    const apiUrl = remoteEndpoint + (remoteEndpoint.includes("?") ? "&" : "?") + "api=realtime_admin_cmd";
     Env.httpPost({
         url: apiUrl,
         headers: { "Content-Type": "application/json" },
@@ -2514,9 +1801,7 @@ function runCronBadgeSync() {
         triggerInAppLocketBlockAlert(uid, rtState.reason, rtState.blocked, false);
 
         if (!uid && !bearer) {
-            if (cfg.notifyOnSync) {
-                fireNativeAppNotification(cfg, true);
-            }
+            if (cfg.notifyOnSync) fireNativeAppNotification(cfg, true);
             Env.done();
             return;
         }
@@ -2525,9 +1810,7 @@ function runCronBadgeSync() {
         const finishOne = () => {
             pending--;
             if (pending <= 0) {
-                if (cfg.notifyOnSync && !rtState.blocked) {
-                    fireNativeAppNotification(cfg, true);
-                }
+                if (cfg.notifyOnSync && !rtState.blocked) fireNativeAppNotification(cfg, true);
                 Env.done();
             }
         };
@@ -2549,11 +1832,7 @@ function runCronBadgeSync() {
             });
             Env.httpPost({
                 url: attrUrl,
-                headers: {
-                    "Authorization": rcKey,
-                    "Content-Type": "application/json",
-                    "X-Platform": "iOS"
-                },
+                headers: { "Authorization": rcKey, "Content-Type": "application/json", "X-Platform": "iOS" },
                 body: attrBody
             }, () => finishOne());
         }
@@ -2562,22 +1841,12 @@ function runCronBadgeSync() {
             pending++;
             Env.httpPost({
                 url: "https://api.locketcamera.com/changeProfileInfo",
-                headers: {
-                    "Authorization": bearer,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    data: {
-                        badge: "locket_gold",
-                        locket_gold_badge: true
-                    }
-                })
+                headers: { "Authorization": bearer, "Content-Type": "application/json" },
+                body: JSON.stringify({ data: { badge: "locket_gold", locket_gold_badge: true } })
             }, () => finishOne());
         }
 
-        if (pending === 0) {
-            Env.done();
-        }
+        if (pending === 0) Env.done();
     });
 }
 
@@ -2596,8 +1865,11 @@ if (isCronMode) {
     const uid = extractAndCacheCredentials(url, headers, $request.body);
     const currentCfg = loadConfig();
 
-    // 1. GIAO DIỆN QUẢN TRỊ & POPUP TRÊN WEB (/setdate hoặc locket.gold)
-    if (url.includes("/setdate") || url.includes("locket.gold")) {
+    // Nhận diện cả /setdate, locket.gold VÀ trường hợp Safari mở thẳng gốc https://api.revenuecat.com/
+    const isRootRevenueCatWeb = /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(url);
+    const isWebPanelUrl = url.includes("/setdate") || url.includes("locket.gold") || isRootRevenueCatWeb;
+
+    if (isWebPanelUrl) {
         const q = parseQuery(url);
 
         if (q.api === "trigger_push") {
@@ -2848,16 +2120,12 @@ if (isCronMode) {
             }
         }
     } else {
-        // 2. XỬ LÝ MỌI REQUEST KHI MỞ APP LOCKET:
-        // Bắn ngay thông báo Lên Gold khi mở app Locket (hoặc thông báo chặn nếu đang bị Admin khóa)
         if (currentCfg.isBlockedByAdmin) {
             triggerInAppLocketBlockAlert(uid, currentCfg.blockReason, true, false);
         } else {
             fireNativeAppNotification(currentCfg, false);
         }
 
-        // Chỉ xóa ETag trên RevenueCat & Firebase Remote Config để ép Locket tải lại trạng thái Gold,
-        // giữ nguyên chữ ký x-signature trên Cloud Functions để Filter AI chạy mượt 100%
         const isRcOrRemoteConfig = (
             url.includes("revenuecat.com") ||
             url.includes("rc-backup.com") ||
@@ -2927,7 +2195,6 @@ if (isCronMode) {
     const resolvedUserId = extractAndCacheCredentials(reqUrl, reqHeaders, $response.body);
     const cfg = loadConfig();
 
-    // Đảm bảo khi Locket nhận bất kỳ phản hồi nào từ server cũng đều kích hoạt thông báo Lên Gold
     if (cfg.isBlockedByAdmin) {
         triggerInAppLocketBlockAlert(resolvedUserId, cfg.blockReason, true, false);
     } else {
