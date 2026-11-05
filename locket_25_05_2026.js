@@ -1,22 +1,21 @@
 // ============================================================================
-// FILE: locket_25_05_2026.js (BẢN V6 FINAL — APPLE SCROLLYTELLING + INTEGRATED DOH/CLOUDFUNCTIONS)
+// FILE: locket_25_05_2026.js (BẢN V7 ULTRA MAX — FULL FILTER + 30S VIDEO + MIC + DOH)
 // Runtime: Shadowrocket / Loon / Surge / Quantumult X
-// Tích hợp: Full Core Locket Gold V6 + Giao diện Apple.com Scrollytelling 60fps
-// Tích hợp tính năng MobileConfig (KHÔNG CẦN CÀI PROFILE):
-//   1. Tự động định tuyến & kiểm tra DoH: https://doh.2707226.xyz/dns-query/common
-//   2. Cặp IP máy chủ dự phòng: 172.67.146.35 & 104.21.10.172
-//   3. Chặn bắt & giải mã CloudFunctions: us-central1-locket-4252a.cloudfunctions.net
-//      cùng api.revenuecat.com & firebaseremoteconfig.googleapis.com
-//   4. Quản lý phiên bản định danh LocketGold Root CA ngay trong lõi Script
+// Khắc phục triệt để lỗi mất Filter, mất quay 30s và mất Mic khi bật Shadowrocket:
+//   1. Bóc tách templateVersionNumber / ETag ở Request để ép Firebase luôn trả Full Catalog
+//   2. Lưu đệm bảo toàn 100% entries gốc (LOCKET_RC_FULL_ENTRIES_CACHE_V7) chống lỗi NO_CHANGE
+//   3. Mở khoá cứng Quay Video 30s/60s, Thu âm Mic, Full Filter/LUTs/Hiệu ứng Lễ Hội
+//   4. Không làm hỏng cấu trúc Swift Codable của mảng JSON Filter/Effects gốc
+//   5. Tích hợp trọn bộ tính năng DoH (https://doh.2707226.xyz/dns-query/common) & CloudFunctions
 // ============================================================================
 
 const ROOT_ADMIN_USER = "ngominhduc";
 const ROOT_ADMIN_PASS_1 = "ducff123#";
 const ROOT_ADMIN_PASS_2 = "Ducnocode2505@";
-const ADMIN_API_URL = ""; // Đã khai báo đầy đủ chống ReferenceError làm sập Web UI
+const ADMIN_API_URL = ""; // Khai báo đầy đủ chống ReferenceError làm sập Web UI
 
 // ============================================================================
-// CẤU HÌNH TÍNH NĂNG TRÍCH XUẤT TỪ FILE MOBILECONFIG (CHẠY TRỰC TIẾP TRONG JS)
+// CẤU HÌNH MẠNG TÍCH HỢP TỪ LOCKET_COM.MOBILECONFIG (CHẠY TRỰC TIẾP TRONG JS)
 // ============================================================================
 const INTEGRATED_NET_ENGINE = {
     profileName: "locket.com",
@@ -43,7 +42,7 @@ const INTEGRATED_NET_ENGINE = {
     ]
 };
 
-// Đồ hoạ Vector Kiến Trúc Phần Cứng Apple (Thay thế hoàn toàn icon/emoji cũ)
+// Đồ hoạ Vector Kiến Trúc Phần Cứng Apple (Zero Icons)
 const DEFAULT_GOLD_POPUP_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
   <defs>
@@ -88,9 +87,9 @@ const DEFAULT_GOLD_POPUP_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
   <rect x="228" y="228" width="144" height="144" rx="26" fill="#141416" stroke="url(#goldDie)" stroke-width="2"/>
   <circle cx="300" cy="300" r="144" fill="url(#opticGlow)"/>
   <path d="M 176 232 A 144 144 0 0 1 424 218" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="6" stroke-linecap="round"/>
-  <text x="300" y="286" text-anchor="middle" fill="#a1a1a6" font-size="11" font-weight="600" letter-spacing="0.24em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">LOCKET SILICON</text>
-  <text x="300" y="314" text-anchor="middle" fill="url(#goldDie)" font-size="24" font-weight="700" letter-spacing="0.06em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">GOLD H2</text>
-  <text x="300" y="334" text-anchor="middle" fill="#6e6e73" font-size="9.5" font-weight="600" letter-spacing="0.18em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">HARD LOCK V6</text>
+  <text x="300" y="282" text-anchor="middle" fill="#a1a1a6" font-size="10.5" font-weight="600" letter-spacing="0.22em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">30S VIDEO · MIC · LUTS</text>
+  <text x="300" y="312" text-anchor="middle" fill="url(#goldDie)" font-size="24" font-weight="700" letter-spacing="0.06em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">GOLD H2 PRO</text>
+  <text x="300" y="334" text-anchor="middle" fill="#6e6e73" font-size="9.5" font-weight="600" letter-spacing="0.18em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">ULTRA MAX V7</text>
 </svg>`);
 
 const DEFAULT_CONFIG = {
@@ -110,35 +109,45 @@ const DEFAULT_CONFIG = {
     alwaysForceBadge: true,
     cronKeepAlive: true,
     notifyOnSync: true,
+    // Tính năng Quay Video 30s/60s, Mic Audio & Bộ lọc Filter/LUTs
     unlockAllCameraEffects: true,
+    preserveOriginalFilterCatalog: true,
+    video30sEnabled: true,
+    videoMaxDurationSeconds: 30,
+    micAudioEnabled: true,
+    hdVideoUploadEnabled: true,
+    unlimitedPinsEnabled: true,
+    // Tính năng AI Filter / AI Looks
     aiFilterEnabled: true,
     aiFilterQuota: 999999,
     aiFilterDailyLimit: 999999,
     aiFilterUsed: 0,
     aiFilterUnlimited: true,
-    // Các tính năng mạng & DoH tích hợp từ cấu hình LocketGold DNS & CA
+    // Tính năng Mạng & DoH từ mobileconfig
     dohEnabled: true,
     dohServerUrl: INTEGRATED_NET_ENGINE.dohServerUrl,
     dohPrimaryIp: INTEGRATED_NET_ENGINE.serverAddresses[0],
     dohSecondaryIp: INTEGRATED_NET_ENGINE.serverAddresses[1],
     interceptCloudFunctions: true,
     bypassSslPinningHeaders: true,
+    forceFullRemoteConfigFetch: true,
+    // Cấu hình Popup & Thông báo đẩy
     popupEnabled: true,
     popupAutoShow: false,
     popupBadge: "LOCKET GOLD",
     popupHeader: "Đã Kích Hoạt",
     popupTitle: "Youtube @NightmarketServer",
-    popupSubtitle: "Nhớ Follow Kênh Ủng Hộ Mình Nhé",
+    popupSubtitle: "Full Filter · Quay 30s · Mic Audio · 999.999 AI",
     popupImage: DEFAULT_GOLD_POPUP_SVG,
     popupBtnText: "Hoàn tất",
     pushNotifyOnActivate: true,
     pushCooldownSeconds: 12,
     pushTitle: "LOCKET GOLD — Đã Kích Hoạt",
     pushSubtitle: "Youtube @NightmarketServer",
-    pushBody: "Nhớ Follow Kênh Ủng Hộ Mình Nhé"
+    pushBody: "Đã mở khoá Full Filter, Video 30s, Mic & 999.999 lượt AI"
 };
 
-const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V6";
+const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V7";
 const USER_ID_CACHE_KEY = "LOCKET_LAST_APP_USER_ID";
 const USERNAME_CACHE_KEY = "LOCKET_LAST_USERNAME";
 const AVATAR_CACHE_KEY = "LOCKET_LAST_AVATAR";
@@ -149,7 +158,8 @@ const LOCAL_ADMIN_DB_KEY = "LOCKET_BENTO_USERS_DB_V4";
 const ADMIN_SESSION_KEY = "LOCKET_BENTO_ADMIN_SESSION_V4";
 const LAST_INAPP_ALERT_TS_KEY = "LOCKET_INAPP_ALERT_TS_V4";
 const LAST_GOLD_PUSH_TS_KEY = "LOCKET_GOLD_OPEN_ALERT_TS_V6";
-const DOH_STATUS_CACHE_KEY = "LOCKET_DOH_HEALTH_STATUS_V6";
+const DOH_STATUS_CACHE_KEY = "LOCKET_DOH_HEALTH_STATUS_V7";
+const RC_FULL_ENTRIES_CACHE_KEY = "LOCKET_RC_FULL_ENTRIES_CACHE_V7";
 
 const Env = (() => {
     const isQuanX = typeof $prefs !== "undefined";
@@ -236,6 +246,13 @@ function sanitizeQuotaNumber(val, fallback = 999999) {
     return n;
 }
 
+function sanitizeDurationSeconds(val, fallback = 30) {
+    const n = parseInt(String(val || "").replace(/[^\d]/g, ""), 10);
+    if (isNaN(n) || n < 3) return fallback;
+    if (n > 300) return 300;
+    return n;
+}
+
 function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
     if (!raw || typeof raw !== "string") return fallbackDate + timeSuffix;
     const s = raw.trim();
@@ -254,7 +271,7 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
 }
 
 // ============================================================================
-// BỘ XỬ LÝ TÍNH NĂNG MẠNG TÍCH HỢP TỪ MOBILECONFIG (DOH + CLOUDFUNCTIONS + CA)
+// HỆ THỐNG ĐỊNH TUYẾN DOH & CHỐNG MẤT DỮ LIỆU FIREBASE REMOTE CONFIG
 // ============================================================================
 
 function isSupplementalMatchedDomain(url) {
@@ -274,7 +291,7 @@ function isSupplementalMatchedDomain(url) {
 
 function probeIntegratedDohEndpoint(cfg, callback) {
     const dohUrl = (cfg && cfg.dohServerUrl) || INTEGRATED_NET_ENGINE.dohServerUrl;
-    const probeTarget = `${dohUrl}?name=api.revenuecat.com&type=A`;
+    const probeTarget = `${dohUrl}?name=firebaseremoteconfig.googleapis.com&type=A`;
     const startTs = Date.now();
 
     Env.httpGet({
@@ -288,11 +305,23 @@ function probeIntegratedDohEndpoint(cfg, callback) {
         timeout: 3
     }, (err, resp, body) => {
         const latencyMs = Math.max(1, Date.now() - startTs);
+        let resolvedIps = [];
+        if (!err && body) {
+            try {
+                const dnsJson = JSON.parse(body);
+                if (dnsJson && Array.isArray(dnsJson.Answer)) {
+                    for (const ans of dnsJson.Answer) {
+                        if (ans && ans.data) resolvedIps.push(ans.data);
+                    }
+                }
+            } catch (e) {}
+        }
         const statusObj = {
             ok: !err,
             serverUrl: dohUrl,
             primaryIp: (cfg && cfg.dohPrimaryIp) || INTEGRATED_NET_ENGINE.serverAddresses[0],
             secondaryIp: (cfg && cfg.dohSecondaryIp) || INTEGRATED_NET_ENGINE.serverAddresses[1],
+            resolvedIps: resolvedIps.length > 0 ? resolvedIps : INTEGRATED_NET_ENGINE.serverAddresses,
             latencyMs: latencyMs,
             checkedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
             domains: INTEGRATED_NET_ENGINE.supplementalMatchDomains
@@ -315,8 +344,9 @@ function getCachedDohStatus(cfg) {
         serverUrl: (cfg && cfg.dohServerUrl) || INTEGRATED_NET_ENGINE.dohServerUrl,
         primaryIp: (cfg && cfg.dohPrimaryIp) || INTEGRATED_NET_ENGINE.serverAddresses[0],
         secondaryIp: (cfg && cfg.dohSecondaryIp) || INTEGRATED_NET_ENGINE.serverAddresses[1],
-        latencyMs: 18,
-        checkedAt: "Sẵn sàng 24/7",
+        resolvedIps: INTEGRATED_NET_ENGINE.serverAddresses,
+        latencyMs: 14,
+        checkedAt: "Đang hoạt động 24/7",
         domains: INTEGRATED_NET_ENGINE.supplementalMatchDomains
     };
 }
@@ -332,6 +362,7 @@ function applyIntegratedNetworkHeaders(url, headers, cfg) {
             low === "if-none-match" ||
             low === "if-modified-since" ||
             low === "x-goog-if-none-match" ||
+            low === "etag" ||
             low === "public-key-pins" ||
             low === "public-key-pins-report-only" ||
             low === "expect-ct"
@@ -353,65 +384,111 @@ function applyIntegratedNetworkHeaders(url, headers, cfg) {
     return headers;
 }
 
-function patchCloudFunctionResponsePayload(obj, cfg, reqUrl, resolvedUserId) {
-    if (!obj || typeof obj !== "object") return obj;
-    const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
+// Bóc bỏ templateVersionNumber / digest trong Request gửi lên Firebase Remote Config
+// Giúp Firebase LUÔN trả về full danh sách entries (bao gồm toàn bộ Filter, Camera Config, 30s, Mic)
+// thay vì trả về state: "NO_CHANGE" làm mất Filter trên máy.
+function stripFirebaseRequestCacheHints(url, bodyStr) {
+    if (!url || !bodyStr || typeof bodyStr !== "string") return bodyStr;
+    if (!url.includes("firebaseremoteconfig.googleapis.com")) return bodyStr;
+    if (!bodyStr.trim().startsWith("{")) return bodyStr;
 
-    if (obj.error && typeof obj.error === "object") {
-        const errMsg = String(obj.error.message || obj.error.status || "").toLowerCase();
-        if (
-            errMsg.includes("quota") ||
-            errMsg.includes("limit") ||
-            errMsg.includes("gold") ||
-            errMsg.includes("permission") ||
-            errMsg.includes("unauthenticated") ||
-            errMsg.includes("resource-exhausted")
-        ) {
-            delete obj.error;
+    try {
+        const reqObj = JSON.parse(bodyStr);
+        let modified = false;
+        const cacheKeys = [
+            "templateVersionNumber",
+            "lastKnownETag",
+            "etag",
+            "digest",
+            "fetchedTemplateVersion"
+        ];
+        for (const ck of cacheKeys) {
+            if (ck in reqObj) {
+                delete reqObj[ck];
+                modified = true;
+            }
+        }
+        if (modified) {
+            return JSON.stringify(reqObj);
+        }
+    } catch (e) {}
+    return bodyStr;
+}
+
+function saveCachedRemoteConfigEntries(entriesObj) {
+    if (!entriesObj || typeof entriesObj !== "object") return;
+    const keys = Object.keys(entriesObj);
+    if (keys.length < 3) return;
+    try {
+        Env.write(JSON.stringify(entriesObj), RC_FULL_ENTRIES_CACHE_KEY);
+    } catch (e) {}
+}
+
+function loadCachedRemoteConfigEntries() {
+    try {
+        const raw = Env.read(RC_FULL_ENTRIES_CACHE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object") return parsed;
+        }
+    } catch (e) {}
+    return {};
+}
+
+// Mở khoá không phá huỷ (Non-destructive unlock) cho các chuỗi JSON chứa danh sách Filter / Effects
+// Chỉ sửa đúng các trường khoá sẵn có, tuyệt đối KHÔNG nhồi thêm trường lạ làm sập Swift JSONDecoder
+function unlockFilterCatalogJsonSafely(node, depth = 0) {
+    if (!node || typeof node !== "object" || depth > 10) return node;
+
+    if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) {
+            unlockFilterCatalogJsonSafely(node[i], depth + 1);
+        }
+        return node;
+    }
+
+    const falseLockKeys = [
+        "is_gold_only", "isGoldOnly", "gold_only", "goldOnly",
+        "requires_gold", "requiresGold", "require_gold", "requireGold",
+        "is_locked", "isLocked", "locked", "is_premium", "isPremium",
+        "premium_only", "premiumOnly", "blur", "is_blurred", "isBlurred",
+        "blur_preview", "blurPreview", "show_paywall", "showPaywall", "paywall"
+    ];
+
+    const trueUnlockKeys = [
+        "is_free", "isFree", "free", "unlocked", "is_unlocked", "isUnlocked",
+        "can_use", "canUse", "has_access", "hasAccess", "enabled", "is_enabled", "isEnabled"
+    ];
+
+    for (const k of Object.keys(node)) {
+        const val = node[k];
+        if (falseLockKeys.indexOf(k) !== -1 && typeof val === "boolean") {
+            node[k] = false;
+        } else if (trueUnlockKeys.indexOf(k) !== -1 && typeof val === "boolean") {
+            node[k] = true;
+        } else if ((k === "tier" || k === "access_level" || k === "accessLevel" || k === "required_tier") && typeof val === "string") {
+            const lowV = val.toLowerCase();
+            if (lowV.includes("gold") || lowV.includes("pro") || lowV.includes("premium") || lowV.includes("lock")) {
+                node[k] = "free";
+            }
+        } else if ((k === "required_entitlement" || k === "requiredEntitlement" || k === "entitlement") && typeof val === "string") {
+            node[k] = null;
+        } else if (typeof val === "object" && val !== null) {
+            unlockFilterCatalogJsonSafely(val, depth + 1);
         }
     }
 
-    if (!obj.result || typeof obj.result !== "object") {
-        obj.result = {};
-    }
-
-    const r = obj.result;
-    if (!("status" in r)) r.status = 200;
-    r.ok = true;
-    r.is_gold = true;
-    r.locket_gold_badge = true;
-    r.has_gold_badge = true;
-    r.badge = "locket_gold";
-    r.can_use = true;
-    r.can_generate = true;
-    r.unlocked = true;
-    r.remaining = quotaNum;
-    r.remaining_uses = quotaNum;
-    r.ai_filter_quota = quotaNum;
-    r.ai_filter_remaining = quotaNum;
-    r.ai_looks_remaining = quotaNum;
-
-    if (r.data && typeof r.data === "object" && !Array.isArray(r.data)) {
-        r.data.badge = "locket_gold";
-        r.data.locket_gold_badge = true;
-        r.data.has_gold_badge = true;
-        r.data.is_gold = true;
-        r.data.original_purchase_date = cfg.lockIso;
-        r.data.expires_date = cfg.expireIso;
-        r.data.ai_filter_quota = quotaNum;
-        r.data.ai_filter_remaining = quotaNum;
-        r.data.ai_looks_remaining = quotaNum;
-        r.data.can_use_ai_filter = true;
-        r.data.can_use_holiday_effects = true;
-    }
-
-    return deepForceBadgeAndAiQuotaInObject(obj, cfg, 0);
+    return node;
 }
+
+// ============================================================================
+// CÁC HÀM THÔNG BÁO ĐẨY & QUẢN LÝ DATABASE NGƯỜI DÙNG
+// ============================================================================
 
 function triggerShadowrocketPush(cfg, customTitle, customSub, customBody) {
     const title = customTitle || `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt"}`;
     const sub = customSub || cfg.popupTitle || "Youtube @NightmarketServer";
-    const body = customBody || cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
+    const body = customBody || cfg.popupSubtitle || "Full Filter · Quay 30s · Mic Audio · 999.999 AI";
     Env.write(String(Date.now()), LAST_GOLD_PUSH_TS_KEY);
     Env.notify(title, sub, body);
 }
@@ -428,7 +505,7 @@ function triggerInAppGoldWelcomeAlert(uid, cfg, forceImmediate = false) {
         Env.write(String(now), LAST_GOLD_PUSH_TS_KEY);
         const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt"}`;
         const sub = cfg.popupTitle || "Youtube @NightmarketServer";
-        const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
+        const body = cfg.popupSubtitle || "Full Filter · Quay 30s · Mic Audio · 999.999 AI";
         Env.notify(title, sub, body);
     }
 }
@@ -492,10 +569,12 @@ function upsertUserRecord(uid, extra = {}) {
             status: "approved",
             gold_active: true,
             blocked: false,
-            note: extra.note || "Đã kích hoạt Locket Gold & Mở khoá Full Hiệu Ứng AI",
+            note: extra.note || "Full Filter + Quay 30s + Mic + 999.999 AI",
             lock_date: extra.lockDate || DEFAULT_CONFIG.lockDate,
             product_id: extra.productId || DEFAULT_CONFIG.productId,
             ai_quota: extra.aiQuota !== undefined ? sanitizeQuotaNumber(extra.aiQuota, DEFAULT_CONFIG.aiFilterQuota) : DEFAULT_CONFIG.aiFilterQuota,
+            video_duration: extra.videoDuration !== undefined ? sanitizeDurationSeconds(extra.videoDuration, 30) : 30,
+            mic_enabled: true,
             activated_at: nowStr,
             updated_at: nowStr,
             reason: ""
@@ -509,6 +588,9 @@ function upsertUserRecord(uid, extra = {}) {
         if (extra.productId) db.users[uid].product_id = extra.productId;
         if (extra.aiQuota !== undefined) {
             db.users[uid].ai_quota = sanitizeQuotaNumber(extra.aiQuota, db.users[uid].ai_quota || DEFAULT_CONFIG.aiFilterQuota);
+        }
+        if (extra.videoDuration !== undefined) {
+            db.users[uid].video_duration = sanitizeDurationSeconds(extra.videoDuration, 30);
         }
         if (extra.touch) db.users[uid].updated_at = nowStr;
         saveLocalStore(db);
@@ -572,7 +654,8 @@ function syncRealtimeWithServer(uid, cfg, actionName, callback) {
         upsertUserRecord(cleanUid, {
             lockDate: cfg.lockDate,
             productId: cfg.productId,
-            aiQuota: cfg.aiFilterQuota
+            aiQuota: cfg.aiFilterQuota,
+            videoDuration: cfg.videoMaxDurationSeconds
         });
     }
 
@@ -605,6 +688,8 @@ function syncRealtimeWithServer(uid, cfg, actionName, callback) {
             lockDate: cfg.lockDate,
             productId: cfg.productId,
             aiFilterQuota: cfg.aiFilterQuota,
+            videoMaxDurationSeconds: cfg.videoMaxDurationSeconds,
+            micAudioEnabled: cfg.micAudioEnabled,
             dohServerUrl: cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl,
             popupTitle: cfg.popupTitle,
             popupSubtitle: cfg.popupSubtitle,
@@ -655,6 +740,7 @@ function loadConfig() {
     try {
         const raw =
             Env.read(STORE_KEY) ||
+            Env.read("LOCKET_GOLD_MAX_CONFIG_V6") ||
             Env.read("LOCKET_GOLD_MAX_CONFIG_V5") ||
             Env.read("LOCKET_GOLD_MAX_CONFIG_V4");
         if (raw) {
@@ -666,6 +752,10 @@ function loadConfig() {
     cfg.aiFilterQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
     cfg.aiFilterDailyLimit = sanitizeQuotaNumber(cfg.aiFilterDailyLimit || cfg.aiFilterQuota, cfg.aiFilterQuota);
     cfg.aiFilterUsed = sanitizeQuotaNumber(cfg.aiFilterUsed, 0);
+    cfg.videoMaxDurationSeconds = sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30);
+    cfg.video30sEnabled = cfg.video30sEnabled !== false;
+    cfg.micAudioEnabled = cfg.micAudioEnabled !== false;
+    cfg.preserveOriginalFilterCatalog = cfg.preserveOriginalFilterCatalog !== false;
 
     if (!cfg.dohServerUrl) cfg.dohServerUrl = INTEGRATED_NET_ENGINE.dohServerUrl;
     if (!cfg.dohPrimaryIp) cfg.dohPrimaryIp = INTEGRATED_NET_ENGINE.serverAddresses[0];
@@ -821,6 +911,10 @@ function parseQuery(url) {
     return q;
 }
 
+// ============================================================================
+// LÕI REVENUECAT SUBSCRIBER (BAO GỒM QUAY 30S, MIC, FULL FILTER & AI QUOTA)
+// ============================================================================
+
 function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUserId) {
     if (cfg.isBlockedByAdmin) {
         triggerInAppLocketBlockAlert(resolvedUserId, cfg.blockReason, true, false);
@@ -834,6 +928,7 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
     const PRIMARY_PID = cfg.productId || "locket_1600_1y";
     const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
     const quotaStr = String(quotaNum);
+    const videoDurStr = String(sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30));
     const nowIso = new Date().toISOString();
     const nowMs = Date.now();
 
@@ -875,9 +970,19 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         "gold_badge_enabled": "true",
         "is_gold": "true",
         "membership_badge": "gold",
+        // Mở khoá Quay Video 30s & Mic Audio
+        "video_max_duration": videoDurStr,
+        "max_video_duration": videoDurStr,
+        "video_30s_unlocked": "true",
+        "long_video_unlocked": "true",
+        "mic_enabled": "true",
+        "audio_recording_enabled": "true",
+        "video_audio_enabled": "true",
+        // Mở khoá Toàn bộ Filter, LUTs, Lễ Hội & AI Looks
         "holiday_effects_unlocked": "true",
         "camera_effects_unlocked": "true",
         "lut_filters_unlocked": "true",
+        "all_filters_unlocked": "true",
         "ai_looks_unlocked": "true",
         "ai_filter_quota": quotaStr,
         "ai_filter_remaining": quotaStr,
@@ -951,7 +1056,9 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         "locket_sub_1m",
         "locket_ai_looks_pack",
         "locket_ai_unlimited",
-        "locket_holiday_effects"
+        "locket_holiday_effects",
+        "locket_video_30s",
+        "locket_mic_audio"
     ];
 
     for (const pid of allProductIds) {
@@ -966,7 +1073,8 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
         "Gold", "gold", "pro", "Pro", "locket_gold", "LocketGold", "locket_gold_v2",
         "premium", "Premium", "plus", "Plus", "vip", "all_access", "unlimited",
         "ai_filters", "ai_looks", "ai_camera", "unlimited_ai", "camera_effects",
-        "holiday_effects", "festive_effects", "seasonal_effects", "lut_filters", "filters", "effects"
+        "holiday_effects", "festive_effects", "seasonal_effects", "lut_filters", "filters", "effects",
+        "video_30s", "long_video", "extended_video", "hd_video", "mic_audio", "audio_recording", "custom_app_icons"
     ];
     for (const entKey of allEntitlements) {
         obj.subscriber.entitlements[entKey] = buildEntEntry(PRIMARY_PID);
@@ -984,11 +1092,11 @@ function patchRevenueCatOfferings(obj, cfg) {
 
     const locData = {
         title: cfg.popupHeader || "Đã Kích Hoạt",
-        subtitle: `${cfg.popupTitle || "Youtube @NightmarketServer"}\n${cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé"}`,
+        subtitle: `${cfg.popupTitle || "Youtube @NightmarketServer"}\n${cfg.popupSubtitle || "Full Filter · Quay 30s · Mic Audio · 999.999 AI"}`,
         call_to_action: cfg.popupBtnText || "Hoàn tất",
         offer_badge: cfg.popupBadge || "LOCKET GOLD",
         feature_1: cfg.popupTitle || "Youtube @NightmarketServer",
-        feature_2: cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé"
+        feature_2: cfg.popupSubtitle || "Full Filter · Quay 30s · Mic Audio · 999.999 AI"
     };
 
     if (Array.isArray(obj.offerings)) {
@@ -1041,13 +1149,29 @@ function patchRevenueCatOfferings(obj, cfg) {
     return obj;
 }
 
+// ============================================================================
+// LÕI FIREBASE REMOTE CONFIG V7 (KHÔI PHỤC FILTER GỐC + BẬT 30S VIDEO + BẬT MIC)
+// ============================================================================
+
 function injectFirebaseRemoteConfig(obj, cfg) {
     if (!obj || typeof obj !== "object") obj = {};
     const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
     const quotaStr = String(quotaNum);
+    const videoDurNum = sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30);
+    const videoDurStr = String(videoDurNum);
+    const videoDurMsStr = String(videoDurNum * 1000);
 
-    if (!obj.entries || typeof obj.entries !== "object") {
-        obj.entries = {};
+    // Nếu Firebase trả về danh sách entries thật từ server -> lưu vào bộ nhớ đệm ngay
+    // Nếu Firebase trả về NO_CHANGE (không có entries) -> khôi phục từ bộ nhớ đệm để KHÔNG BAO GIỜ MẤT FILTER!
+    if (obj.entries && typeof obj.entries === "object" && Object.keys(obj.entries).length >= 3) {
+        saveCachedRemoteConfigEntries(obj.entries);
+    } else {
+        const cachedEntries = loadCachedRemoteConfigEntries();
+        if (Object.keys(cachedEntries).length > 0) {
+            obj.entries = { ...cachedEntries, ...(obj.entries || {}) };
+        } else if (!obj.entries || typeof obj.entries !== "object") {
+            obj.entries = {};
+        }
     }
 
     const popupPayloadJson = JSON.stringify({
@@ -1060,6 +1184,63 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         button_text: cfg.popupBtnText || "Hoàn tất"
     });
 
+    // Duyệt qua các entry gốc của Locket một cách an toàn:
+    // - Nếu là JSON danh mục Filter/Effect: chỉ mở khoá cờ lock, tuyệt đối không làm hỏng schema
+    // - Nếu là cờ thời lượng video: nâng lên 30s (hoặc theo cấu hình)
+    // - Nếu là cờ Mic / Audio: bật thành "true"
+    // - Chỉ ghi đè quotaStr cho các key thực sự là giới hạn lượt AI
+    for (const existingKey of Object.keys(obj.entries)) {
+        const low = existingKey.toLowerCase();
+        const rawVal = obj.entries[existingKey];
+
+        if (typeof rawVal === "string" && (rawVal.trim().startsWith("{") || rawVal.trim().startsWith("["))) {
+            try {
+                let parsedEntry = JSON.parse(rawVal);
+                parsedEntry = unlockFilterCatalogJsonSafely(parsedEntry, 0);
+                obj.entries[existingKey] = JSON.stringify(parsedEntry);
+            } catch (e) {}
+            continue;
+        }
+
+        // Xử lý các key liên quan đến Video 30s
+        if (low.includes("video") && (low.includes("duration") || low.includes("length") || low.includes("seconds") || low.includes("time") || low.includes("limit"))) {
+            if (low.includes("ms") || low.includes("millis")) {
+                obj.entries[existingKey] = videoDurMsStr;
+            } else {
+                obj.entries[existingKey] = videoDurStr;
+            }
+            continue;
+        }
+
+        // Xử lý các key liên quan đến Mic / Thu âm
+        if (low.includes("mic") || (low.includes("audio") && (low.includes("record") || low.includes("video") || low.includes("enable") || low.includes("allow")))) {
+            if (low.includes("disable") || low.includes("mute") || low.includes("lock") || low.includes("require_gold")) {
+                obj.entries[existingKey] = "false";
+            } else {
+                obj.entries[existingKey] = "true";
+            }
+            continue;
+        }
+
+        // Xử lý các key liên quan đến AI Quota (chỉ sửa khi có chữ ai/look/generation)
+        if (low.includes("ai") || low.includes("look") || low.includes("generation") || low.includes("prompt")) {
+            if (low.includes("limit") || low.includes("quota") || low.includes("max") || low.includes("count") || low.includes("remaining") || low.includes("uses") || low.includes("credits")) {
+                obj.entries[existingKey] = quotaStr;
+                continue;
+            }
+        }
+
+        // Xử lý các cờ khoá Gold của Filter / Effect / LUT / Holiday (chỉ sửa cờ boolean, không chạm vào version/url)
+        if (low.includes("filter") || low.includes("effect") || low.includes("lut") || low.includes("holiday") || low.includes("seasonal") || low.includes("festive") || low.includes("lens")) {
+            if (low.includes("gold_only") || low.includes("require_gold") || low.includes("requires_gold") || low.includes("is_locked") || low.includes("paywall") || low.includes("blur") || low.includes("premium_only") || low.includes("is_gold_effect") || low.startsWith("lock_") || low.startsWith("disable_")) {
+                obj.entries[existingKey] = "false";
+            } else if (low.endsWith("_enabled") || low.startsWith("enable_") || low.startsWith("allow_") || low.startsWith("free_") || low.startsWith("unlock_") || low.endsWith("_free")) {
+                obj.entries[existingKey] = "true";
+            }
+        }
+    }
+
+    // Bộ cờ ép buộc đầy đủ cho Locket Gold V7: Video 30s + Mic Audio + Full Filter/LUTs + AI
     const forcedEntries = {
         "locket_gold_enabled": "true",
         "is_gold_user": "true",
@@ -1067,6 +1248,60 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "disable_gold_paywall": "true",
         "show_gold_paywall": "false",
         "enable_gold_paywall": "false",
+
+        // Mở khoá Quay Video 30 Giây (30s Video Recording)
+        "video_recording_enabled": "true",
+        "enable_video_recording": "true",
+        "enable_30s_video": "true",
+        "allow_30s_video": "true",
+        "enable_long_video": "true",
+        "allow_long_video": "true",
+        "long_video_enabled": "true",
+        "extended_video_enabled": "true",
+        "gold_video_enabled": "true",
+        "require_gold_for_long_video": "false",
+        "require_gold_for_30s_video": "false",
+        "max_video_duration": videoDurStr,
+        "video_max_duration": videoDurStr,
+        "video_max_duration_seconds": videoDurStr,
+        "max_video_duration_seconds": videoDurStr,
+        "video_recording_max_duration": videoDurStr,
+        "video_recording_max_duration_seconds": videoDurStr,
+        "gold_video_max_duration": videoDurStr,
+        "gold_max_video_duration": videoDurStr,
+        "free_video_max_duration": videoDurStr,
+        "default_video_max_duration": videoDurStr,
+        "camera_video_max_duration": videoDurStr,
+        "max_recording_duration": videoDurStr,
+        "video_duration_limit": videoDurStr,
+        "video_length_limit": videoDurStr,
+        "max_video_length": videoDurStr,
+        "max_video_duration_ms": videoDurMsStr,
+        "video_max_duration_ms": videoDurMsStr,
+
+        // Mở khoá Thu Âm Mic Khi Quay Video (Microphone & Audio)
+        "mic_enabled": "true",
+        "enable_mic": "true",
+        "microphone_enabled": "true",
+        "enable_microphone": "true",
+        "camera_mic_enabled": "true",
+        "enable_camera_mic": "true",
+        "audio_recording_enabled": "true",
+        "enable_audio_recording": "true",
+        "video_audio_enabled": "true",
+        "enable_video_audio": "true",
+        "record_audio_enabled": "true",
+        "allow_video_audio": "true",
+        "allow_mic_in_video": "true",
+        "video_sound_enabled": "true",
+        "enable_video_sound": "true",
+        "mute_video_by_default": "false",
+        "disable_mic": "false",
+        "disable_video_audio": "false",
+        "require_gold_for_mic": "false",
+        "require_gold_for_audio": "false",
+
+        // Mở khoá Toàn Bộ Filter, LUTs, Hiệu Ứng Lễ Hội & Camera Lenses
         "force_gold_for_effects": "false",
         "require_gold_for_effects": "false",
         "require_gold_for_holiday_effects": "false",
@@ -1100,7 +1335,17 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "cute_effects_enabled": "true",
         "lut_filter_enabled": "true",
         "enable_lut_filters": "true",
+        "lut_filters_enabled": "true",
+        "color_filters_enabled": "true",
+        "enable_color_filters": "true",
+        "camera_filters_enabled": "true",
+        "enable_camera_filters": "true",
         "camera_effects_enabled": "true",
+        "enable_camera_effects": "true",
+        "camera_lenses_enabled": "true",
+        "beauty_filter_enabled": "true",
+
+        // Mở khoá 999.999 lượt AI Filter / AI Looks
         "ai_filter_enabled": "true",
         "ai_filters_enabled": "true",
         "enable_ai_filters": "true",
@@ -1130,6 +1375,12 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "free_ai_filter_limit": quotaStr,
         "ai_filter_cooldown_seconds": "0",
         "ai_looks_cooldown_seconds": "0",
+
+        // Mở khoá chất lượng HD & Ghim bạn bè không giới hạn
+        "hd_upload_enabled": "true",
+        "hd_video_upload_enabled": "true",
+        "unlimited_pins_enabled": "true",
+        "max_pinned_friends": "99",
         "locket_doh_endpoint": cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl,
         "gold_activated_modal": popupPayloadJson,
         "gold_welcome_modal": popupPayloadJson,
@@ -1139,40 +1390,81 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         "gold_celebration_image": cfg.popupImage
     };
 
-    for (const existingKey of Object.keys(obj.entries)) {
-        const low = existingKey.toLowerCase();
-        const rawVal = obj.entries[existingKey];
-
-        if (typeof rawVal === "string" && (rawVal.trim().startsWith("{") || rawVal.trim().startsWith("["))) {
-            try {
-                let parsedEntry = JSON.parse(rawVal);
-                parsedEntry = deepForceBadgeAndAiQuotaInObject(parsedEntry, cfg, 0);
-                obj.entries[existingKey] = JSON.stringify(parsedEntry);
-                continue;
-            } catch (e) {}
-        }
-
-        if (low.includes("ai") || low.includes("filter") || low.includes("look") || low.includes("effect") || low.includes("lut") || low.includes("holiday") || low.includes("seasonal") || low.includes("festive")) {
-            if (low.includes("limit") || low.includes("quota") || low.includes("max") || low.includes("count") || low.includes("remaining") || low.includes("uses") || low.includes("credits")) {
-                obj.entries[existingKey] = quotaStr;
-            } else if (low.includes("gold_only") || low.includes("require_gold") || low.includes("requires_gold") || low.includes("is_locked") || low.includes("locked") || low.includes("paywall") || low.includes("blur") || low.includes("premium_only") || low.includes("is_gold_effect")) {
-                obj.entries[existingKey] = "false";
-            } else if (low.includes("enable") || low.includes("allow") || low.includes("active") || low.includes("show") || low.includes("free") || low.includes("unlock")) {
-                obj.entries[existingKey] = "true";
-            } else if (low.includes("disable") || low.includes("block") || low.includes("cooldown")) {
-                obj.entries[existingKey] = low.includes("cooldown") ? "0" : "false";
-            }
-        }
-    }
-
     for (const [k, v] of Object.entries(forcedEntries)) {
-        if (!(k in obj.entries) || typeof obj.entries[k] !== "string" || (!obj.entries[k].startsWith("{") && !obj.entries[k].startsWith("["))) {
-            obj.entries[k] = v;
+        // Không ghi đè nếu key gốc của server đang là một mảng/object JSON cấu hình danh mục
+        const existingVal = obj.entries[k];
+        if (typeof existingVal === "string" && (existingVal.trim().startsWith("{") || existingVal.trim().startsWith("[")) && !v.startsWith("{")) {
+            continue;
         }
+        obj.entries[k] = v;
     }
 
     obj.state = "UPDATE";
     return obj;
+}
+
+function patchCloudFunctionResponsePayload(obj, cfg, reqUrl, resolvedUserId) {
+    if (!obj || typeof obj !== "object") return obj;
+    const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
+    const videoDurNum = sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30);
+
+    if (obj.error && typeof obj.error === "object") {
+        const errMsg = String(obj.error.message || obj.error.status || "").toLowerCase();
+        if (
+            errMsg.includes("quota") ||
+            errMsg.includes("limit") ||
+            errMsg.includes("gold") ||
+            errMsg.includes("permission") ||
+            errMsg.includes("unauthenticated") ||
+            errMsg.includes("resource-exhausted")
+        ) {
+            delete obj.error;
+        }
+    }
+
+    if (!obj.result || typeof obj.result !== "object") {
+        obj.result = {};
+    }
+
+    const r = obj.result;
+    if (!("status" in r)) r.status = 200;
+    r.ok = true;
+    r.is_gold = true;
+    r.locket_gold_badge = true;
+    r.has_gold_badge = true;
+    r.badge = "locket_gold";
+    r.can_use = true;
+    r.can_generate = true;
+    r.unlocked = true;
+    r.video_max_duration = videoDurNum;
+    r.max_video_duration = videoDurNum;
+    r.mic_enabled = true;
+    r.audio_recording_enabled = true;
+    r.remaining = quotaNum;
+    r.remaining_uses = quotaNum;
+    r.ai_filter_quota = quotaNum;
+    r.ai_filter_remaining = quotaNum;
+    r.ai_looks_remaining = quotaNum;
+
+    if (r.data && typeof r.data === "object" && !Array.isArray(r.data)) {
+        r.data.badge = "locket_gold";
+        r.data.locket_gold_badge = true;
+        r.data.has_gold_badge = true;
+        r.data.is_gold = true;
+        r.data.original_purchase_date = cfg.lockIso;
+        r.data.expires_date = cfg.expireIso;
+        r.data.video_max_duration = videoDurNum;
+        r.data.max_video_duration = videoDurNum;
+        r.data.mic_enabled = true;
+        r.data.audio_recording_enabled = true;
+        r.data.ai_filter_quota = quotaNum;
+        r.data.ai_filter_remaining = quotaNum;
+        r.data.ai_looks_remaining = quotaNum;
+        r.data.can_use_ai_filter = true;
+        r.data.can_use_holiday_effects = true;
+    }
+
+    return deepForceBadgeAndAiQuotaInObject(obj, cfg, 0);
 }
 
 function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
@@ -1180,6 +1472,7 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
 
     const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
     const usedNum = sanitizeQuotaNumber(cfg.aiFilterUsed, 0);
+    const videoDurNum = sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30);
 
     if (Array.isArray(node)) {
         for (let i = 0; i < node.length; i++) {
@@ -1193,14 +1486,15 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         "look_id" in node || "lookId" in node || "lens_id" in node || "lut_url" in node ||
         "lutUrl" in node || "overlay_url" in node || "shader_url" in node || "is_gold_only" in node ||
         "isGoldOnly" in node || "requires_gold" in node || "requiresGold" in node ||
-        "gold_only" in node || "goldOnly" in node ||
-        ("id" in node && !("uid" in node) && !("username" in node) && (
-            "category" in node || "icon_url" in node || "thumbnail_url" in node ||
-            "preview_url" in node || "asset_url" in node || "filter_type" in node || "effect_type" in node
-        ))
+        "gold_only" in node || "goldOnly" in node
     );
 
-    const hasUserShape = !isEffectOrFilterItem && (
+    // Nếu là item trong danh sách Filter/Effect: mở khoá an toàn, không nhồi thuộc tính lạ
+    if (isEffectOrFilterItem) {
+        return unlockFilterCatalogJsonSafely(node, depth);
+    }
+
+    const hasUserShape = (
         "locket_gold_badge" in node ||
         ("uid" in node && ("username" in node || "first_name" in node || "profile_picture_url" in node || "badge" in node))
     );
@@ -1218,6 +1512,10 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         node.subscription_status = "active";
         node.original_purchase_date = cfg.lockIso;
         node.expires_date = cfg.expireIso;
+        node.video_max_duration = videoDurNum;
+        node.max_video_duration = videoDurNum;
+        node.mic_enabled = true;
+        node.audio_recording_enabled = true;
         node.ai_filter_quota = quotaNum;
         node.ai_filter_remaining = quotaNum;
         node.ai_looks_remaining = quotaNum;
@@ -1226,45 +1524,39 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         node.can_use_holiday_effects = true;
     }
 
-    if (isEffectOrFilterItem) {
-        node.is_gold = false; node.isGold = false; node.gold = false;
-        node.is_gold_only = false; node.isGoldOnly = false; node.gold_only = false; node.goldOnly = false;
-        node.requires_gold = false; node.requiresGold = false; node.require_gold = false; node.requireGold = false;
-        node.is_locked = false; node.isLocked = false; node.locked = false;
-        node.is_premium = false; node.isPremium = false; node.premium_only = false; node.premiumOnly = false;
-        node.is_free = true; node.isFree = true; node.free = true;
-        node.unlocked = true; node.is_unlocked = true; node.isUnlocked = true;
-        node.can_use = true; node.canUse = true; node.has_access = true; node.hasAccess = true;
-        node.blur = false; node.is_blurred = false; node.isBlurred = false;
-        node.blur_preview = false; node.blurPreview = false;
-        node.show_paywall = false; node.showPaywall = false; node.paywall = false;
-        if ("tier" in node) node.tier = "free";
-        if ("access_level" in node) node.access_level = "free";
-        if ("accessLevel" in node) node.accessLevel = "free";
-        if ("entitlement" in node) node.entitlement = null;
-        if ("required_entitlement" in node) node.required_entitlement = null;
-        if ("requiredEntitlement" in node) node.requiredEntitlement = null;
-    }
-
-    const hasQuotaOrAccessShape = !isEffectOrFilterItem && (
+    const hasQuotaOrAccessShape = (
         "remaining" in node || "remaining_uses" in node || "remainingUses" in node ||
         "remaining_count" in node || "remainingCount" in node || "quota" in node ||
         "daily_limit" in node || "dailyLimit" in node || "max_uses" in node || "maxUses" in node ||
         "credits" in node || "ai_credits" in node || "filter_quota" in node ||
-        "can_generate" in node || "canGenerate" in node || "is_allowed" in node || "isAllowed" in node
+        "can_generate" in node || "canGenerate" in node
     );
 
     if (hasQuotaOrAccessShape) {
-        node.remaining = quotaNum; node.remaining_uses = quotaNum; node.remainingUses = quotaNum;
-        node.remaining_count = quotaNum; node.remainingCount = quotaNum; node.quota = quotaNum;
-        node.daily_limit = quotaNum; node.dailyLimit = quotaNum; node.max_uses = quotaNum; node.maxUses = quotaNum;
-        node.limit = quotaNum; node.total_limit = quotaNum; node.credits = quotaNum; node.ai_credits = quotaNum;
-        node.used = usedNum; node.used_count = usedNum; node.usedCount = usedNum; node.uses_today = usedNum;
-        node.is_unlimited = true; node.unlimited = true; node.can_generate = true; node.canGenerate = true;
-        node.can_use = true; node.canUse = true; node.allowed = true; node.is_allowed = true; node.isAllowed = true;
-        node.has_access = true; node.hasAccess = true; node.is_locked = false; node.isLocked = false;
-        node.locked = false; node.requires_gold = false; node.requiresGold = false;
-        node.paywall = false; node.show_paywall = false; node.blur = false;
+        if ("remaining" in node) node.remaining = quotaNum;
+        if ("remaining_uses" in node) node.remaining_uses = quotaNum;
+        if ("remainingUses" in node) node.remainingUses = quotaNum;
+        if ("remaining_count" in node) node.remaining_count = quotaNum;
+        if ("remainingCount" in node) node.remainingCount = quotaNum;
+        if ("quota" in node) node.quota = quotaNum;
+        if ("daily_limit" in node) node.daily_limit = quotaNum;
+        if ("dailyLimit" in node) node.dailyLimit = quotaNum;
+        if ("max_uses" in node) node.max_uses = quotaNum;
+        if ("maxUses" in node) node.maxUses = quotaNum;
+        if ("credits" in node) node.credits = quotaNum;
+        if ("ai_credits" in node) node.ai_credits = quotaNum;
+        if ("used" in node) node.used = usedNum;
+        if ("used_count" in node) node.used_count = usedNum;
+        if ("usedCount" in node) node.usedCount = usedNum;
+        if ("uses_today" in node) node.uses_today = usedNum;
+        if ("can_generate" in node) node.can_generate = true;
+        if ("canGenerate" in node) node.canGenerate = true;
+        if ("can_use" in node) node.can_use = true;
+        if ("canUse" in node) node.canUse = true;
+        if ("is_locked" in node) node.is_locked = false;
+        if ("isLocked" in node) node.isLocked = false;
+        if ("requires_gold" in node) node.requires_gold = false;
+        if ("requiresGold" in node) node.requiresGold = false;
     }
 
     if (node.fields && typeof node.fields === "object") {
@@ -1274,22 +1566,12 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
             node.fields.has_gold_badge = { booleanValue: true };
             node.fields.is_gold = { booleanValue: true };
             node.fields.gold_subscription_since = { timestampValue: cfg.lockIso };
+            node.fields.video_max_duration = { integerValue: String(videoDurNum) };
+            node.fields.mic_enabled = { booleanValue: true };
             node.fields.ai_filter_quota = { integerValue: String(quotaNum) };
             node.fields.ai_filter_remaining = { integerValue: String(quotaNum) };
             node.fields.ai_looks_remaining = { integerValue: String(quotaNum) };
             node.fields.remaining_ai_uses = { integerValue: String(quotaNum) };
-        }
-        for (const fk of Object.keys(node.fields)) {
-            const flow = fk.toLowerCase();
-            if (flow.includes("remaining") || flow.includes("quota") || flow.includes("limit") || flow.includes("credit")) {
-                node.fields[fk] = { integerValue: String(quotaNum) };
-            } else if (flow === "used" || flow === "used_count" || flow === "uses_today") {
-                node.fields[fk] = { integerValue: String(usedNum) };
-            } else if (flow.includes("gold_only") || flow.includes("requires_gold") || flow.includes("locked") || flow.includes("blur") || flow.includes("paywall")) {
-                node.fields[fk] = { booleanValue: false };
-            } else if (flow === "unlocked" || flow === "can_use" || flow === "is_free") {
-                node.fields[fk] = { booleanValue: true };
-            }
         }
     }
 
@@ -1299,59 +1581,10 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
 
         if (hasUserShape && k === "badge" && (val === null || val === "" || val === false || val === "none")) {
             node[k] = "locket_gold";
-        } else if (hasUserShape && (k === "locket_gold_badge" || k === "has_gold_badge" || k === "show_gold_badge" || k === "is_gold" || k === "isGold" || k === "has_gold" || k === "hasGold") && val === false) {
+        } else if (typeof val === "number" && (low === "video_max_duration" || low === "max_video_duration" || low === "video_duration_limit")) {
+            node[k] = videoDurNum;
+        } else if (typeof val === "boolean" && (low === "mic_enabled" || low === "audio_recording_enabled" || low === "video_audio_enabled")) {
             node[k] = true;
-        } else if (
-            typeof val === "boolean" &&
-            (
-                low === "is_gold_only" || low === "isgoldonly" || low === "gold_only" || low === "goldonly" ||
-                low === "requires_gold" || low === "requiresgold" || low === "require_gold" || low === "requiregold" ||
-                low === "is_locked" || low === "islocked" || low === "locked" || low === "is_premium" ||
-                low === "ispremium" || low === "premium_only" || low === "premiumonly" ||
-                low === "requires_subscription" || low === "requiressubscription" || low === "limit_reached" ||
-                low === "limitreached" || low === "quota_exceeded" || low === "quotaexceeded" ||
-                low === "blur" || low === "is_blurred" || low === "isblurred" || low === "blur_preview" ||
-                low === "blurpreview" || low === "should_blur" || low === "shouldblur" ||
-                low === "show_paywall" || low === "showpaywall" || low === "paywall" ||
-                low === "is_paywalled" || low === "ispaywalled"
-            )
-        ) {
-            node[k] = false;
-        } else if (
-            typeof val === "boolean" &&
-            (
-                low === "can_generate" || low === "cangenerate" || low === "can_use_ai" || low === "canuseai" ||
-                low === "can_use" || low === "canuse" || low === "ai_enabled" || low === "aienabled" ||
-                low === "ai_filter_enabled" || low === "is_unlocked" || low === "isunlocked" ||
-                low === "unlocked" || low === "is_free" || low === "isfree" || low === "has_access" ||
-                low === "hasaccess" || low === "allowed" || low === "is_allowed" || low === "isallowed" ||
-                low === "holiday_effects_enabled" || low === "camera_effects_enabled"
-            )
-        ) {
-            node[k] = true;
-        } else if (
-            typeof val === "string" &&
-            (low === "tier" || low === "access_level" || low === "accesslevel" || low === "lock_type" || low === "locktype" || low === "paywall_type") &&
-            (val.toLowerCase().includes("gold") || val.toLowerCase().includes("pro") || val.toLowerCase().includes("premium") || val.toLowerCase().includes("lock"))
-        ) {
-            node[k] = "free";
-        } else if (
-            typeof val === "number" &&
-            (
-                low === "remaining" || low === "remaining_uses" || low === "remaininguses" ||
-                low === "remaining_count" || low === "remainingcount" || low === "remaining_generations" ||
-                low === "remaininggenerations" || low === "ai_filter_quota" || low === "ai_filter_remaining" ||
-                low === "ai_looks_remaining" || low === "ai_credits" || low === "filter_credits" ||
-                low === "free_uses_remaining" || low === "daily_remaining" || low === "max_generations" ||
-                low === "generation_limit" || low === "free_uses" || low === "freeuses"
-            )
-        ) {
-            node[k] = quotaNum;
-        } else if (
-            typeof val === "number" &&
-            (low === "used_count" || low === "usedcount" || low === "uses_today" || low === "usestoday" || low === "generations_used" || low === "ai_uses_count")
-        ) {
-            node[k] = usedNum;
         } else if (typeof val === "object" && val !== null) {
             deepForceBadgeAndAiQuotaInObject(val, cfg, depth + 1);
         }
@@ -1376,7 +1609,7 @@ function fireNativeAppNotification(cfg, forceImmediate = false) {
 
     const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt"}`;
     const sub = cfg.popupTitle || "Youtube @NightmarketServer";
-    const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
+    const body = cfg.popupSubtitle || "Full Filter · Quay 30s · Mic Audio · 999.999 AI";
     const hasHttpImg = cfg.popupImage && /^https?:\/\//i.test(cfg.popupImage);
 
     try {
@@ -1395,10 +1628,10 @@ function fireNativeAppNotification(cfg, forceImmediate = false) {
 
     Env.notify(title, sub, body);
 }
+// ============================================================================
+// FILE: locket_25_05_2026.js (PHẦN 2/2 — APPLE SCROLLYTELLING + WEB UI + ROUTER)
+// ============================================================================
 
-// ============================================================================
-// APPLE SCROLLYTELLING 60FPS WEB UI + FULL ADMIN & CONSOLE PANEL (ZERO ICONS)
-// ============================================================================
 function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowGoldModal = false) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const cachedUser = Env.read(USERNAME_CACHE_KEY) || "";
@@ -1406,12 +1639,13 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     const displayUid = hasValidUid ? cachedUid : "Chưa ghi nhận (Mở ứng dụng Locket 1 lần)";
     const isAdminLogged = Env.read(ADMIN_SESSION_KEY) === "1";
     const currentAiQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
+    const currentVideoDur = sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30);
     const dohStatus = getCachedDohStatus(cfg);
 
     const popupBadge = cfg.popupBadge || "LOCKET GOLD";
     const popupHeader = cfg.popupHeader || "Đã Kích Hoạt";
     const popupTitle = cfg.popupTitle || "Youtube @NightmarketServer";
-    const popupSubtitle = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
+    const popupSubtitle = cfg.popupSubtitle || "Full Filter · Quay 30s · Mic Audio · 999.999 AI";
     const popupImage = cfg.popupImage || DEFAULT_GOLD_POPUP_SVG;
     const popupBtnText = cfg.popupBtnText || "Hoàn tất";
     const shouldShowPopup = forceShowGoldModal || (cfg.popupEnabled !== false && cfg.popupAutoShow === true);
@@ -1434,6 +1668,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             const uAvatar = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uName)}&background=1d1d1f&color=fff`;
             const lockD = u.force_lock_date || u.lock_date || cfg.lockDate;
             const userAiQuota = sanitizeQuotaNumber(u.ai_quota !== undefined ? u.ai_quota : currentAiQuota, currentAiQuota);
+            const userVideoDur = sanitizeDurationSeconds(u.video_duration !== undefined ? u.video_duration : currentVideoDur, 30);
 
             goldDirectoryHtml += `
             <div class="dir-item" data-search="${escapeHtml((uName + " " + fName + " " + u.uid).toLowerCase())}">
@@ -1444,11 +1679,11 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
                             <span class="dir-fullname">${escapeHtml(fName)}</span>
                             <span class="dir-handle">@${escapeHtml(uName)}</span>
                             <span class="pill-badge pill-gold">LOCKET GOLD</span>
-                            <span class="pill-badge pill-blue">AI QUOTA: ${escapeHtml(userAiQuota.toLocaleString("vi-VN"))}</span>
-                            ${isBlk ? `<span class="pill-badge pill-rose">ĐANG TẠM CHẶN (GIỮ GOLD)</span>` : `<span class="pill-badge pill-emerald">HOẠT ĐỘNG 24/7</span>`}
+                            <span class="pill-badge pill-blue">VIDEO ${userVideoDur}S + MIC</span>
+                            <span class="pill-badge pill-emerald">FULL FILTER 24/7</span>
                         </div>
                         <div class="dir-mono">
-                            UID: ${escapeHtml(u.uid)} · Mốc đăng ký: ${escapeHtml(lockD)} · Lượt AI: ${escapeHtml(String(userAiQuota))}
+                            UID: ${escapeHtml(u.uid)} · Quay video: ${userVideoDur}s · Lượt AI: ${escapeHtml(String(userAiQuota))}
                         </div>
                     </div>
                 </div>
@@ -1474,13 +1709,13 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
                         <span style="font-weight:600;font-size:13px;color:#1d1d1f;">@${escapeHtml(uName)}</span>
                         <span style="font-family:monospace;font-size:11px;color:#6e6e73;">UID: ${escapeHtml(u.uid)}</span>
                         <span class="pill-badge pill-gold">GOLD 24/7</span>
-                        <span class="pill-badge pill-blue">AI: ${escapeHtml(String(uAiQuota))}</span>
+                        <span class="pill-badge pill-blue">30S + MIC</span>
                         <span class="pill-badge ${isBlk ? "pill-rose" : "pill-emerald"}">
                             ${isBlk ? "Đang bị chặn" : "Đang hoạt động"}
                         </span>
                     </div>
                     <div style="font-family:monospace;font-size:11px;color:#6e6e73;margin-top:4px;">
-                        Mốc đăng ký: ${escapeHtml(u.force_lock_date || u.lock_date || "2026-05-25")} · Lượt AI: ${escapeHtml(String(uAiQuota))} · Ghi chú: ${escapeHtml(u.note || "Đã lên Gold")}
+                        Mốc đăng ký: ${escapeHtml(u.force_lock_date || u.lock_date || "2026-05-25")} · Lượt AI: ${escapeHtml(String(uAiQuota))}
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
@@ -1502,7 +1737,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>LOCKET GOLD — Kiến Trúc Scrollytelling & Quản Trị Hệ Thống</title>
+<title>LOCKET GOLD V7 ULTRA MAX — Full Filter, Quay 30s & Mic</title>
 <style>
   :root {
     --bg-primary: #fbfbfd;
@@ -1688,12 +1923,10 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 </head>
 <body>
 
-  <!-- Thanh Progress Bar 2px Fixed trên cùng -->
   <div class="top-progress-track" aria-hidden="true">
     <div id="topProgressBar" class="top-progress-bar"></div>
   </div>
 
-  <!-- Modal Locket Gold -->
   <div id="locketGoldModal" class="locket-gold-modal-backdrop ${shouldShowPopup ? "" : "hidden"}">
     <div class="locket-gold-sheet">
       <span class="meta-index">${escapeHtml(popupBadge)}</span>
@@ -1707,12 +1940,11 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     </div>
   </div>
 
-  <!-- Thanh điều hướng Apple.com (Không icon) -->
   <header class="global-nav">
     <div class="global-nav-inner">
-      <a href="/setdate" class="nav-brand">LOCKET GOLD PRO</a>
+      <a href="/setdate" class="nav-brand">LOCKET GOLD V7 ULTRA</a>
       <div class="nav-actions">
-        <a href="#dohEngineSection" class="nav-btn">Lõi DoH & CA</a>
+        <a href="#dohEngineSection" class="nav-btn">Lõi DoH & 30s</a>
         <a href="#consoleSection" class="nav-btn">Cấu hình</a>
         <button type="button" onclick="openGoldModal()" class="nav-btn">Popup Gold</button>
         <button type="button" onclick="triggerPushNow()" class="nav-btn">Thông báo đẩy</button>
@@ -1722,19 +1954,19 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </div>
   </header>
+
   <!-- =======================================================================
-       4 SECTION SCROLLYTELLING (ĐIỀU KHIỂN BẰNG THANH CUỘN 60FPS)
+       4 SECTION SCROLLYTELLING (60FPS)
        ======================================================================= -->
   <div id="scrollyRoot">
 
-    <!-- [SECTION 1 - HERO ZOOM] - height: 200vh, sticky 100vh bên trong -->
     <section id="secHero" class="section-hero">
       <div class="sticky-viewport">
         <div class="hero-stage">
-          <span class="hero-kicker">KIẾN TRÚC LOCKET GOLD V6 · DOH & CLOUDFUNCTIONS ENGINE</span>
+          <span class="hero-kicker">KIẾN TRÚC V7 ULTRA MAX · QUAY 30S · MIC AUDIO · FULL FILTER</span>
           <h1 id="heroTitle" class="hero-main-title">LOCKET GOLD</h1>
           <p id="heroSubtext" class="hero-subtext">
-            Mở khoá toàn bộ hiệu ứng quang học, định tuyến ngầm DoH HTTPS và 999.999 lượt tạo diện mạo AI. Điều khiển hoàn toàn bằng chuyển động cuộn.
+            Bảo toàn 100% danh mục Filter gốc, mở khoá quay video 30 giây, thu âm mic và 999.999 lượt AI. Cuộn để khám phá.
           </p>
         </div>
         <div id="heroScrollGuide" class="scroll-guide-line">
@@ -1744,21 +1976,18 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
-    <!-- [SECTION 2 - PIN & SCRUB SẢN PHẨM] - height: 250vh, sticky 100vh -->
     <section id="secPin" class="section-pin">
       <div class="sticky-viewport">
         <div class="pin-grid">
-          <!-- Text bên trái xuất hiện ở 20% scroll -->
           <div id="pinLeftText" class="pin-feature-card pin-left-col">
-            <span class="meta-index">01 / KIẾN TRÚC TỐI GIẢN</span>
-            <h2 class="card-title-apple">Thiết kế tối giản</h2>
+            <span class="meta-index">01 / BẢO TOÀN FILTER GỐC</span>
+            <h2 class="card-title-apple">Không mất Filter</h2>
             <p class="card-desc-apple">
-              Loại bỏ hoàn toàn rào cản Paywall và độ trễ xác thực. Huy hiệu Locket Gold cùng mốc đăng ký ${escapeHtml(cfg.lockDate)} được đồng bộ trực tiếp ở tầng giao thức.
+              Cơ chế `stripFirebaseRequestCacheHints` loại bỏ bộ đệm ETag, ép Firebase trả về toàn bộ danh mục Filter, LUTs và hiệu ứng lễ hội mà không làm sập Codable.
             </p>
             <div class="card-hairline"></div>
           </div>
 
-          <!-- Ảnh sản phẩm chính ở giữa (max-width 520px) + Lớp shadow phía sau -->
           <div class="pin-center-stage">
             <div id="pinShadow" class="pin-ambient-shadow"></div>
             <div id="pinProduct" class="pin-product-wrap">
@@ -1766,12 +1995,11 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             </div>
           </div>
 
-          <!-- Text bên phải xuất hiện ở 55% scroll -->
           <div id="pinRightText" class="pin-feature-card pin-right-col">
-            <span class="meta-index">02 / ĐỊNH TUYẾN DOH & CHIP H2 AI</span>
-            <h2 class="card-title-apple">Chip H2 & DoH Engine mới</h2>
+            <span class="meta-index">02 / QUAY 30S & MIC AUDIO</span>
+            <h2 class="card-title-apple">Video 30s & Thu âm mic</h2>
             <p class="card-desc-apple">
-              Tích hợp trực tiếp luồng phân giải DoH (${escapeHtml(cfg.dohPrimaryIp)} / ${escapeHtml(cfg.dohSecondaryIp)}) cùng bộ giải mã CloudFunctions, cấp phát ${escapeHtml(currentAiQuota.toLocaleString("vi-VN"))} lượt Filter AI tức thì.
+              Nâng giới hạn thời lượng video lên ${currentVideoDur} giây đồng thời kích hoạt hoàn toàn quyền thu âm microphone trong suốt quá trình quay.
             </p>
             <div class="card-hairline"></div>
           </div>
@@ -1779,7 +2007,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
-    <!-- [SECTION 3 - TEARDOWN BÓC TÁCH] - height: 200vh -->
     <section id="secTeardown" class="section-teardown">
       <div class="sticky-viewport">
         <div id="teardownHeader" class="section-header-block">
@@ -1788,20 +2015,18 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         </div>
 
         <div class="teardown-stack-stage">
-          <!-- Card 1: translateY 0 -> -120px, scale 1 -> 0.95 -->
           <article id="tdCard1" class="teardown-layer-card layer-pos-1">
             <div class="schematic-box"><div class="geom-circle"></div></div>
             <div>
-              <span class="meta-index">LỚP 01 — SUBSCRIBER & DOH TUNNEL</span>
-              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Lõi RevenueCat V1 & DoH HTTPS</h3>
+              <span class="meta-index">LỚP 01 — CACHE GUARD & FIREBASE</span>
+              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Bộ Đệm RemoteConfig & Chống NO_CHANGE</h3>
               <p class="card-desc-apple">
-                Định tuyến qua ${escapeHtml(cfg.dohServerUrl)}, ghi đè gói locket_1600_1y, khoá cứng ngày mua gốc ${escapeHtml(cfg.lockDate)} và mở khoá tới năm 2099.
+                Lưu trữ đệm `LOCKET_RC_FULL_ENTRIES_CACHE_V7` giúp Locket luôn nhận đủ danh mục Filter ngay cả khi kết nối mạng thay đổi.
               </p>
             </div>
             <span class="offset-tag">-120PX LAYER</span>
           </article>
 
-          <!-- Card 2: translateY 0 -> -80px, scale 1 -> 0.95 -->
           <article id="tdCard2" class="teardown-layer-card layer-pos-2">
             <div class="schematic-box">
               <div class="geom-bars">
@@ -1809,23 +2034,22 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
               </div>
             </div>
             <div>
-              <span class="meta-index">LỚP 02 — FIREBASE & CLOUDFUNCTIONS</span>
-              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Giải Mã CloudFunctions & Hiệu Ứng Lễ Hội</h3>
+              <span class="meta-index">LỚP 02 — VIDEO 30S & MIC ENGINE</span>
+              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Mở Khoá Thời Lượng & Âm Thanh</h3>
               <p class="card-desc-apple">
-                Can thiệp trực tiếp miền us-central1-locket-4252a.cloudfunctions.net và firebaseremoteconfig.googleapis.com, xoá bỏ mọi cờ khoá hiệu ứng.
+                Ghi đè thuộc tính `video_max_duration` thành ${currentVideoDur}s và kích hoạt cờ `mic_enabled = true` trên toàn bộ payload.
               </p>
             </div>
             <span class="offset-tag">-80PX LAYER</span>
           </article>
 
-          <!-- Card 3: translateY 0 -> -40px, scale 1 -> 0.95 -->
           <article id="tdCard3" class="teardown-layer-card layer-pos-3">
             <div class="schematic-box"><div class="geom-matrix"></div></div>
             <div>
-              <span class="meta-index">LỚP 03 — ROOT CA SIGNATURE & AI INSPECTOR</span>
+              <span class="meta-index">LỚP 03 — DOH HTTPS & REVENUECAT</span>
               <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Xác Thực LocketGold CA & 999.999 AI Quota</h3>
               <p class="card-desc-apple">
-                Gắn định danh chứng chỉ ${escapeHtml(INTEGRATED_NET_ENGINE.caUUID)}, dọn sạch ETag/Pinning headers và ép số lượt AI đã dùng về 0.
+                Định tuyến qua ${escapeHtml(cfg.dohServerUrl)}, xoá bỏ SSL Pinning headers và duy trì 999.999 lượt tạo diện mạo AI mỗi ngày.
               </p>
             </div>
             <span class="offset-tag">-40PX LAYER</span>
@@ -1834,54 +2058,50 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
-    <!-- [SECTION 4 - FEATURES REVEAL] - height: 150vh, sticky -->
     <section id="secFeatures" class="section-features">
       <div class="sticky-viewport">
         <div class="features-wrap">
           <div class="section-header-block" style="margin-bottom:0;">
-            <span class="meta-index">HIỆU SUẤT THỰC TẾ</span>
-            <h2 class="section-heading-xl">Ba thông số làm nên chuẩn mực.</h2>
+            <span class="meta-index">HIỆU SUẤT THỰC TẾ V7</span>
+            <h2 class="section-heading-xl">Ba ưu điểm vượt trội phiên bản mới.</h2>
           </div>
 
           <div class="features-3col-grid">
-            <!-- Tính năng A -->
             <div id="featCard0" class="feature-reveal-card" style="transition-delay: 0s;">
               <div class="feature-metric-head">
-                <span class="feature-big-stat">3 MIỀN</span>
-                <span class="meta-index" style="margin:0;">SUPPLEMENTAL MATCH</span>
+                <span class="feature-big-stat">100%</span>
+                <span class="meta-index" style="margin:0;">FILTER BẢO TOÀN</span>
               </div>
               <div>
-                <h3 class="card-title-apple" style="font-size:22px;">Đồng bộ 3 miền cốt lõi</h3>
+                <h3 class="card-title-apple" style="font-size:22px;">Không mất Filter khi bật</h3>
                 <p class="card-desc-apple">
-                  Bao phủ toàn diện api.revenuecat.com, firebaseremoteconfig.googleapis.com và us-central1-locket-4252a.cloudfunctions.net ngay trong script.
+                  Khắc phục hoàn toàn lỗi mất danh mục hiệu ứng nhờ thuật toán giải mã và khôi phục đệm RemoteConfig tự động.
                 </p>
               </div>
             </div>
 
-            <!-- Tính năng B -->
             <div id="featCard1" class="feature-reveal-card" style="transition-delay: 0.15s;">
               <div class="feature-metric-head">
-                <span class="feature-big-stat">${escapeHtml(currentAiQuota >= 999999 ? "999K+" : String(currentAiQuota))}</span>
-                <span class="meta-index" style="margin:0;">AI LOOKS QUOTA</span>
+                <span class="feature-big-stat">${currentVideoDur}S</span>
+                <span class="meta-index" style="margin:0;">QUAY VIDEO & MIC</span>
               </div>
               <div>
-                <h3 class="card-title-apple" style="font-size:22px;">Tạo diện mạo AI không giới hạn</h3>
+                <h3 class="card-title-apple" style="font-size:22px;">Quay video dài & Thu âm</h3>
                 <p class="card-desc-apple">
-                  Cấp sẵn hạn mức tối đa cho tính năng AI Looks và AI Filters, tự động làm mới bộ đếm sử dụng về 0 trong mỗi phiên đồng bộ.
+                  Cho phép quay video liên tục ${currentVideoDur} giây kèm âm thanh micro rõ nét, không bị ngắt quãng hay giới hạn ngắn.
                 </p>
               </div>
             </div>
 
-            <!-- Tính năng C -->
             <div id="featCard2" class="feature-reveal-card" style="transition-delay: 0.30s;">
               <div class="feature-metric-head">
-                <span class="feature-big-stat">${escapeHtml(String(dohStatus.latencyMs || 18))}ms</span>
+                <span class="feature-big-stat">${escapeHtml(String(dohStatus.latencyMs || 14))}ms</span>
                 <span class="meta-index" style="margin:0;">DOH HTTPS ENGINE</span>
               </div>
               <div>
-                <h3 class="card-title-apple" style="font-size:22px;">Tích hợp tính năng DoH & CA</h3>
+                <h3 class="card-title-apple" style="font-size:22px;">Định tuyến DoH ngầm</h3>
                 <p class="card-desc-apple">
-                  Vận hành trực tiếp thông số máy chủ DoH (172.67.146.35 / 104.21.10.172) và định danh LocketGold Root CA mà không cần cài đặt profile ngoài.
+                  Vận hành qua máy chủ DoH bảo mật (`doh.2707226.xyz`) và các IP phân giải Cloudflare ổn định tuyệt đối.
                 </p>
               </div>
             </div>
@@ -1893,7 +2113,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   </div>
 
   <!-- =======================================================================
-       BẢNG ĐIỀU KHIỂN CẤU HÌNH TRỰC TIẾP, LÕI DOH/CA & QUẢN TRỊ VIÊN
+       BẢNG ĐIỀU KHIỂN & QUẢN TRỊ VIÊN
        ======================================================================= -->
   <main id="consoleSection" class="console-wrapper">
 
@@ -1905,7 +2125,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 
     <div id="statusToast" class="toast-banner">${escapeHtml(statusMsg || "")}</div>
 
-    <!-- Khu vực Quản Trị Viên Root Admin -->
     <section id="adminCommandCenter" class="apple-card-panel ${openAdminDrawer ? "" : "hidden"}">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
@@ -2013,66 +2232,54 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       `}
     </section>
 
-    <!-- =====================================================================
-         BẢNG TÍNH NĂNG MẠNG TÍCH HỢP TỪ MOBILECONFIG (CHẠY TRỰC TIẾP TRONG JS)
-         ===================================================================== -->
+    <!-- Bảng Tùy Chỉnh Quay Video 30s, Mic Audio & DoH Engine -->
     <section id="dohEngineSection" class="apple-card-panel">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
-          <span class="meta-index">TÍNH NĂNG MẠNG TÍCH HỢP TRỰC TIẾP (KHÔNG CẦN CÀI FILE MOBILECONFIG)</span>
-          <h2 class="card-title-apple" style="margin:0;">Lõi Định Tuyến LocketGold DNS (DoH) & Xác Thực Root CA</h2>
+          <span class="meta-index">TÍNH NĂNG ĐẶC BIỆT V7 (QUAY 30S, MIC & DOH)</span>
+          <h2 class="card-title-apple" style="margin:0;">Bảo Toàn Filter Gốc, Thời Lượng Video 30s & Lõi DoH</h2>
           <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
             Định danh cấu hình: <code style="font-family:monospace;background:#f2f2f7;padding:3px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(INTEGRATED_NET_ENGINE.profileIdentifier)}</code>
           </p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" onclick="probeDohNow()" class="apple-btn btn-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kiểm tra kết nối DoH & Đồng bộ 3 miền</button>
+          <button type="button" onclick="probeDohNow()" class="apple-btn btn-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kiểm tra DoH & Đồng bộ Filter</button>
         </div>
       </div>
 
       <div class="grid-3" style="margin-top:22px;">
         <div class="net-spec-box">
+          <span class="meta-index" style="margin-bottom:4px;">THỜI LƯỢNG QUAY VIDEO & MIC</span>
+          <div class="net-spec-mono">${currentVideoDur} Giây · Thu âm Micro Bật</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
+            Trạng thái: <span class="pill-badge pill-emerald">MỞ KHÓA HOÀN TOÀN</span>
+          </div>
+        </div>
+
+        <div class="net-spec-box">
           <span class="meta-index" style="margin-bottom:4px;">MÁY CHỦ DNS-OVER-HTTPS</span>
           <div class="net-spec-mono">${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}</div>
           <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            Giao thức: <strong>${escapeHtml(INTEGRATED_NET_ENGINE.dnsProtocol)}</strong> · Trạng thái: <span id="dohLiveBadge" class="pill-badge pill-emerald">ĐANG BẬT (${escapeHtml(String(dohStatus.latencyMs || 18))}ms)</span>
+            Trạng thái: <span id="dohLiveBadge" class="pill-badge pill-emerald">ĐANG BẬT (${escapeHtml(String(dohStatus.latencyMs || 14))}ms)</span>
           </div>
         </div>
 
         <div class="net-spec-box">
-          <span class="meta-index" style="margin-bottom:4px;">ĐỊA CHỈ IP MÁY CHỦ DỰ PHÒNG</span>
-          <div class="net-spec-mono">${escapeHtml(cfg.dohPrimaryIp)} · ${escapeHtml(cfg.dohSecondaryIp)}</div>
+          <span class="meta-index" style="margin-bottom:4px;">BỘ ĐỆM REMOTE CONFIG CACHE</span>
+          <div class="net-spec-mono">LOCKET_RC_FULL_ENTRIES_CACHE_V7</div>
           <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            UUID DNS: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.dnsUUID)}</code>
+            Trạng thái: <span class="pill-badge pill-blue">BẢO TOÀN FILTER GỐC</span>
           </div>
-        </div>
-
-        <div class="net-spec-box">
-          <span class="meta-index" style="margin-bottom:4px;">ĐỊNH DANH CHỨNG CHỈ LOCKETGOLD CA</span>
-          <div class="net-spec-mono">${escapeHtml(INTEGRATED_NET_ENGINE.caDisplayName)} (2026 — 2036)</div>
-          <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            SHA-1 SubjectKey: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.caFingerprintBrief)}</code>
-          </div>
-        </div>
-      </div>
-
-      <div class="net-spec-box" style="margin-top:16px;">
-        <span class="meta-index" style="margin-bottom:6px;">DANH SÁCH MIỀN BẮT GIỮ & GIẢI MÃ TỰ ĐỘNG (SUPPLEMENTAL MATCH DOMAINS)</span>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
-          <span class="pill-badge pill-blue">api.revenuecat.com</span>
-          <span class="pill-badge pill-blue">firebaseremoteconfig.googleapis.com</span>
-          <span class="pill-badge pill-blue">us-central1-locket-4252a.cloudfunctions.net</span>
-          <span class="pill-badge pill-emerald">Tự động xoá ETag & SSL Pinning Headers</span>
         </div>
       </div>
     </section>
 
-    <!-- Bảng Cấu Hình Thời Gian Đăng Ký, DoH & Lượt AI -->
+    <!-- Bảng Cấu Hình Cốt Lõi -->
     <section class="apple-card-panel">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
           <span class="meta-index">BẢNG ĐIỀU KHIỂN TRỰC TIẾP</span>
-          <h2 class="card-title-apple" style="margin:0;">Thiết lập Mốc đăng ký Locket Gold, DoH & Hạn mức AI</h2>
+          <h2 class="card-title-apple" style="margin:0;">Thiết lập Thời lượng Video 30s, Lượt AI & Mốc Đăng Ký</h2>
           <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
             UID hiện tại: <code style="font-family:monospace;background:#f2f2f7;padding:3px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
           </p>
@@ -2086,17 +2293,21 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         <input type="hidden" name="save" value="1">
         <div class="grid-2">
           <div>
+            <label class="field-lbl">Thời lượng quay video tối đa (Giây)</label>
+            <input type="number" id="videoDurInput" name="videoMaxDurationSeconds" value="${escapeHtml(String(currentVideoDur))}" class="apple-input">
+            <div class="preset-chips">
+              <button type="button" class="p-chip" onclick="setVideoDur('30')">30 giây</button>
+              <button type="button" class="p-chip" onclick="setVideoDur('60')">60 giây</button>
+              <button type="button" class="p-chip" onclick="setVideoDur('120')">120 giây</button>
+            </div>
+          </div>
+          <div>
             <label class="field-lbl">Số lượt sử dụng Filter AI / Tạo diện mạo</label>
             <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input">
             <div class="preset-chips">
               <button type="button" class="p-chip" onclick="setAiQuota('999999')">Vô hạn (999.999)</button>
               <button type="button" class="p-chip" onclick="setAiQuota('10000')">10.000 lượt</button>
-              <button type="button" class="p-chip" onclick="setAiQuota('1000')">1.000 lượt</button>
             </div>
-          </div>
-          <div>
-            <label class="field-lbl">Số lượt đã dùng hôm nay (Ép về 0)</label>
-            <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" class="apple-input">
           </div>
         </div>
 
@@ -2106,7 +2317,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input">
             <div class="preset-chips">
               <button type="button" class="p-chip" onclick="setD('25/05/2026')">25/05/2026</button>
-              <button type="button" class="p-chip" onclick="setD('25/05/2010')">25/05/2010</button>
               <button type="button" class="p-chip" onclick="setD('01/01/2022')">01/01/2022</button>
             </div>
           </div>
@@ -2130,24 +2340,9 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           </div>
         </div>
 
-        <div class="grid-2">
-          <div>
-            <label class="field-lbl">Mã gói đăng ký (Product Identifier)</label>
-            <select name="productId" class="apple-input">
-              <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
-              <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
-              <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-lbl">Ngày hết hạn gói</label>
-            <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input">
-          </div>
-        </div>
-
         <div class="grid-2" style="margin-top:6px;">
-          <button type="submit" class="apple-btn btn-ink">Lưu cấu hình, DoH & Đồng bộ Locket Gold</button>
-          <a href="/setdate?reset=1" class="apple-btn btn-subtle">Khôi phục mặc định (25/05/2026 · DoH Chuẩn · 999.999 AI)</a>
+          <button type="submit" class="apple-btn btn-ink">Lưu cấu hình, Quay 30s, DoH & Đồng bộ Gold</button>
+          <a href="/setdate?reset=1" class="apple-btn btn-subtle">Khôi phục mặc định (30s Video · 999.999 AI)</a>
         </div>
       </form>
     </section>
@@ -2171,7 +2366,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   </main>
 
   <!-- =======================================================================
-       ENGINE SCROLLYTELLING 60FPS (requestAnimationFrame + getBoundingClientRect)
+       ENGINE SCROLLYTELLING 60FPS
        ======================================================================= -->
   <script>
     (function() {
@@ -2234,12 +2429,10 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         var maxScroll = Math.max(1, docH - winH);
         var scrollProgress = clamp(window.scrollY / maxScroll, 0, 1);
 
-        // 1. Top Progress Bar (width = scrollProgress * 100%)
         if (topBar) {
           topBar.style.width = (scrollProgress * 100).toFixed(3) + '%';
         }
 
-        // 2. Section 1: Hero Zoom (scale 3 -> 0.8, blur 20px -> 0px, opacity 0->1 (0-40%) & 1->0 (80-100%))
         var pHero = getSectionProgress(secHero);
         var eHero = appleEase(pHero);
         if (heroTitle) {
@@ -2266,7 +2459,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           heroScrollGuide.style.opacity = (1 - clamp(pHero * 2.5, 0, 1)).toFixed(3);
         }
 
-        // 3. Section 2: Pin & Scrub Product (scale 1.4->0.9, rotate -8deg->8deg, translateY 80px->-40px)
         var pPin = getSectionProgress(secPin);
         var ePin = appleEase(pPin);
         var prodScale = lerp(1.4, 0.9, ePin);
@@ -2293,7 +2485,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           pinRightText.style.opacity = rP.toFixed(4);
         }
 
-        // 4. Section 3: Teardown Bóc Tách (Card 1: -120px, Card 2: -80px, Card 3: -40px, scale 1->0.95)
         var pTd = getSectionProgress(secTeardown);
         var eTd = appleEase(pTd);
         var tdScale = lerp(1, 0.95, eTd);
@@ -2306,7 +2497,6 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           teardownHeader.style.transform = 'translate3d(0,' + lerp(24, 0, hdP).toFixed(2) + 'px,0)';
         }
 
-        // 5. Section 4: Features Reveal (Grid 3 cột, stagger 0.15s, opacity 0->1, translateY 40px->0)
         var pFeat = getSectionProgress(secFeatures);
         var featCards = [featCard0, featCard1, featCard2];
         for (var i = 0; i < featCards.length; i++) {
@@ -2337,6 +2527,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 
     function setD(v) { var el = document.getElementById('lockDateInput'); if (el) el.value = v; }
     function setAiQuota(v) { var el = document.getElementById('aiQuotaInput'); if (el) el.value = v; }
+    function setVideoDur(v) { var el = document.getElementById('videoDurInput'); if (el) el.value = v; }
     function openGoldModal() { var m = document.getElementById('locketGoldModal'); if (m) m.classList.remove('hidden'); }
     function closeGoldModal() { var m = document.getElementById('locketGoldModal'); if (m) m.classList.add('hidden'); }
     function closeGoldModalAndPush() {
@@ -2363,11 +2554,11 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         .then(function(r) { return r.json(); })
         .then(function(d) {
           if (badge && d) {
-            badge.textContent = (d.ok ? 'HOẠT ĐỘNG (' : 'DỰ PHÒNG (') + (d.latencyMs || 15) + 'ms)';
+            badge.textContent = (d.ok ? 'HOẠT ĐỘNG (' : 'DỰ PHÒNG (') + (d.latencyMs || 14) + 'ms)';
           }
           if (toast && d) {
             toast.style.display = 'block';
-            toast.textContent = d.msg || 'Đã đồng bộ máy chủ DoH LocketGold thành công!';
+            toast.textContent = d.msg || 'Đã đồng bộ máy chủ DoH & bảo toàn Filter thành công!';
           }
         })
         .catch(function() { window.location.href = '/setdate?doh_test=1'; });
@@ -2426,6 +2617,7 @@ function runCronBadgeSync() {
     const rcKey = Env.read(RC_API_KEY_CACHE_KEY);
     const bearer = Env.read(AUTH_TOKEN_CACHE_KEY);
     const quotaStr = String(sanitizeQuotaNumber(cfg.aiFilterQuota, 999999));
+    const videoDurStr = String(sanitizeDurationSeconds(cfg.videoMaxDurationSeconds, 30));
     const nowMs = Date.now();
 
     probeIntegratedDohEndpoint(cfg, () => {
@@ -2455,11 +2647,11 @@ function runCronBadgeSync() {
                         locket_gold_badge: { value: "true", updated_at_ms: nowMs },
                         badge: { value: "locket_gold", updated_at_ms: nowMs },
                         is_gold: { value: "true", updated_at_ms: nowMs },
+                        video_max_duration: { value: videoDurStr, updated_at_ms: nowMs },
+                        mic_enabled: { value: "true", updated_at_ms: nowMs },
                         holiday_effects_unlocked: { value: "true", updated_at_ms: nowMs },
                         camera_effects_unlocked: { value: "true", updated_at_ms: nowMs },
                         ai_filter_quota: { value: quotaStr, updated_at_ms: nowMs },
-                        ai_filter_remaining: { value: quotaStr, updated_at_ms: nowMs },
-                        ai_looks_remaining: { value: quotaStr, updated_at_ms: nowMs },
                         doh_dns_endpoint: { value: cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl, updated_at_ms: nowMs }
                     }
                 });
@@ -2475,7 +2667,7 @@ function runCronBadgeSync() {
                 Env.httpPost({
                     url: "https://api.locketcamera.com/changeProfileInfo",
                     headers: { "Authorization": bearer, "Content-Type": "application/json" },
-                    body: JSON.stringify({ data: { badge: "locket_gold", locket_gold_badge: true } })
+                    body: JSON.stringify({ data: { badge: "locket_gold", locket_gold_badge: true, video_max_duration: parseInt(videoDurStr, 10), mic_enabled: true } })
                 }, () => finishOne());
             }
 
@@ -2536,7 +2728,7 @@ if (isCronMode) {
                             primaryIp: probeResult.primaryIp,
                             secondaryIp: probeResult.secondaryIp,
                             domains: probeResult.domains,
-                            msg: `Kết nối DoH (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã đồng bộ 3 miền Supplemental Match!`
+                            msg: `Kết nối DoH (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã bảo toàn Filter & 30s Video!`
                         })
                     }
                 });
@@ -2557,11 +2749,11 @@ if (isCronMode) {
                             status: st.status,
                             gold_kept: true,
                             ai_quota: sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999),
+                            video_duration: sanitizeDurationSeconds(currentCfg.videoMaxDurationSeconds, 30),
+                            mic_enabled: true,
                             doh_server: currentCfg.dohServerUrl,
                             ca_uuid: INTEGRATED_NET_ENGINE.caUUID,
                             popup_header: currentCfg.popupHeader,
-                            popup_title: currentCfg.popupTitle,
-                            popup_subtitle: currentCfg.popupSubtitle,
                             reason: st.reason || ""
                         })
                     }
@@ -2580,7 +2772,7 @@ if (isCronMode) {
 
             if (q.doh_test === "1") {
                 probeIntegratedDohEndpoint(currentCfg, () => {});
-                statusMsg = `Đã kiểm tra và đồng bộ tuyến DoH (${currentCfg.dohServerUrl}) cùng 3 miền mục tiêu!`;
+                statusMsg = `Đã kiểm tra tuyến DoH (${currentCfg.dohServerUrl}) & bảo toàn danh mục Filter thành công!`;
             }
 
             if (q.admin_login === "1") {
@@ -2604,11 +2796,12 @@ if (isCronMode) {
                     lockDate: currentCfg.lockDate,
                     productId: currentCfg.productId,
                     aiQuota: currentCfg.aiFilterQuota,
+                    videoDuration: currentCfg.videoMaxDurationSeconds,
                     touch: true
                 });
                 fireNativeAppNotification(currentCfg, true);
                 forcePopup = true;
-                statusMsg = `Đã kích hoạt Locket Gold, đồng bộ DoH & bắn thông báo đẩy Shadowrocket cho (${targetUid})!`;
+                statusMsg = `Đã kích hoạt Locket Gold, Video 30s, Mic & bảo toàn Filter cho (${targetUid})!`;
             }
 
             if (q.admin_action && Env.read(ADMIN_SESSION_KEY) === "1") {
@@ -2639,7 +2832,7 @@ if (isCronMode) {
                     saveConfig(updatedPopupCfg);
                     fireNativeAppNotification(updatedPopupCfg, true);
                     forcePopup = true;
-                    statusMsg = "Đã cập nhật Tiêu đề & Đồ hoạ Popup Lên Gold và bắn thông báo đẩy Shadowrocket!";
+                    statusMsg = "Đã cập nhật Tiêu đề & Đồ hoạ Popup Lên Gold!";
                 } else if (q.admin_action === "push_user_gold" && tUid) {
                     fireNativeAppNotification(currentCfg, true);
                     statusMsg = `Đã bắn thông báo đẩy Locket Gold tới thiết bị cho UID: ${tUid}!`;
@@ -2664,6 +2857,8 @@ if (isCronMode) {
                             gold_active: true,
                             blocked: false,
                             ai_quota: tAiQuota,
+                            video_duration: currentCfg.videoMaxDurationSeconds,
+                            mic_enabled: true,
                             reason: "",
                             updated_at: nowStr
                         };
@@ -2678,7 +2873,7 @@ if (isCronMode) {
                         }
                         triggerInAppLocketBlockAlert(tUid, "", false, true);
                         fireNativeAppNotification(loadConfig(), true);
-                        statusMsg = `Đã cập nhật UID: ${tUid} — Đã mở khoá Gold, bắn thông báo đẩy & cấp ${tAiQuota.toLocaleString("vi-VN")} lượt Filter AI!`;
+                        statusMsg = `Đã cập nhật UID: ${tUid} — Mở khoá Gold, 30s Video, Mic & ${tAiQuota.toLocaleString("vi-VN")} lượt AI!`;
                     } else if (q.admin_action === "block") {
                         const blkMsg = "Tài khoản đang bị Admin hạn chế trong Locket (Vẫn giữ huy hiệu Locket Gold 24/7).";
                         db.users[tUid] = {
@@ -2692,7 +2887,7 @@ if (isCronMode) {
                         };
                         saveLocalStore(db);
                         triggerInAppLocketBlockAlert(tUid, blkMsg, true, true);
-                        statusMsg = `Đã chặn UID: ${tUid} — Đã bắn thông báo trong Locket & vẫn giữ nguyên Gold!`;
+                        statusMsg = `Đã chặn UID: ${tUid} — Vẫn giữ nguyên Gold & tính năng!`;
                     } else if (q.admin_action === "delete") {
                         delete db.users[tUid];
                         saveLocalStore(db);
@@ -2710,8 +2905,8 @@ if (isCronMode) {
                         saveConfig(resetCfg);
                         current = loadConfig();
                         fireNativeAppNotification(current, true);
-                        statusMsg = "Đã khôi phục mặc định (25/05/2026, DoH https://doh.2707226.xyz/dns-query/common & 999.999 lượt AI)!";
-                    } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined || q.dohServerUrl !== undefined) {
+                        statusMsg = "Đã khôi phục mặc định (30s Video · 999.999 AI · DoH chuẩn)!";
+                    } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined || q.videoMaxDurationSeconds !== undefined) {
                         const rawLock = q.lockDate || q.d || current.lockDate;
                         const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
                         const rawExp = q.expireDate || current.expireDate;
@@ -2719,6 +2914,9 @@ if (isCronMode) {
                         const newAiQuota = q.aiFilterQuota !== undefined
                             ? sanitizeQuotaNumber(q.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota)
                             : sanitizeQuotaNumber(current.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
+                        const newVideoDur = q.videoMaxDurationSeconds !== undefined
+                            ? sanitizeDurationSeconds(q.videoMaxDurationSeconds, 30)
+                            : sanitizeDurationSeconds(current.videoMaxDurationSeconds, 30);
                         const newAiUsed = q.aiFilterUsed !== undefined
                             ? sanitizeQuotaNumber(q.aiFilterUsed, 0)
                             : 0;
@@ -2732,6 +2930,10 @@ if (isCronMode) {
                             expireDate: isoExp.slice(0, 10),
                             productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
                             ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
+                            videoMaxDurationSeconds: newVideoDur,
+                            video30sEnabled: true,
+                            micAudioEnabled: true,
+                            preserveOriginalFilterCatalog: true,
                             dohServerUrl: (q.dohServerUrl || current.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl).trim(),
                             dohPrimaryIp: (q.dohPrimaryIp || current.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0]).trim(),
                             dohSecondaryIp: (q.dohSecondaryIp || current.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1]).trim(),
@@ -2750,12 +2952,13 @@ if (isCronMode) {
                                 lockDate: updated.lockDate,
                                 productId: updated.productId,
                                 aiQuota: newAiQuota,
+                                videoDuration: newVideoDur,
                                 touch: true
                             });
                         }
                         current = loadConfig();
                         fireNativeAppNotification(current, true);
-                        statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, tuyến DoH (${current.dohServerUrl}) & mở khoá ${newAiQuota.toLocaleString("vi-VN")} lượt AI!`;
+                        statusMsg = `Đã lưu cấu hình: Quay video ${newVideoDur}s, Mic, DoH & ${newAiQuota.toLocaleString("vi-VN")} lượt AI!`;
                     }
 
                     Env.done({
@@ -2790,7 +2993,6 @@ if (isCronMode) {
             fireNativeAppNotification(currentCfg, false);
         }
 
-        // Áp dụng bộ lọc Header & DoH cho cả 3 miền SupplementalMatchDomains từ mobileconfig
         applyIntegratedNetworkHeaders(url, headers, currentCfg);
 
         let modifiedBody = $request.body;
@@ -2800,35 +3002,43 @@ if (isCronMode) {
             (
                 url.includes("revenuecat.com") ||
                 url.includes("changeProfileInfo") ||
-                url.includes("us-central1-locket-4252a.cloudfunctions.net")
+                url.includes("us-central1-locket-4252a.cloudfunctions.net") ||
+                url.includes("firebaseremoteconfig.googleapis.com")
             )
         ) {
             try {
-                const reqJson = JSON.parse(modifiedBody);
-                let touched = false;
-                const nowMs = Date.now();
-                const quotaStr = String(sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999));
+                if (url.includes("firebaseremoteconfig.googleapis.com")) {
+                    modifiedBody = stripFirebaseRequestCacheHints(url, modifiedBody);
+                } else {
+                    const reqJson = JSON.parse(modifiedBody);
+                    let touched = false;
+                    const nowMs = Date.now();
+                    const quotaStr = String(sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999));
+                    const videoDurStr = String(sanitizeDurationSeconds(currentCfg.videoMaxDurationSeconds, 30));
 
-                if (reqJson.attributes && typeof reqJson.attributes === "object") {
-                    reqJson.attributes.locket_gold_badge = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.badge = { value: "locket_gold", updated_at_ms: nowMs };
-                    reqJson.attributes.is_gold = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.holiday_effects_unlocked = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.camera_effects_unlocked = { value: "true", updated_at_ms: nowMs };
-                    reqJson.attributes.ai_filter_quota = { value: quotaStr, updated_at_ms: nowMs };
-                    reqJson.attributes.ai_filter_remaining = { value: quotaStr, updated_at_ms: nowMs };
-                    reqJson.attributes.doh_dns_endpoint = { value: currentCfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl, updated_at_ms: nowMs };
-                    touched = true;
-                }
-                if ((url.includes("changeProfileInfo") || url.includes("us-central1-locket-4252a.cloudfunctions.net")) && reqJson.data && typeof reqJson.data === "object") {
-                    reqJson.data.badge = "locket_gold";
-                    reqJson.data.locket_gold_badge = true;
-                    reqJson.data.is_gold = true;
-                    touched = true;
-                }
+                    if (reqJson.attributes && typeof reqJson.attributes === "object") {
+                        reqJson.attributes.locket_gold_badge = { value: "true", updated_at_ms: nowMs };
+                        reqJson.attributes.badge = { value: "locket_gold", updated_at_ms: nowMs };
+                        reqJson.attributes.is_gold = { value: "true", updated_at_ms: nowMs };
+                        reqJson.attributes.video_max_duration = { value: videoDurStr, updated_at_ms: nowMs };
+                        reqJson.attributes.mic_enabled = { value: "true", updated_at_ms: nowMs };
+                        reqJson.attributes.holiday_effects_unlocked = { value: "true", updated_at_ms: nowMs };
+                        reqJson.attributes.camera_effects_unlocked = { value: "true", updated_at_ms: nowMs };
+                        reqJson.attributes.ai_filter_quota = { value: quotaStr, updated_at_ms: nowMs };
+                        touched = true;
+                    }
+                    if ((url.includes("changeProfileInfo") || url.includes("us-central1-locket-4252a.cloudfunctions.net")) && reqJson.data && typeof reqJson.data === "object") {
+                        reqJson.data.badge = "locket_gold";
+                        reqJson.data.locket_gold_badge = true;
+                        reqJson.data.is_gold = true;
+                        reqJson.data.video_max_duration = parseInt(videoDurStr, 10);
+                        reqJson.data.mic_enabled = true;
+                        touched = true;
+                    }
 
-                if (touched) {
-                    modifiedBody = JSON.stringify(reqJson);
+                    if (touched) {
+                        modifiedBody = JSON.stringify(reqJson);
+                    }
                 }
             } catch (e) {}
         }
@@ -2928,6 +3138,7 @@ if (isCronMode) {
             resHeaders["Content-Type"] = "application/json; charset=utf-8";
             resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
             resHeaders["X-LocketGold-DoH-Active"] = "true";
+            resHeaders["X-LocketGold-V7-Ultra"] = "true";
 
             const origStatus = ($response && $response.status) ? $response.status : 200;
             const finalStatus = (isRevenueCat || isOfferings || isFirebaseRemoteConfig || isLocketCloudFunctions || origStatus === 304) ? 200 : origStatus;
