@@ -1,6 +1,8 @@
 // ============================================================================
-// FILE: locket_25_05_2026.js (BẢN V6 FINAL — ĐÃ FIX CRASH ADMIN_API_URL & LỖI 7117)
+// FILE: locket_25_05_2026.js (BẢN V6 FINAL — APPLE SCROLLYTELLING EDITION)
 // Runtime: Shadowrocket / Loon / Surge / Quantumult X
+// Tích hợp: Full Core Locket Gold V6 + Giao diện Apple.com Scrollytelling 60fps
+// Thiết kế: Zero Icons — Đồ hoạ kiến trúc phần cứng SVG/CSS thuần chuẩn Apple
 // ============================================================================
 
 const ROOT_ADMIN_USER = "ngominhduc";
@@ -8,50 +10,54 @@ const ROOT_ADMIN_PASS_1 = "ducff123#";
 const ROOT_ADMIN_PASS_2 = "Ducnocode2505@";
 const ADMIN_API_URL = ""; // Đã khai báo đầy đủ chống ReferenceError làm sập Web UI
 
+// Đồ hoạ Vector Kiến Trúc Phần Cứng Apple (Thay thế hoàn toàn icon/emoji cũ)
 const DEFAULT_GOLD_POPUP_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fffbeb"/>
-      <stop offset="50%" stop-color="#fef3c7"/>
-      <stop offset="100%" stop-color="#fde68a"/>
+    <radialGradient id="chassis" cx="35%" cy="25%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#e8e8ed"/>
+      <stop offset="85%" stop-color="#d2d2d7"/>
+      <stop offset="100%" stop-color="#86868b"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5f5f7"/>
+      <stop offset="50%" stop-color="#86868b"/>
+      <stop offset="100%" stop-color="#1d1d1f"/>
     </linearGradient>
-    <linearGradient id="goldTxt" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#fde047"/>
+    <linearGradient id="core" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2c2c2e"/>
+      <stop offset="45%" stop-color="#1d1d1f"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="goldDie" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a"/>
       <stop offset="50%" stop-color="#f59e0b"/>
-      <stop offset="100%" stop-color="#b45309"/>
+      <stop offset="100%" stop-color="#92400e"/>
     </linearGradient>
-    <linearGradient id="boxG" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fcd34d"/>
-      <stop offset="100%" stop-color="#d97706"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#78350f" flood-opacity="0.35"/>
-    </filter>
+    <radialGradient id="opticGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.38"/>
+      <stop offset="65%" stop-color="#0071e3" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="500" height="500" rx="28" fill="url(#bg)"/>
-  <circle cx="80" cy="90" r="18" fill="#fbbf24" opacity="0.35"/>
-  <circle cx="430" cy="110" r="24" fill="#f59e0b" opacity="0.25"/>
-  <circle cx="410" cy="390" r="35" fill="#fbbf24" opacity="0.25"/>
-  <path d="M195 110 L210 75 L230 98 L270 98 L290 75 L305 110 Z" fill="#1f2937"/>
-  <ellipse cx="250" cy="120" rx="55" ry="38" fill="#1f2937"/>
-  <circle cx="230" cy="115" r="6" fill="#fbbf24"/>
-  <circle cx="270" cy="115" r="6" fill="#fbbf24"/>
-  <polygon points="246,124 254,124 250,130" fill="#f472b6"/>
-  <text x="250" y="172" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="54" fill="#ffffff" stroke="#1f2937" stroke-width="10" paint-order="stroke" filter="url(#shadow)">NMS</text>
-  <text x="250" y="222" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#1f2937">✨ ĐÃ KÍCH HOẠT ✨</text>
-  <text x="250" y="305" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="88" fill="url(#goldTxt)" stroke="#78350f" stroke-width="10" paint-order="stroke" filter="url(#shadow)">GOLD</text>
-  <rect x="145" y="325" width="210" height="38" rx="19" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
-  <text x="250" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="20" fill="#78350f">♥ THÀNH CÔNG ♥</text>
-  <circle cx="155" cy="395" r="46" fill="#1f2937"/>
-  <polygon points="118,368 128,332 152,356" fill="#1f2937"/>
-  <polygon points="162,356 190,332 195,370" fill="#1f2937"/>
-  <circle cx="140" cy="392" r="7" fill="#ffffff"/>
-  <circle cx="142" cy="392" r="4" fill="#111827"/>
-  <circle cx="172" cy="392" r="7" fill="#ffffff"/>
-  <circle cx="174" cy="392" r="4" fill="#111827"/>
-  <rect x="175" y="378" width="92" height="92" rx="22" fill="url(#boxG)" stroke="#fff" stroke-width="4" filter="url(#shadow)"/>
-  <path d="M221 442 C221 442 195 424 195 407 C195 397 203 391 211 391 C216 391 221 395 221 399 C221 395 226 391 231 391 C239 391 247 397 247 407 C247 424 221 442 221 442 Z" fill="#fef08a"/>
+  <rect width="600" height="600" rx="120" fill="#fbfbfd"/>
+  <rect x="65" y="65" width="470" height="470" rx="110" fill="url(#chassis)" stroke="url(#rim)" stroke-width="3"/>
+  <rect x="84" y="84" width="432" height="432" rx="94" fill="none" stroke="#ffffff" stroke-opacity="0.75" stroke-width="1.5"/>
+  <circle cx="300" cy="300" r="182" fill="none" stroke="#86868b" stroke-width="0.8" stroke-dasharray="2 4"/>
+  <circle cx="300" cy="300" r="162" fill="url(#core)" stroke="#3a3a3c" stroke-width="2"/>
+  <g stroke="#2c2c2e" stroke-width="1.5">
+    <line x1="260" y1="230" x2="260" y2="155"/><line x1="280" y1="230" x2="280" y2="145"/><line x1="300" y1="230" x2="300" y2="140"/><line x1="320" y1="230" x2="320" y2="145"/><line x1="340" y1="230" x2="340" y2="155"/>
+    <line x1="260" y1="370" x2="260" y2="445"/><line x1="280" y1="370" x2="280" y2="455"/><line x1="300" y1="370" x2="300" y2="460"/><line x1="320" y1="370" x2="320" y2="455"/><line x1="340" y1="370" x2="340" y2="445"/>
+    <line x1="230" y1="260" x2="155" y2="260"/><line x1="230" y1="280" x2="145" y2="280"/><line x1="230" y1="300" x2="140" y2="300"/><line x1="230" y1="320" x2="145" y2="320"/><line x1="230" y1="340" x2="155" y2="340"/>
+    <line x1="370" y1="260" x2="445" y2="260"/><line x1="370" y1="280" x2="455" y2="280"/><line x1="370" y1="300" x2="460" y2="300"/><line x1="370" y1="320" x2="455" y2="320"/><line x1="370" y1="340" x2="445" y2="340"/>
+  </g>
+  <rect x="228" y="228" width="144" height="144" rx="26" fill="#141416" stroke="url(#goldDie)" stroke-width="2"/>
+  <circle cx="300" cy="300" r="144" fill="url(#opticGlow)"/>
+  <path d="M 176 232 A 144 144 0 0 1 424 218" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="6" stroke-linecap="round"/>
+  <text x="300" y="286" text-anchor="middle" fill="#a1a1a6" font-size="11" font-weight="600" letter-spacing="0.24em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">LOCKET SILICON</text>
+  <text x="300" y="314" text-anchor="middle" fill="url(#goldDie)" font-size="24" font-weight="700" letter-spacing="0.06em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">GOLD H2</text>
+  <text x="300" y="334" text-anchor="middle" fill="#6e6e73" font-size="9.5" font-weight="600" letter-spacing="0.18em" font-family="-apple-system, SF Pro Display, Inter, sans-serif">HARD LOCK V6</text>
 </svg>`);
 
 const DEFAULT_CONFIG = {
@@ -78,18 +84,18 @@ const DEFAULT_CONFIG = {
     aiFilterUsed: 0,
     aiFilterUnlimited: true,
     popupEnabled: true,
-    popupAutoShow: true,
+    popupAutoShow: false,
     popupBadge: "LOCKET GOLD",
-    popupHeader: "Đã Kích Hoạt 💛",
-    popupTitle: "Youtube @NightmarketServer ✨",
-    popupSubtitle: "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛",
+    popupHeader: "Đã Kích Hoạt",
+    popupTitle: "Youtube @NightmarketServer",
+    popupSubtitle: "Nhớ Follow Kênh Ủng Hộ Mình Nhé",
     popupImage: DEFAULT_GOLD_POPUP_SVG,
-    popupBtnText: "Done",
+    popupBtnText: "Hoàn tất",
     pushNotifyOnActivate: true,
     pushCooldownSeconds: 12,
-    pushTitle: "LOCKET GOLD — Đã Kích Hoạt 💛",
-    pushSubtitle: "Youtube @NightmarketServer ✨",
-    pushBody: "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"
+    pushTitle: "LOCKET GOLD — Đã Kích Hoạt",
+    pushSubtitle: "Youtube @NightmarketServer",
+    pushBody: "Nhớ Follow Kênh Ủng Hộ Mình Nhé"
 };
 
 const STORE_KEY = "LOCKET_GOLD_MAX_CONFIG_V6";
@@ -125,7 +131,7 @@ const Env = (() => {
         },
         notify(title, subtitle, body) {
             try {
-                const t = String(title || "LOCKET GOLD — Đã Kích Hoạt 💛");
+                const t = String(title || "LOCKET GOLD — Đã Kích Hoạt");
                 const s = String(subtitle || "");
                 const b = String(body || "");
                 if (typeof $notification !== "undefined" && typeof $notification.post === "function") {
@@ -191,9 +197,9 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
 }
 
 function triggerShadowrocketPush(cfg, customTitle, customSub, customBody) {
-    const title = customTitle || `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
-    const sub = customSub || cfg.popupTitle || "Youtube @NightmarketServer ✨";
-    const body = customBody || cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+    const title = customTitle || `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt"}`;
+    const sub = customSub || cfg.popupTitle || "Youtube @NightmarketServer";
+    const body = customBody || cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
     Env.write(String(Date.now()), LAST_GOLD_PUSH_TS_KEY);
     Env.notify(title, sub, body);
 }
@@ -208,9 +214,9 @@ function triggerInAppGoldWelcomeAlert(uid, cfg, forceImmediate = false) {
 
     if (forceImmediate || isNaN(lastPush) || (now - lastPush > cooldownMs)) {
         Env.write(String(now), LAST_GOLD_PUSH_TS_KEY);
-        const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
-        const sub = cfg.popupTitle || "Youtube @NightmarketServer ✨";
-        const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+        const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt"}`;
+        const sub = cfg.popupTitle || "Youtube @NightmarketServer";
+        const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
         Env.notify(title, sub, body);
     }
 }
@@ -751,12 +757,12 @@ function patchRevenueCatOfferings(obj, cfg) {
     const imgFile = hasHttpImg ? cfg.popupImage.split("/").pop() : "gold_activated.png";
 
     const locData = {
-        title: cfg.popupHeader || "Đã Kích Hoạt 💛",
-        subtitle: `${cfg.popupTitle || "Youtube @NightmarketServer ✨"}\n${cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"}`,
-        call_to_action: cfg.popupBtnText || "Done",
+        title: cfg.popupHeader || "Đã Kích Hoạt",
+        subtitle: `${cfg.popupTitle || "Youtube @NightmarketServer"}\n${cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé"}`,
+        call_to_action: cfg.popupBtnText || "Hoàn tất",
         offer_badge: cfg.popupBadge || "LOCKET GOLD",
-        feature_1: cfg.popupTitle || "Youtube @NightmarketServer ✨",
-        feature_2: cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛"
+        feature_1: cfg.popupTitle || "Youtube @NightmarketServer",
+        feature_2: cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé"
     };
 
     if (Array.isArray(obj.offerings)) {
@@ -769,7 +775,7 @@ function patchRevenueCatOfferings(obj, cfg) {
                 title: cfg.popupTitle,
                 subtitle: cfg.popupSubtitle,
                 image_url: hasHttpImg ? cfg.popupImage : "",
-                button_text: cfg.popupBtnText || "Done",
+                button_text: cfg.popupBtnText || "Hoàn tất",
                 is_gold_activated: true
             };
             off.paywall = {
@@ -782,14 +788,14 @@ function patchRevenueCatOfferings(obj, cfg) {
                     images: { header: imgFile, background: imgFile, icon: imgFile },
                     colors: {
                         light: {
-                            background: "#12110E", text_1: "#FFFFFF", text_2: "#A1A1AA", text_3: "#F5B427",
-                            call_to_action_background: "#F5B427", call_to_action_foreground: "#171717",
-                            accent_1: "#F5B427", accent_2: "#FCD34D"
+                            background: "#FBFBFD", text_1: "#1D1D1F", text_2: "#6E6E73", text_3: "#0071E3",
+                            call_to_action_background: "#1D1D1F", call_to_action_foreground: "#FFFFFF",
+                            accent_1: "#0071E3", accent_2: "#1D1D1F"
                         },
                         dark: {
-                            background: "#12110E", text_1: "#FFFFFF", text_2: "#A1A1AA", text_3: "#F5B427",
-                            call_to_action_background: "#F5B427", call_to_action_foreground: "#171717",
-                            accent_1: "#F5B427", accent_2: "#FCD34D"
+                            background: "#1D1D1F", text_1: "#FBFBFD", text_2: "#86868B", text_3: "#0071E3",
+                            call_to_action_background: "#FBFBFD", call_to_action_foreground: "#1D1D1F",
+                            accent_1: "#0071E3", accent_2: "#86868B"
                         }
                     },
                     blurred_background_image: false,
@@ -825,7 +831,7 @@ function injectFirebaseRemoteConfig(obj, cfg) {
         title: cfg.popupTitle,
         subtitle: cfg.popupSubtitle,
         image_url: cfg.popupImage,
-        button_text: cfg.popupBtnText || "Done"
+        button_text: cfg.popupBtnText || "Hoàn tất"
     });
 
     const forcedEntries = {
@@ -1141,9 +1147,9 @@ function fireNativeAppNotification(cfg, forceImmediate = false) {
 
     Env.write(String(now), LAST_GOLD_PUSH_TS_KEY);
 
-    const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt 💛"}`;
-    const sub = cfg.popupTitle || "Youtube @NightmarketServer ✨";
-    const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+    const title = `${cfg.popupBadge || "LOCKET GOLD"} — ${cfg.popupHeader || "Đã Kích Hoạt"}`;
+    const sub = cfg.popupTitle || "Youtube @NightmarketServer";
+    const body = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
     const hasHttpImg = cfg.popupImage && /^https?:\/\//i.test(cfg.popupImage);
 
     try {
@@ -1163,6 +1169,9 @@ function fireNativeAppNotification(cfg, forceImmediate = false) {
     Env.notify(title, sub, body);
 }
 
+// ============================================================================
+// APPLE SCROLLYTELLING 60FPS WEB UI + FULL ADMIN & CONSOLE PANEL (ZERO ICONS)
+// ============================================================================
 function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowGoldModal = false) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const cachedUser = Env.read(USERNAME_CACHE_KEY) || "";
@@ -1172,17 +1181,16 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     const currentAiQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
 
     const popupBadge = cfg.popupBadge || "LOCKET GOLD";
-    const popupHeader = cfg.popupHeader || "Đã Kích Hoạt 💛";
-    const popupTitle = cfg.popupTitle || "Youtube @NightmarketServer ✨";
-    const popupSubtitle = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé 💛";
+    const popupHeader = cfg.popupHeader || "Đã Kích Hoạt";
+    const popupTitle = cfg.popupTitle || "Youtube @NightmarketServer";
+    const popupSubtitle = cfg.popupSubtitle || "Nhớ Follow Kênh Ủng Hộ Mình Nhé";
     const popupImage = cfg.popupImage || DEFAULT_GOLD_POPUP_SVG;
-    const popupBtnText = cfg.popupBtnText || "Done";
-    const shouldShowPopup = forceShowGoldModal || (cfg.popupEnabled !== false && cfg.popupAutoShow !== false);
+    const popupBtnText = cfg.popupBtnText || "Hoàn tất";
+    const shouldShowPopup = forceShowGoldModal || (cfg.popupEnabled !== false && cfg.popupAutoShow === true);
 
     const db = getLocalStore();
     const usersList = Object.values(db.users || {});
     const goldUsersList = usersList.filter(u => u.gold_active !== false);
-    const blockedCount = usersList.filter(u => u.status === "blocked" || u.blocked).length;
 
     let goldDirectoryHtml = "";
     if (goldUsersList.length === 0) {
@@ -1207,12 +1215,12 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
                         <div class="dir-name-row">
                             <span class="dir-fullname">${escapeHtml(fName)}</span>
                             <span class="dir-handle">@${escapeHtml(uName)}</span>
-                            <span class="pill-badge pill-gold">Đã lên Locket Gold</span>
-                            <span class="pill-badge pill-blue">Full Hiệu Ứng Lễ Hội + Filter AI: ${escapeHtml(userAiQuota.toLocaleString("vi-VN"))} lượt</span>
-                            ${isBlk ? `<span class="pill-badge pill-rose">Đang bị Admin chặn (Vẫn giữ Gold)</span>` : `<span class="pill-badge pill-emerald">Đang hoạt động 24/7</span>`}
+                            <span class="pill-badge pill-gold">LOCKET GOLD</span>
+                            <span class="pill-badge pill-blue">AI QUOTA: ${escapeHtml(userAiQuota.toLocaleString("vi-VN"))}</span>
+                            ${isBlk ? `<span class="pill-badge pill-rose">ĐANG TẠM CHẶN (GIỮ GOLD)</span>` : `<span class="pill-badge pill-emerald">HOẠT ĐỘNG 24/7</span>`}
                         </div>
                         <div class="dir-mono">
-                            UID: ${escapeHtml(u.uid)} · Mốc đăng ký: ${escapeHtml(lockD)} · Lượt Tạo Diện Mạo AI: ${escapeHtml(String(userAiQuota))}
+                            UID: ${escapeHtml(u.uid)} · Mốc đăng ký: ${escapeHtml(lockD)} · Lượt AI: ${escapeHtml(String(userAiQuota))}
                         </div>
                     </div>
                 </div>
@@ -1225,7 +1233,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 
     let adminTableHtml = "";
     if (usersList.length === 0) {
-        adminTableHtml = `<div style="padding:24px;text-align:center;font-size:12px;color:#a1a1aa;">Chưa có người dùng nào được ghi nhận.</div>`;
+        adminTableHtml = `<div style="padding:24px;text-align:center;font-size:12px;color:#86868b;">Chưa có người dùng nào được ghi nhận.</div>`;
     } else {
         for (const u of usersList) {
             const isBlk = u.status === "blocked" || u.blocked === true;
@@ -1235,27 +1243,27 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             <div class="adm-row">
                 <div style="min-width:0;">
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span style="font-weight:600;font-size:13px;color:#fff;">@${escapeHtml(uName)}</span>
-                        <span style="font-family:monospace;font-size:11px;color:#fcd34d;">UID: ${escapeHtml(u.uid)}</span>
-                        <span class="pill-badge pill-gold">Gold 24/7</span>
-                        <span class="pill-badge pill-blue-dark">Filter AI: ${escapeHtml(String(uAiQuota))} lượt</span>
-                        <span class="pill-badge ${isBlk ? "pill-rose-dark" : "pill-emerald-dark"}">
-                            ${isBlk ? "Đang bị chặn (Báo trong Locket)" : "Cho phép hoạt động"}
+                        <span style="font-weight:600;font-size:13px;color:#1d1d1f;">@${escapeHtml(uName)}</span>
+                        <span style="font-family:monospace;font-size:11px;color:#6e6e73;">UID: ${escapeHtml(u.uid)}</span>
+                        <span class="pill-badge pill-gold">GOLD 24/7</span>
+                        <span class="pill-badge pill-blue">AI: ${escapeHtml(String(uAiQuota))}</span>
+                        <span class="pill-badge ${isBlk ? "pill-rose" : "pill-emerald"}">
+                            ${isBlk ? "Đang bị chặn" : "Đang hoạt động"}
                         </span>
                     </div>
-                    <div style="font-family:monospace;font-size:11px;color:#a1a1aa;margin-top:4px;">
+                    <div style="font-family:monospace;font-size:11px;color:#6e6e73;margin-top:4px;">
                         Mốc đăng ký: ${escapeHtml(u.force_lock_date || u.lock_date || "2026-05-25")} · Lượt AI: ${escapeHtml(String(uAiQuota))} · Ghi chú: ${escapeHtml(u.note || "Đã lên Gold")}
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
-                    <a href="/setdate?admin_drawer=1&admin_action=push_user_gold&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-gold-dark">🔔 Bắn Push Gold</a>
-                    <a href="/setdate?admin_drawer=1&admin_action=set_ai_quota&target_uid=${encodeURIComponent(u.uid)}&target_ai_quota=999999" class="apple-btn btn-ai-dark">Set 999.999 Lượt AI</a>
+                    <a href="/setdate?admin_drawer=1&admin_action=push_user_gold&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-chip-dark">Bắn Push Gold</a>
+                    <a href="/setdate?admin_drawer=1&admin_action=set_ai_quota&target_uid=${encodeURIComponent(u.uid)}&target_ai_quota=999999" class="apple-btn btn-chip-blue">Set 999.999 AI</a>
                     ${isBlk ? `
-                        <a href="/setdate?admin_drawer=1&admin_action=unblock&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-unblock">Gỡ chặn (Mở lại ngay)</a>
+                        <a href="/setdate?admin_drawer=1&admin_action=unblock&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-chip-emerald">Gỡ chặn</a>
                     ` : `
-                        <a href="/setdate?admin_drawer=1&admin_action=block&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-block-warn">Chặn (Báo Locket & Giữ Gold)</a>
+                        <a href="/setdate?admin_drawer=1&admin_action=block&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-chip-amber">Chặn (Giữ Gold)</a>
                     `}
-                    <a href="/setdate?admin_drawer=1&admin_action=delete&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-del-dark">Xoá</a>
+                    <a href="/setdate?admin_drawer=1&admin_action=delete&target_uid=${encodeURIComponent(u.uid)}" class="apple-btn btn-chip-rose">Xoá</a>
                 </div>
             </div>`;
         }
@@ -1266,302 +1274,967 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>locket.com — Hệ Thống Quản Trị Locket Gold & Mở Khoá Full Hiệu Ứng AI</title>
+<title>LOCKET GOLD — Kiến Trúc Scrollytelling & Quản Trị Hệ Thống</title>
 <style>
   :root {
-    --apple-bg: #f5f5f7;
-    --apple-surface: #ffffff;
-    --apple-ink: #1d1d1f;
-    --apple-secondary: #6e6e73;
-    --apple-tertiary: #86868b;
-    --apple-blue: #0071e3;
-    --apple-border-light: rgba(0, 0, 0, 0.065);
-    --apple-border-strong: rgba(0, 0, 0, 0.12);
-    --apple-dark-border: rgba(255, 255, 255, 0.09);
-    --apple-radius-xl: 32px;
-    --apple-radius-lg: 24px;
-    --apple-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+    --bg-primary: #fbfbfd;
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --accent-blue: #0071e3;
+    --card-surface: rgba(255, 255, 255, 0.88);
+    --card-border: rgba(29, 29, 31, 0.08);
+    --apple-ease: cubic-bezier(0.28, 0.11, 0.32, 1);
+    --radius-apple: 24px;
+    --shadow-soft: 0 24px 60px rgba(29, 29, 31, 0.07), 0 4px 16px rgba(29, 29, 31, 0.04);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
-    background-color: var(--apple-bg);
-    color: var(--apple-ink);
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.015em;
     line-height: 1.5;
-    padding-bottom: 60px;
+    overflow-x: clip;
   }
-  .locket-gold-modal-backdrop {
-    position: fixed; inset: 0; z-index: 9999;
-    background: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    display: flex; align-items: flex-end; justify-content: center; padding: 0;
-    transition: opacity 0.28s ease;
+
+  /* Thanh Progress Bar 2px Fixed trên cùng (width = scrollProgress * 100%) */
+  .top-progress-track {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(29, 29, 31, 0.06);
+    z-index: 10000;
+    pointer-events: none;
   }
-  @media (min-width: 520px) { .locket-gold-modal-backdrop { align-items: center; padding: 20px; } }
-  .locket-gold-sheet {
-    width: 100%; max-width: 420px; min-height: 86vh;
-    background: linear-gradient(180deg, #171612 0%, #12110e 55%, #0d0c0a 100%);
-    border-top-left-radius: 38px; border-top-right-radius: 38px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 14px 26px 34px;
-    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-    text-align: center; color: #ffffff;
-    box-shadow: 0 -16px 60px rgba(0, 0, 0, 0.75);
-    animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
+
+  .top-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--text-primary);
+    transform: translate3d(0, 0, 0);
+    will-change: width, transform;
   }
-  @media (min-width: 520px) { .locket-gold-sheet { min-height: 660px; border-radius: 38px; } }
-  @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .sheet-grabber { width: 42px; height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.24); margin-bottom: 22px; }
-  .sheet-top-group { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 6px; }
-  .sheet-gold-pill {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 7px 20px; border-radius: 14px;
-    background: linear-gradient(180deg, #ffd666 0%, #f5b427 100%);
-    color: #1c1917; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
-    text-transform: uppercase; box-shadow: 0 4px 18px rgba(245, 180, 39, 0.32);
+
+  /* Thanh điều hướng tối giản chuẩn Apple.com (Không dùng icon) */
+  .global-nav {
+    position: fixed;
+    top: 2px;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: rgba(251, 251, 253, 0.8);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(29, 29, 31, 0.07);
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
   }
-  .sheet-header-title { font-size: 29px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; line-height: 1.2; }
-  .sheet-center-group { display: flex; flex-direction: column; align-items: center; width: 100%; margin: 18px 0; }
-  .sheet-art-wrap {
-    width: 245px; height: 245px; border-radius: 6px; overflow: hidden;
-    background: #1f1e1a; box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-    margin-bottom: 26px; display: flex; align-items: center; justify-content: center;
+
+  .global-nav-inner {
+    width: 100%;
+    max-width: 1080px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
-  .sheet-art-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .sheet-channel-title { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.015em; line-height: 1.3; }
-  .sheet-channel-sub { font-size: 16.5px; font-weight: 500; color: #a1a1aa; margin-top: 8px; line-height: 1.35; }
-  .sheet-done-btn {
-    width: 100%; padding: 16px 24px; border-radius: 999px; border: none;
-    background: linear-gradient(180deg, #f7bf3e 0%, #eaa91e 100%);
-    color: #171717; font-size: 17px; font-weight: 700; cursor: pointer;
-    box-shadow: 0 10px 28px rgba(234, 169, 30, 0.28);
+
+  .nav-brand {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+    text-decoration: none;
+    white-space: nowrap;
   }
-  .apple-global-nav {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(245, 245, 247, 0.84);
-    backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px);
-    border-bottom: 1px solid var(--apple-border-light);
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
   }
-  .nav-inner { max-width: 980px; margin: 0 auto; padding: 0 20px; height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--apple-ink); font-weight: 600; font-size: 14px; }
-  .nav-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .pill-emerald { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.28); color: #065f46; }
-  .pill-emerald-dark { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
-  .pill-rose { background: rgba(244, 63, 94, 0.14); border: 1px solid rgba(244, 63, 94, 0.28); color: #9f1239; }
-  .pill-rose-dark { background: rgba(244, 63, 94, 0.22); color: #fda4af; }
-  .pill-gold { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.32); color: #92400e; }
-  .pill-blue { background: rgba(0, 113, 227, 0.12); border: 1px solid rgba(0, 113, 227, 0.28); color: #0051a8; }
-  .pill-blue-dark { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
-  .pill-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
-  .container { max-width: 980px; margin: 0 auto; padding: 32px 20px 0; display: flex; flex-direction: column; gap: 32px; }
-  .apple-bento-light { background-color: var(--apple-surface); border: 1px solid var(--apple-border-light); border-radius: var(--apple-radius-xl); padding: 28px 24px; box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.035); }
-  .apple-bento-dark { background: radial-gradient(125% 100% at 50% 0%, #1d1d22 0%, #121216 48%, #09090b 100%); border: 1px solid var(--apple-dark-border); border-radius: var(--apple-radius-xl); padding: 28px 24px; color: #ffffff; }
-  .apple-subpanel-light { background-color: var(--apple-bg); border: 1px solid var(--apple-border-light); border-radius: var(--apple-radius-lg); padding: 20px; }
-  .apple-subpanel-dark { background-color: rgba(255, 255, 255, 0.035); border: 1px solid var(--apple-dark-border); border-radius: var(--apple-radius-lg); padding: 20px; }
-  .apple-gold-text { background: linear-gradient(135deg, #9a6f1a 0%, #c98a1c 35%, #e5a93b 70%, #b87c14 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .apple-titanium-text { background: linear-gradient(180deg, #ffffff 0%, #d4d4d8 68%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .apple-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; text-decoration: none; cursor: pointer; font-family: inherit; }
-  .btn-nav-dark { padding: 5px 14px; border-radius: 999px; background: #1d1d1f; color: #fff; font-size: 11px; font-weight: 600; }
-  .btn-nav-gold { padding: 5px 13px; border-radius: 999px; background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%); color: #1d1d1f; font-size: 11px; font-weight: 700; }
-  .btn-primary-blue { padding: 13px 24px; border-radius: 14px; background: var(--apple-blue); color: #fff; font-size: 13.5px; font-weight: 600; width: 100%; }
-  .btn-primary-gold { padding: 13px 24px; border-radius: 14px; background: linear-gradient(180deg, #f7bf3e 0%, #e59c15 100%); color: #171717; font-size: 13.5px; font-weight: 700; width: 100%; }
-  .btn-primary-ink { padding: 13px 24px; border-radius: 14px; background: #1d1d1f; color: #fff; font-size: 13.5px; font-weight: 600; width: 100%; }
-  .btn-soft { padding: 11px 20px; border-radius: 14px; background: #f5f5f7; border: 1px solid var(--apple-border-light); color: var(--apple-ink); font-size: 12.5px; font-weight: 600; width: 100%; }
-  .btn-gold-dark { padding: 7px 12px; border-radius: 10px; background: rgba(251, 191, 36, 0.22); color: #fcd34d; font-size: 11.5px; font-weight: 600; }
-  .btn-ai-dark { padding: 7px 12px; border-radius: 10px; background: rgba(56, 189, 248, 0.2); color: #7dd3fc; font-size: 11.5px; font-weight: 600; }
-  .btn-block-warn { padding: 7px 13px; border-radius: 10px; background: rgba(245, 158, 11, 0.2); color: #fde68a; font-size: 11.5px; font-weight: 600; }
-  .btn-unblock { padding: 7px 13px; border-radius: 10px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; font-size: 11.5px; font-weight: 600; }
-  .btn-del-dark { padding: 7px 12px; border-radius: 10px; background: rgba(244, 63, 94, 0.22); color: #fda4af; font-size: 11.5px; font-weight: 600; }
-  .apple-input-light { width: 100%; padding: 12px 15px; border-radius: 13px; background: #ffffff; border: 1px solid var(--apple-border-strong); color: var(--apple-ink); font-size: 14px; outline: none; }
-  .apple-input-dark { width: 100%; padding: 12px 15px; border-radius: 13px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.14); color: #ffffff; font-size: 14px; outline: none; }
-  .realtime-block-banner {
-    background: radial-gradient(120% 100% at 50% 0%, #2b1115 0%, #160a0c 100%);
-    border: 1px solid rgba(244, 63, 94, 0.45); border-radius: 24px; padding: 20px 24px; color: #fff;
-    display: ${cfg.isBlockedByAdmin ? "flex" : "none"}; flex-direction: column; gap: 6px;
+
+  .nav-btn {
+    border: 1px solid rgba(29, 29, 31, 0.12);
+    background: transparent;
+    color: var(--text-primary);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    transition: opacity 0.2s var(--apple-ease), transform 0.2s var(--apple-ease);
   }
-  .toast-msg { padding: 14px 18px; border-radius: 18px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 13px; font-weight: 600; display: ${statusMsg ? "block" : "none"}; }
-  .hero-sec { text-align: center; max-width: 740px; margin: 0 auto; }
-  .hero-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
-  .hero-pill { padding: 5px 14px; border-radius: 999px; background: #fff; border: 1px solid rgba(0,0,0,0.07); font-size: 11px; font-weight: 600; color: var(--apple-ink); }
-  .hero-title { font-size: clamp(28px, 5vw, 46px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.1; }
-  .hero-desc { font-size: 14px; color: var(--apple-secondary); margin-top: 14px; }
-  .spec-strip { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.06); display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .spec-box-lbl { font-size: 10.5px; font-weight: 600; text-transform: uppercase; color: var(--apple-tertiary); }
-  .spec-box-val { font-size: 13px; font-weight: 700; color: var(--apple-ink); margin-top: 2px; word-break: break-all; }
-  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
-  @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
-  .grid-3 { display: grid; grid-template-columns: 1fr; gap: 14px; }
-  @media (min-width: 640px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+
+  .nav-btn:hover {
+    opacity: 0.75;
+  }
+
+  .nav-btn-solid {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border-color: var(--text-primary);
+  }
+
+  /* Khung Sticky Viewport dùng chung cho 4 Section Scrollytelling */
+  .sticky-viewport {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+  }
+
+  /* =========================================================================
+     [SECTION 1 - HERO ZOOM] - height: 200vh, sticky 100vh bên trong
+     ========================================================================= */
+  .section-hero {
+    position: relative;
+    height: 200vh;
+    width: 100%;
+  }
+
+  .hero-stage {
+    text-align: center;
+    max-width: 1120px;
+    width: 100%;
+    position: relative;
+  }
+
+  .hero-kicker {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  .hero-main-title {
+    font-size: clamp(48px, 9.5vw, 124px);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 0.96;
+    color: var(--text-primary);
+    will-change: transform, opacity, filter;
+    transform-origin: center center;
+    margin-bottom: 28px;
+    user-select: none;
+  }
+
+  .hero-subtext {
+    font-size: clamp(19px, 2.4vw, 30px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.38;
+    color: var(--text-secondary);
+    max-width: 680px;
+    margin: 0 auto;
+    will-change: transform, opacity;
+  }
+
+  .scroll-guide-line {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translate3d(-50%, 0, 0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    will-change: opacity;
+  }
+
+  .scroll-guide-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .scroll-guide-bar {
+    width: 1px;
+    height: 42px;
+    background: rgba(29, 29, 31, 0.18);
+  }
+
+  /* =========================================================================
+     [SECTION 2 - PIN & SCRUB SẢN PHẨM] - height: 250vh, sticky 100vh
+     ========================================================================= */
+  .section-pin {
+    position: relative;
+    height: 250vh;
+    width: 100%;
+  }
+
+  .pin-grid {
+    width: 100%;
+    max-width: 1260px;
+    display: grid;
+    grid-template-columns: 1fr minmax(280px, 520px) 1fr;
+    align-items: center;
+    gap: 36px;
+    position: relative;
+  }
+
+  .pin-center-stage {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Lớp shadow phía sau ảnh: scale lớn hơn 10%, blur 30px, opacity 0.2 */
+  .pin-ambient-shadow {
+    position: absolute;
+    inset: 6%;
+    border-radius: 96px;
+    background: radial-gradient(circle at 50% 50%, #1d1d1f 0%, rgba(29, 29, 31, 0.55) 60%, transparent 100%);
+    filter: blur(30px);
+    opacity: 0.2;
+    will-change: transform, opacity;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .pin-product-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    will-change: transform;
+    border-radius: var(--radius-apple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pin-product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-apple);
+    display: block;
+  }
+
+  .pin-feature-card {
+    will-change: transform, opacity;
+    padding: 30px;
+    background: var(--card-surface);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-apple);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .meta-index {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .card-title-apple {
+    font-size: clamp(22px, 2.2vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+
+  .card-desc-apple {
+    font-size: 15px;
+    line-height: 1.58;
+    color: var(--text-secondary);
+  }
+
+  .card- hairline {
+    width: 36px;
+    height: 2px;
+    background: var(--text-primary);
+    opacity: 0.2;
+    margin-top: 18px;
+  }
+
+  /* =========================================================================
+     [SECTION 3 - TEARDOWN BÓC TÁCH] - height: 200vh
+     ========================================================================= */
+  .section-teardown {
+    position: relative;
+    height: 200vh;
+    width: 100%;
+  }
+
+  .section-header-block {
+    text-align: center;
+    margin-bottom: 52px;
+    will-change: transform, opacity;
+  }
+
+  .section-heading-xl {
+    font-size: clamp(32px, 4.8vw, 54px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    color: var(--text-primary);
+  }
+
+  .teardown-stack-stage {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 36px;
+  }
+
+  .teardown-layer-card {
+    position: absolute;
+    width: 100%;
+    padding: 32px 38px;
+    border-radius: var(--radius-apple);
+    background: var(--card-surface);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    display: grid;
+    grid-template-columns: 116px 1fr auto;
+    align-items: center;
+    gap: 26px;
+    will-change: transform, opacity;
+  }
+
+  .layer-pos-1 { z-index: 30; top: 90px; background: rgba(255, 255, 255, 0.95); }
+  .layer-pos-2 { z-index: 20; top: 125px; background: rgba(248, 248, 250, 0.92); }
+  .layer-pos-3 { z-index: 10; top: 160px; background: rgba(242, 242, 247, 0.88); }
+
+  .schematic-box {
+    width: 116px;
+    height: 82px;
+    border-radius: 16px;
+    background: #f2f2f7;
+    border: 1px solid rgba(29, 29, 31, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .geom-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1.5px solid #1d1d1f;
+    opacity: 0.75;
+  }
+
+  .geom-bars {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 40px;
+  }
+
+  .geom-bars span {
+    display: block;
+    width: 3px;
+    background: #1d1d1f;
+    border-radius: 2px;
+  }
+
+  .geom-matrix {
+    width: 66px;
+    height: 42px;
+    border: 1.5px solid #1d1d1f;
+    border-radius: 6px;
+    background-image: linear-gradient(to right, rgba(29,29,31,0.16) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(29,29,31,0.16) 1px, transparent 1px);
+    background-size: 11px 11px;
+  }
+
+  .offset-tag {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: rgba(29, 29, 31, 0.05);
+    white-space: nowrap;
+  }
+
+  /* =========================================================================
+     [SECTION 4 - FEATURES REVEAL] - height: 150vh, sticky
+     ========================================================================= */
+  .section-features {
+    position: relative;
+    height: 150vh;
+    width: 100%;
+  }
+
+  .features-wrap {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .features-3col-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 26px;
+    margin-top: 44px;
+  }
+
+  .feature-reveal-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-apple);
+    box-shadow: var(--shadow-soft);
+    padding: 38px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 360px;
+    will-change: transform, opacity;
+    transition: transform 0.6s var(--apple-ease), opacity 0.6s var(--apple-ease);
+  }
+
+  .feature-metric-head {
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid rgba(29, 29, 31, 0.08);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .feature-big-stat {
+    font-size: clamp(42px, 4.2vw, 60px);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+
+  /* =========================================================================
+     BẢNG ĐIỀU KHIỂN CẤU HÌNH LOCKET GOLD & ADMIN CONSOLE (PHÍA DƯỚI SCROLL)
+     ========================================================================= */
+  .console-wrapper {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 60px 20px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .apple-card-panel {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-apple);
+    box-shadow: var(--shadow-soft);
+    padding: 36px 32px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 680px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
   .grid-4 { display: grid; grid-template-columns: 1fr; gap: 12px; }
-  @media (min-width: 640px) { .grid-4 { grid-template-columns: repeat(4, 1fr); } }
-  .field-lbl { display: block; font-size: 12px; font-weight: 600; color: var(--apple-ink); margin-bottom: 6px; }
-  .field-lbl-dark { display: block; font-size: 11.5px; font-weight: 600; color: #d4d4d8; margin-bottom: 6px; }
-  .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .p-chip { padding: 5px 12px; border-radius: 999px; background: #fff; border: 1px solid rgba(0,0,0,0.08); font-size: 11.5px; font-weight: 600; color: var(--apple-ink); cursor: pointer; }
-  .dir-item { padding: 16px 0; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; }
-  @media (min-width: 640px) { .dir-item { flex-direction: row; align-items: center; justify-content: space-between; } }
-  .dir-item:last-child { border-bottom: none; padding-bottom: 0; }
+  @media (min-width: 680px) { .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+
+  .field-lbl {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .apple-input {
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 14px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(29, 29, 31, 0.14);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+
+  .apple-input:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .preset-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .p-chip {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(29, 29, 31, 0.1);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .apple-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 24px;
+    border-radius: 16px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    transition: opacity 0.2s var(--apple-ease), transform 0.2s var(--apple-ease);
+  }
+
+  .apple-btn:hover { opacity: 0.88; }
+  .btn-ink { background: var(--text-primary); color: #ffffff; width: 100%; }
+  .btn-blue { background: var(--accent-blue); color: #ffffff; width: 100%; }
+  .btn-subtle { background: #f2f2f7; color: var(--text-primary); width: 100%; }
+
+  .btn-chip-dark { padding: 7px 14px; border-radius: 999px; background: #1d1d1f; color: #fff; font-size: 11.5px; }
+  .btn-chip-blue { padding: 7px 14px; border-radius: 999px; background: rgba(0,113,227,0.12); color: #0071e3; font-size: 11.5px; }
+  .btn-chip-emerald { padding: 7px 14px; border-radius: 999px; background: rgba(16,185,129,0.14); color: #065f46; font-size: 11.5px; }
+  .btn-chip-amber { padding: 7px 14px; border-radius: 999px; background: rgba(245,158,11,0.16); color: #92400e; font-size: 11.5px; }
+  .btn-chip-rose { padding: 7px 14px; border-radius: 999px; background: rgba(244,63,94,0.14); color: #9f1239; font-size: 11.5px; }
+
+  .pill-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; }
+  .pill-gold { background: rgba(245, 158, 11, 0.14); color: #92400e; }
+  .pill-blue { background: rgba(0, 113, 227, 0.12); color: #0051a8; }
+  .pill-emerald { background: rgba(16, 185, 129, 0.14); color: #065f46; }
+  .pill-rose { background: rgba(244, 63, 94, 0.14); color: #9f1239; }
+
+  .dir-item, .adm-row {
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(29, 29, 31, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  @media (min-width: 680px) {
+    .dir-item, .adm-row { flex-direction: row; align-items: center; justify-content: space-between; }
+  }
+  .dir-item:last-child, .adm-row:last-child { border-bottom: none; }
   .dir-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
-  .dir-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
-  .dir-info { min-width: 0; }
-  .dir-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .dir-fullname { font-size: 14px; font-weight: 700; color: var(--apple-ink); }
-  .dir-handle { font-size: 12px; font-weight: 500; color: var(--apple-secondary); }
-  .dir-mono { font-family: "SF Mono", ui-monospace, monospace; font-size: 11px; color: var(--apple-tertiary); margin-top: 3px; word-break: break-all; }
-  .dir-tag { font-family: "SF Mono", monospace; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #f5f5f7; color: var(--apple-ink); }
-  .adm-row { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px; }
-  @media (min-width: 640px) { .adm-row { flex-direction: row; align-items: center; justify-content: space-between; } }
-  .adm-row:last-child { border-bottom: none; }
-  .empty-row { padding: 28px 12px; text-align: center; font-size: 13px; color: var(--apple-tertiary); }
+  .dir-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(29,29,31,0.1); }
+  .dir-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .dir-fullname { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .dir-handle { font-size: 12.5px; color: var(--text-secondary); }
+  .dir-mono { font-family: "SF Mono", ui-monospace, monospace; font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .dir-tag { font-family: "SF Mono", monospace; font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 999px; background: #f2f2f7; }
+
+  .toast-banner {
+    padding: 16px 22px;
+    border-radius: 18px;
+    background: #1d1d1f;
+    color: #fbfbfd;
+    font-size: 13.5px;
+    font-weight: 500;
+    display: ${statusMsg ? "block" : "none"};
+  }
+
+  .block-banner {
+    padding: 22px 26px;
+    border-radius: var(--radius-apple);
+    background: #fff1f2;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: #881337;
+    display: ${cfg.isBlockedByAdmin ? "flex" : "none"};
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Modal Popup Locket Gold (Tối giản chuẩn Apple Sheet) */
+  .locket-gold-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(29, 29, 31, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .locket-gold-sheet {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 32px;
+    border: 1px solid rgba(29, 29, 31, 0.08);
+    padding: 32px 28px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(29, 29, 31, 0.18);
+  }
+
+  .sheet-art-wrap {
+    width: 220px;
+    height: 220px;
+    margin: 22px auto;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #fbfbfd;
+    border: 1px solid rgba(29, 29, 31, 0.06);
+  }
+
+  .sheet-art-img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .hidden { display: none !important; }
+
+  @media (max-width: 960px) {
+    .pin-grid { grid-template-columns: 1fr; max-width: 520px; gap: 18px; }
+    .pin-center-stage { max-width: 300px; order: 1; }
+    .pin-left-col { order: 2; }
+    .pin-right-col { order: 3; }
+    .teardown-layer-card { grid-template-columns: 1fr; gap: 14px; padding: 22px; }
+    .schematic-box { width: 100%; height: 52px; }
+    .features-3col-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 24px; }
+    .feature-reveal-card { min-height: auto; padding: 26px 24px; }
+    .sticky-viewport { padding: 60px 18px 20px; }
+  }
 </style>
 </head>
 <body>
 
+  <!-- Thanh Progress Bar 2px Fixed trên cùng -->
+  <div class="top-progress-track" aria-hidden="true">
+    <div id="topProgressBar" class="top-progress-bar"></div>
+  </div>
+
+  <!-- Modal Locket Gold -->
   <div id="locketGoldModal" class="locket-gold-modal-backdrop ${shouldShowPopup ? "" : "hidden"}">
     <div class="locket-gold-sheet">
-      <div style="width:100%;display:flex;flex-direction:column;align-items:center;">
-        <div class="sheet-grabber"></div>
-        <div class="sheet-top-group">
-          <span id="modalBadgeText" class="sheet-gold-pill">${escapeHtml(popupBadge)}</span>
-          <h2 id="modalHeaderText" class="sheet-header-title">${escapeHtml(popupHeader)}</h2>
-        </div>
+      <span class="meta-index">${escapeHtml(popupBadge)}</span>
+      <h2 class="card-title-apple" style="font-size:28px;margin-bottom:4px;">${escapeHtml(popupHeader)}</h2>
+      <div class="sheet-art-wrap">
+        <img src="${escapeHtml(popupImage)}" onerror="this.src='${DEFAULT_GOLD_POPUP_SVG}'" class="sheet-art-img" alt="Locket Gold Hardware">
       </div>
-
-      <div class="sheet-center-group">
-        <div class="sheet-art-wrap">
-          <img id="modalArtImg" src="${escapeHtml(popupImage)}" onerror="this.src='${DEFAULT_GOLD_POPUP_SVG}'" class="sheet-art-img" alt="Locket Gold Activated">
-        </div>
-        <div id="modalChannelTitle" class="sheet-channel-title">${escapeHtml(popupTitle)}</div>
-        <div id="modalChannelSub" class="sheet-channel-sub">${escapeHtml(popupSubtitle)}</div>
-      </div>
-
-      <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
-        <button type="button" onclick="closeGoldModalAndPush()" id="modalDoneBtn" class="sheet-done-btn">
-          ${escapeHtml(popupBtnText)}
-        </button>
-      </div>
+      <div style="font-size:18px;font-weight:700;color:#1d1d1f;">${escapeHtml(popupTitle)}</div>
+      <div style="font-size:14px;color:#6e6e73;margin-top:6px;margin-bottom:24px;">${escapeHtml(popupSubtitle)}</div>
+      <button type="button" onclick="closeGoldModalAndPush()" class="apple-btn btn-ink">${escapeHtml(popupBtnText)}</button>
     </div>
   </div>
 
-  <header class="apple-global-nav">
-    <div class="nav-inner">
-      <a href="/setdate" class="nav-brand">
-        <span>locket.com</span>
-        <span style="color:#d2d2d7;">|</span>
-        <span style="font-size:11px;color:var(--apple-tertiary);font-weight:500;">LocketGold V6 · In-App Alert & AI</span>
-      </a>
-      <div class="nav-right">
-        <button type="button" onclick="openGoldModal()" class="apple-btn btn-nav-gold">✨ Xem Popup Lên Gold</button>
-        <button type="button" onclick="triggerPushNow()" class="apple-btn btn-nav-dark">🔔 Bắn Thông Báo Đẩy Shadowrocket</button>
-        <button type="button" onclick="toggleAdminDrawer()" class="apple-btn btn-nav-dark">
-          ${isAdminLogged ? `Root Admin (${ROOT_ADMIN_USER})` : "Quản Trị Admin"}
+  <!-- Thanh điều hướng Apple.com (Không icon) -->
+  <header class="global-nav">
+    <div class="global-nav-inner">
+      <a href="/setdate" class="nav-brand">LOCKET GOLD PRO</a>
+      <div class="nav-actions">
+        <a href="#consoleSection" class="nav-btn">Cấu hình</a>
+        <button type="button" onclick="openGoldModal()" class="nav-btn">Popup Gold</button>
+        <button type="button" onclick="triggerPushNow()" class="nav-btn">Thông báo đẩy</button>
+        <button type="button" onclick="toggleAdminDrawer()" class="nav-btn nav-btn-solid">
+          ${isAdminLogged ? `Admin (${ROOT_ADMIN_USER})` : "Quản trị"}
         </button>
       </div>
     </div>
   </header>
 
-  <main class="container">
+  <!-- =======================================================================
+       4 SECTION SCROLLYTELLING (ĐIỀU KHIỂN BẰNG THANH CUỘN 60FPS)
+       ======================================================================= -->
+  <div id="scrollyRoot">
 
-    <div id="realtimeBlockBanner" class="realtime-block-banner">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <span class="pill-badge pill-rose-dark">THÔNG BÁO HẠN CHẾ TỪ QUẢN TRỊ VIÊN</span>
-        <span class="pill-badge pill-gold">VẪN GIỮ HUY HIỆU LOCKET GOLD 24/7</span>
+    <!-- [SECTION 1 - HERO ZOOM] - height: 200vh, sticky 100vh bên trong -->
+    <section id="secHero" class="section-hero">
+      <div class="sticky-viewport">
+        <div class="hero-stage">
+          <span class="hero-kicker">KIẾN TRÚC LOCKET GOLD V6 · HARD LOCK 25/05/2026</span>
+          <h1 id="heroTitle" class="hero-main-title">LOCKET GOLD</h1>
+          <p id="heroSubtext" class="hero-subtext">
+            Mở khoá toàn bộ hiệu ứng quang học, huy hiệu Gold vĩnh viễn và 999.999 lượt tạo diện mạo AI. Điều khiển hoàn toàn bằng chuyển động cuộn.
+          </p>
+        </div>
+        <div id="heroScrollGuide" class="scroll-guide-line">
+          <span class="scroll-guide-label">Cuộn để bóc tách kiến trúc</span>
+          <div class="scroll-guide-bar"></div>
+        </div>
       </div>
-      <div style="font-size:17px;font-weight:700;margin-top:4px;">Tài khoản của bạn đang bị Admin tạm chặn</div>
-      <div id="realtimeBlockReasonText" style="font-size:13px;color:#fda4af;">
-        ${escapeHtml(cfg.blockReason)} — Khi Admin gỡ chặn, cảnh báo này và thông báo trong app Locket sẽ tự động tắt ngay lập tức theo thời gian thực.
+    </section>
+
+    <!-- [SECTION 2 - PIN & SCRUB SẢN PHẨM] - height: 250vh, sticky 100vh -->
+    <section id="secPin" class="section-pin">
+      <div class="sticky-viewport">
+        <div class="pin-grid">
+          <!-- Text bên trái xuất hiện ở 20% scroll -->
+          <div id="pinLeftText" class="pin-feature-card pin-left-col">
+            <span class="meta-index">01 / KIẾN TRÚC TỐI GIẢN</span>
+            <h2 class="card-title-apple">Thiết kế tối giản</h2>
+            <p class="card-desc-apple">
+              Loại bỏ hoàn toàn rào cản Paywall và độ trễ xác thực. Huy hiệu Locket Gold cùng mốc đăng ký ${escapeHtml(cfg.lockDate)} được đồng bộ trực tiếp ở tầng giao thức.
+            </p>
+            <div class="card-hairline"></div>
+          </div>
+
+          <!-- Ảnh sản phẩm chính ở giữa (max-width 520px) + Lớp shadow phía sau -->
+          <div class="pin-center-stage">
+            <div id="pinShadow" class="pin-ambient-shadow"></div>
+            <div id="pinProduct" class="pin-product-wrap">
+              <img src="${escapeHtml(popupImage)}" onerror="this.src='${DEFAULT_GOLD_POPUP_SVG}'" class="pin-product-img" alt="Locket Gold Core">
+            </div>
+          </div>
+
+          <!-- Text bên phải xuất hiện ở 55% scroll -->
+          <div id="pinRightText" class="pin-feature-card pin-right-col">
+            <span class="meta-index">02 / XỬ LÝ THỜI GIAN THỰC</span>
+            <h2 class="card-title-apple">Chip H2 & Engine AI mới</h2>
+            <p class="card-desc-apple">
+              Can thiệp sâu vào luồng dữ liệu RevenueCat và Firebase RemoteConfig, cấp phát ${escapeHtml(currentAiQuota.toLocaleString("vi-VN"))} lượt Filter AI mà không cần chờ máy chủ phê duyệt.
+            </p>
+            <div class="card-hairline"></div>
+          </div>
+        </div>
       </div>
+    </section>
+
+    <!-- [SECTION 3 - TEARDOWN BÓC TÁCH] - height: 200vh -->
+    <section id="secTeardown" class="section-teardown">
+      <div class="sticky-viewport">
+        <div id="teardownHeader" class="section-header-block">
+          <span class="meta-index">CẤU TRÚC 3 TẦNG BẢO MẬT</span>
+          <h2 class="section-heading-xl">Bóc tách ba lớp xử lý cốt lõi.</h2>
+        </div>
+
+        <div class="teardown-stack-stage">
+          <!-- Card 1: translateY 0 -> -120px, scale 1 -> 0.95 -->
+          <article id="tdCard1" class="teardown-layer-card layer-pos-1">
+            <div class="schematic-box"><div class="geom-circle"></div></div>
+            <div>
+              <span class="meta-index">LỚP 01 — SUBSCRIBER ENTITLEMENT</span>
+              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Lõi Xác Thực RevenueCat V1</h3>
+              <p class="card-desc-apple">
+                Ghi đè toàn bộ gói đăng ký locket_1600_1y, khoá cứng ngày mua gốc ${escapeHtml(cfg.lockDate)} và mở khoá vĩnh viễn tới năm 2099.
+              </p>
+            </div>
+            <span class="offset-tag">-120PX LAYER</span>
+          </article>
+
+          <!-- Card 2: translateY 0 -> -80px, scale 1 -> 0.95 -->
+          <article id="tdCard2" class="teardown-layer-card layer-pos-2">
+            <div class="schematic-box">
+              <div class="geom-bars">
+                <span style="height:14px"></span><span style="height:28px"></span><span style="height:38px"></span><span style="height:20px"></span><span style="height:32px"></span>
+              </div>
+            </div>
+            <div>
+              <span class="meta-index">LỚP 02 — FIREBASE REMOTE CONFIG</span>
+              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Giải Mã Hiệu Ứng Lễ Hội & LUTs</h3>
+              <p class="card-desc-apple">
+                Vô hiệu hoá toàn bộ cờ khoá hiệu ứng camera, xoá lớp làm mờ preview và kích hoạt trọn bộ sưu tập Filter theo mùa.
+              </p>
+            </div>
+            <span class="offset-tag">-80PX LAYER</span>
+          </article>
+
+          <!-- Card 3: translateY 0 -> -40px, scale 1 -> 0.95 -->
+          <article id="tdCard3" class="teardown-layer-card layer-pos-3">
+            <div class="schematic-box"><div class="geom-matrix"></div></div>
+            <div>
+              <span class="meta-index">LỚP 03 — DEEP OBJECT INSPECTOR</span>
+              <h3 class="card-title-apple" style="font-size:21px;margin-bottom:6px;">Bộ Đếm Quota AI & Cron Keep-Alive</h3>
+              <p class="card-desc-apple">
+                Quét đệ quy 12 tầng JSON để ép số lượt đã dùng về 0 và duy trì hạn mức ${escapeHtml(currentAiQuota.toLocaleString("vi-VN"))} lượt tạo diện mạo AI mỗi ngày.
+              </p>
+            </div>
+            <span class="offset-tag">-40PX LAYER</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- [SECTION 4 - FEATURES REVEAL] - height: 150vh, sticky -->
+    <section id="secFeatures" class="section-features">
+      <div class="sticky-viewport">
+        <div class="features-wrap">
+          <div class="section-header-block" style="margin-bottom:0;">
+            <span class="meta-index">HIỆU SUẤT THỰC TẾ</span>
+            <h2 class="section-heading-xl">Ba thông số làm nên chuẩn mực.</h2>
+          </div>
+
+          <div class="features-3col-grid">
+            <!-- Tính năng A -->
+            <div id="featCard0" class="feature-reveal-card" style="transition-delay: 0s;">
+              <div class="feature-metric-head">
+                <span class="feature-big-stat">100%</span>
+                <span class="meta-index" style="margin:0;">CAMERA & LUTS</span>
+              </div>
+              <div>
+                <h3 class="card-title-apple" style="font-size:22px;">Mở khoá toàn diện hiệu ứng</h3>
+                <p class="card-desc-apple">
+                  Sử dụng tự do mọi hiệu ứng lễ hội, bộ lọc màu LUT và chế độ chụp độc quyền của Locket Gold mà không gặp bất kỳ giới hạn nào.
+                </p>
+              </div>
+            </div>
+
+            <!-- Tính năng B -->
+            <div id="featCard1" class="feature-reveal-card" style="transition-delay: 0.15s;">
+              <div class="feature-metric-head">
+                <span class="feature-big-stat">${escapeHtml(currentAiQuota >= 999999 ? "999K+" : String(currentAiQuota))}</span>
+                <span class="meta-index" style="margin:0;">AI LOOKS QUOTA</span>
+              </div>
+              <div>
+                <h3 class="card-title-apple" style="font-size:22px;">Tạo diện mạo AI không giới hạn</h3>
+                <p class="card-desc-apple">
+                  Cấp sẵn hạn mức tối đa cho tính năng AI Looks và AI Filters, tự động làm mới bộ đếm sử dụng về 0 trong mỗi phiên đồng bộ.
+                </p>
+              </div>
+            </div>
+
+            <!-- Tính năng C -->
+            <div id="featCard2" class="feature-reveal-card" style="transition-delay: 0.30s;">
+              <div class="feature-metric-head">
+                <span class="feature-big-stat">24/7</span>
+                <span class="meta-index" style="margin:0;">REALTIME SYNC</span>
+              </div>
+              <div>
+                <h3 class="card-title-apple" style="font-size:22px;">Đồng bộ ngầm & Push tức thì</h3>
+                <p class="card-desc-apple">
+                  Tự động bắt giữ UID chuẩn xác từ gói tin mạng, duy trì huy hiệu Gold qua tiến trình Cron và bắn thông báo đẩy ngay khi mở ứng dụng.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- =======================================================================
+       BẢNG ĐIỀU KHIỂN CẤU HÌNH TRỰC TIẾP & QUẢN TRỊ VIÊN (GIỮ NGUYÊN 100% TÍNH NĂNG)
+       ======================================================================= -->
+  <main id="consoleSection" class="console-wrapper">
+
+    <div id="realtimeBlockBanner" class="block-banner">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">THÔNG BÁO HẠN CHẾ TỪ QUẢN TRỊ VIÊN (VẪN GIỮ GOLD 24/7)</div>
+      <div style="font-size:18px;font-weight:700;">Tài khoản của bạn đang bị Admin tạm chặn</div>
+      <div style="font-size:13.5px;">${escapeHtml(cfg.blockReason)}</div>
     </div>
 
-    <div id="statusToast" class="toast-msg">${escapeHtml(statusMsg || "")}</div>
+    <div id="statusToast" class="toast-banner">${escapeHtml(statusMsg || "")}</div>
 
-    <section id="adminCommandCenter" class="apple-bento-dark ${openAdminDrawer ? "" : "hidden"}">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.09);">
+    <!-- Khu vực Quản Trị Viên Root Admin -->
+    <section id="adminCommandCenter" class="apple-card-panel ${openAdminDrawer ? "" : "hidden"}">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
-          <span class="pill-badge" style="background:rgba(251,191,36,0.15);color:#fcd34d;border:1px solid rgba(251,191,36,0.3);">
-            Bảng Điều Khiển Quản Trị Hệ Thống
-          </span>
-          <h2 class="apple-titanium-text" style="font-size:24px;font-weight:700;margin-top:8px;">
-            Trung Tâm Quản Trị Gold · Sửa Popup & Thông Báo Khi Mở App Locket
-          </h2>
+          <span class="meta-index">TRUNG TÂM QUẢN TRỊ HỆ THỐNG</span>
+          <h2 class="card-title-apple" style="margin:0;">Quản lý người dùng, Popup Gold & Thông báo đẩy</h2>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" onclick="openGoldModal()" class="apple-btn btn-gold-dark">Xem Thử Popup Gold</button>
-          <button type="button" onclick="triggerPushNow()" class="apple-btn btn-ai-dark">🔔 Test Thông Báo Đẩy Shadowrocket</button>
-          ${isAdminLogged ? `<a href="/setdate?admin_logout=1" class="apple-btn btn-del-dark">Đăng Xuất Admin</a>` : ""}
-          <button type="button" onclick="toggleAdminDrawer()" class="apple-btn" style="padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:600;">Thu Gọn</button>
+          <button type="button" onclick="openGoldModal()" class="nav-btn">Xem thử Popup</button>
+          <button type="button" onclick="triggerPushNow()" class="nav-btn">Test Push</button>
+          ${isAdminLogged ? `<a href="/setdate?admin_logout=1" class="nav-btn">Đăng xuất</a>` : ""}
+          <button type="button" onclick="toggleAdminDrawer()" class="nav-btn nav-btn-solid">Đóng</button>
         </div>
       </div>
 
       ${!isAdminLogged ? `
-        <form method="GET" action="/setdate" autocomplete="off" class="apple-subpanel-dark" style="max-width:420px;margin:24px auto 0;">
+        <form method="GET" action="/setdate" autocomplete="off" style="max-width:420px;margin:28px auto 0;">
           <input type="hidden" name="admin_drawer" value="1">
           <input type="hidden" name="admin_login" value="1">
-          <div style="text-align:center;margin-bottom:16px;">
-            <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#a1a1aa;">Xác Thực Quản Trị Viên</div>
-            <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">Đăng Nhập Hệ Thống Admin</div>
+          <div style="margin-bottom:14px;">
+            <label class="field-lbl">Tài khoản Quản trị viên</label>
+            <input type="text" name="user" class="apple-input" placeholder="Nhập username admin..." required>
           </div>
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11px;color:#a1a1aa;margin-bottom:6px;">Tài khoản Admin</label>
-            <input type="text" name="user" class="apple-input-dark" placeholder="Nhập username admin..." required>
+          <div style="margin-bottom:18px;">
+            <label class="field-lbl">Mật khẩu bảo mật</label>
+            <input type="password" name="pass" class="apple-input" placeholder="Nhập mật khẩu..." required>
           </div>
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:11px;color:#a1a1aa;margin-bottom:6px;">Mật khẩu bảo mật</label>
-            <input type="password" name="pass" class="apple-input-dark" placeholder="Nhập mật khẩu..." required>
-          </div>
-          <button type="submit" class="apple-btn btn-primary-blue">Đăng Nhập Quản Trị</button>
+          <button type="submit" class="apple-btn btn-ink">Đăng nhập quyền Root Admin</button>
         </form>
       ` : `
-        <div style="margin-top:22px;display:flex;flex-direction:column;gap:20px;">
-          <form method="GET" action="/setdate" class="apple-subpanel-dark">
+        <div style="margin-top:26px;display:flex;flex-direction:column;gap:28px;">
+          <form method="GET" action="/setdate" style="padding:24px;border-radius:20px;background:#fbfbfd;border:1px solid rgba(29,29,31,0.07);">
             <input type="hidden" name="admin_drawer" value="1">
             <input type="hidden" name="admin_action" value="save_popup_config">
-            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
-              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#fcd34d;">
-                Tuỳ Chỉnh Giao Diện Thông Báo "Lên Gold" & Thông Báo Đẩy Trong App Locket
-              </div>
-              <button type="button" onclick="resetDefaultGoldArt()" class="apple-btn btn-gold-dark">Khôi Phục Ảnh Mặc Định</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <span class="meta-index" style="margin:0;">TUỲ CHỈNH NỘI DUNG POPUP & THÔNG BÁO ĐẨY</span>
+              <button type="button" onclick="resetDefaultGoldArt()" class="p-chip">Khôi phục đồ hoạ mặc định</button>
             </div>
-
             <div class="grid-2">
               <div>
-                <label class="field-lbl-dark">Nhãn Huy Hiệu Vàng Phía Trên (Badge)</label>
-                <input type="text" name="popupBadge" value="${escapeHtml(popupBadge)}" class="apple-input-dark">
+                <label class="field-lbl">Nhãn huy hiệu (Badge)</label>
+                <input type="text" name="popupBadge" value="${escapeHtml(popupBadge)}" class="apple-input">
               </div>
               <div>
-                <label class="field-lbl-dark">Tiêu Đề Chính Khi Lên Gold (Header)</label>
-                <input type="text" name="popupHeader" value="${escapeHtml(popupHeader)}" class="apple-input-dark">
-              </div>
-            </div>
-
-            <div class="grid-2" style="margin-top:12px;">
-              <div>
-                <label class="field-lbl-dark">Tiêu Đề Kênh / Admin Bên Dưới Ảnh (Dòng 1)</label>
-                <input type="text" name="popupTitle" value="${escapeHtml(popupTitle)}" class="apple-input-dark">
-              </div>
-              <div>
-                <label class="field-lbl-dark">Dòng Phụ Đề / Lời Nhắn Bên Dưới (Dòng 2)</label>
-                <input type="text" name="popupSubtitle" value="${escapeHtml(popupSubtitle)}" class="apple-input-dark">
+                <label class="field-lbl">Tiêu đề chính (Header)</label>
+                <input type="text" name="popupHeader" value="${escapeHtml(popupHeader)}" class="apple-input">
               </div>
             </div>
-
-            <div class="grid-2" style="margin-top:12px;">
+            <div class="grid-2" style="margin-top:14px;">
               <div>
-                <label class="field-lbl-dark">Link Ảnh Trung Tâm (URL .png/.jpg/.gif)</label>
-                <input type="text" id="adminPopupImgInput" name="popupImage" value="${escapeHtml(popupImage)}" class="apple-input-dark">
+                <label class="field-lbl">Tiêu đề kênh / Dòng 1</label>
+                <input type="text" name="popupTitle" value="${escapeHtml(popupTitle)}" class="apple-input">
               </div>
               <div>
-                <label class="field-lbl-dark">Chữ Trên Nút Đóng & Giãn Cách Thông Báo (Giây)</label>
-                <div style="display:grid;grid-template-columns:1fr 120px;gap:8px;">
-                  <input type="text" name="popupBtnText" value="${escapeHtml(popupBtnText)}" class="apple-input-dark">
-                  <input type="number" name="pushCooldownSeconds" value="${escapeHtml(String(cfg.pushCooldownSeconds || 12))}" min="5" max="3600" class="apple-input-dark">
+                <label class="field-lbl">Phụ đề / Dòng 2</label>
+                <input type="text" name="popupSubtitle" value="${escapeHtml(popupSubtitle)}" class="apple-input">
+              </div>
+            </div>
+            <div class="grid-2" style="margin-top:14px;">
+              <div>
+                <label class="field-lbl">URL Ảnh sản phẩm / Đồ hoạ trung tâm</label>
+                <input type="text" id="adminPopupImgInput" name="popupImage" value="${escapeHtml(popupImage)}" class="apple-input">
+              </div>
+              <div>
+                <label class="field-lbl">Nút đóng & Giãn cách thông báo (Giây)</label>
+                <div style="display:grid;grid-template-columns:1fr 110px;gap:10px;">
+                  <input type="text" name="popupBtnText" value="${escapeHtml(popupBtnText)}" class="apple-input">
+                  <input type="number" name="pushCooldownSeconds" value="${escapeHtml(String(cfg.pushCooldownSeconds || 12))}" min="5" max="3600" class="apple-input">
                 </div>
-                <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#e4e4e7;">
+                <div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#6e6e73;">
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" name="popupAutoShow" value="1" ${cfg.popupAutoShow !== false ? "checked" : ""}> Tự hiện Popup
+                    <input type="checkbox" name="popupAutoShow" value="1" ${cfg.popupAutoShow === true ? "checked" : ""}> Tự mở Popup khi vào trang
                   </label>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
                     <input type="checkbox" name="pushNotifyOnActivate" value="1" ${cfg.pushNotifyOnActivate !== false ? "checked" : ""}> Tự bắn Push khi mở Locket
@@ -1569,31 +2242,28 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
                 </div>
               </div>
             </div>
-
-            <div class="grid-2" style="margin-top:16px;">
-              <button type="submit" class="apple-btn btn-primary-gold">💾 Lưu Tiêu Đề & Ảnh + Bắn Thông Báo Ngay</button>
-              <a href="/setdate?admin_drawer=1&push_test=1&gold_popup=1" class="apple-btn btn-primary-blue">🔔 Test Nổ Thông Báo Đẩy Shadowrocket Ngay</a>
+            <div class="grid-2" style="margin-top:18px;">
+              <button type="submit" class="apple-btn btn-ink">Lưu cấu hình Popup & Bắn thông báo</button>
+              <a href="/setdate?admin_drawer=1&push_test=1&gold_popup=1" class="apple-btn btn-blue">Test thông báo đẩy ngay</a>
             </div>
           </form>
 
-          <form method="GET" action="/setdate" class="apple-subpanel-dark">
+          <form method="GET" action="/setdate" style="padding:24px;border-radius:20px;background:#fbfbfd;border:1px solid rgba(29,29,31,0.07);">
             <input type="hidden" name="admin_drawer" value="1">
             <input type="hidden" name="admin_action" value="add_gold">
-            <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#fcd34d;margin-bottom:12px;">
-              Thêm / Cấp Nhanh Gold & Số Lượt Sử Dụng Filter AI Cho Người Dùng
-            </div>
+            <span class="meta-index">CẤP NHANH LOCKET GOLD & HẠN MỨC AI CHO UID</span>
             <div class="grid-4">
-              <input type="text" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" class="apple-input-dark" placeholder="Nhập UID Locket..." required>
-              <input type="text" name="target_user" value="${escapeHtml(cachedUser)}" class="apple-input-dark" placeholder="Nhập @username...">
-              <input type="number" name="target_ai_quota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input-dark" placeholder="Số lượt AI...">
-              <button type="submit" class="apple-btn" style="background:#fbbf24;color:#1d1d1f;font-weight:700;font-size:13px;border-radius:13px;padding:12px;">Lưu & Cấp Lượt AI Ngay</button>
+              <input type="text" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" class="apple-input" placeholder="Nhập UID Locket..." required>
+              <input type="text" name="target_user" value="${escapeHtml(cachedUser)}" class="apple-input" placeholder="Nhập @username...">
+              <input type="number" name="target_ai_quota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input" placeholder="Số lượt AI...">
+              <button type="submit" class="apple-btn btn-ink">Cấp quyền ngay</button>
             </div>
           </form>
 
-          <div class="apple-subpanel-dark">
+          <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-size:14px;font-weight:700;color:#fff;">Quản Lý Danh Sách Tài Khoản Đã Lên Gold</div>
-              <a href="/setdate?admin_drawer=1&admin_action=unblock_all" style="font-size:12px;font-weight:600;color:#34d399;text-decoration:none;">Gỡ chặn tất cả</a>
+              <span class="meta-index" style="margin:0;">DANH SÁCH QUẢN TRỊ TÀI KHOẢN (${usersList.length})</span>
+              <a href="/setdate?admin_drawer=1&admin_action=unblock_all" style="font-size:12px;font-weight:600;color:#0071e3;text-decoration:none;">Gỡ chặn toàn bộ</a>
             </div>
             ${adminTableHtml}
           </div>
@@ -1601,116 +2271,86 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       `}
     </section>
 
-    <section class="hero-sec">
-      <div class="hero-pills">
-        <span class="hero-pill">LocketGold Hard Lock V6 · 25/05/2026</span>
-        <span class="hero-pill">Tự Nổ Thông Báo Khi Mở App Locket + Fix Bộ Lọc AI</span>
-      </div>
-      <h1 class="hero-title">
-        Mở khoá mọi hiệu ứng Lễ Hội.<br>
-        <span class="apple-gold-text">Hiện thông báo Gold ngay khi mở Locket.</span>
-      </h1>
-      <div class="spec-strip">
+    <!-- Bảng Cấu Hình Thời Gian Đăng Ký & Lượt AI -->
+    <section class="apple-card-panel">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
-          <div class="spec-box-lbl">Bộ Lọc AI & Lễ Hội</div>
-          <div class="spec-box-val" style="color:#059669;">HOẠT ĐỘNG 100%</div>
-        </div>
-        <div style="border-left:1px solid rgba(0,0,0,0.06);padding-left:8px;">
-          <div class="spec-box-lbl">Lượt Filter AI</div>
-          <div class="spec-box-val" style="color:#0071e3;">${escapeHtml(currentAiQuota.toLocaleString("vi-VN"))} LƯỢT</div>
-        </div>
-        <div style="border-left:1px solid rgba(0,0,0,0.06);border-right:1px solid rgba(0,0,0,0.06);padding:0 8px;">
-          <div class="spec-box-lbl">Mốc Đăng Ký</div>
-          <div class="spec-box-val">${escapeHtml(cfg.lockDate)}</div>
-        </div>
-        <div>
-          <div class="spec-box-lbl">User ID Đã Bắt</div>
-          <div class="spec-box-val">${escapeHtml(hasValidUid ? cachedUid.slice(0, 12) + "..." : "Chưa bắt")}</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="apple-bento-light">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:20px;border-bottom:1px solid rgba(0,0,0,0.06);">
-        <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#b45309;">Bước 01 — Kích Hoạt Nhanh & Cấu Hình Lượt AI</div>
-          <h2 style="font-size:22px;font-weight:700;color:var(--apple-ink);margin-top:4px;">Bảng Điều Khiển Locket Gold & Hiệu Ứng AI</h2>
-          <p style="font-size:13px;color:var(--apple-secondary);margin-top:2px;">
-            User ID: <code style="font-family:monospace;background:#f5f5f7;padding:2px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
+          <span class="meta-index">BẢNG ĐIỀU KHIỂN TRỰC TIẾP</span>
+          <h2 class="card-title-apple" style="margin:0;">Thiết lập Mốc đăng ký Locket Gold & Hạn mức AI</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
+            UID hiện tại: <code style="font-family:monospace;background:#f2f2f7;padding:3px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
           </p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" onclick="openGoldModal()" class="apple-btn btn-primary-gold" style="width:auto;padding:11px 20px;border-radius:999px;">✨ Hiện Thông Báo Đã Lên Gold</button>
-          <button type="button" onclick="triggerPushNow()" class="apple-btn btn-primary-ink" style="width:auto;padding:11px 20px;border-radius:999px;">🔔 Bắn Thông Báo Đẩy Shadowrocket</button>
-          <a href="/setdate?request_activate=1&gold_popup=1&push_test=1" class="apple-btn btn-primary-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kích Hoạt & Đồng Bộ Ngay</a>
+          <a href="/setdate?request_activate=1&gold_popup=1&push_test=1" class="apple-btn btn-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kích hoạt & Đồng bộ ngay</a>
         </div>
       </div>
 
-      <form method="GET" action="/setdate" style="margin-top:22px;display:flex;flex-direction:column;gap:18px;">
+      <form method="GET" action="/setdate" style="margin-top:24px;display:flex;flex-direction:column;gap:20px;">
         <input type="hidden" name="save" value="1">
-        <div class="apple-subpanel-light">
-          <div class="grid-2">
-            <div>
-              <label class="field-lbl">Số lượt sử dụng Filter AI / Tạo diện mạo</label>
-              <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input-light">
-              <div class="preset-chips">
-                <button type="button" class="p-chip" onclick="setAiQuota('999999')">Vô hạn (999.999)</button>
-                <button type="button" class="p-chip" onclick="setAiQuota('10000')">10.000 lượt</button>
-                <button type="button" class="p-chip" onclick="setAiQuota('1000')">1.000 lượt</button>
-              </div>
-            </div>
-            <div>
-              <label class="field-lbl">Số lượt đã dùng hôm nay (Ép về 0)</label>
-              <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" class="apple-input-light">
+        <div class="grid-2">
+          <div>
+            <label class="field-lbl">Số lượt sử dụng Filter AI / Tạo diện mạo</label>
+            <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" class="apple-input">
+            <div class="preset-chips">
+              <button type="button" class="p-chip" onclick="setAiQuota('999999')">Vô hạn (999.999)</button>
+              <button type="button" class="p-chip" onclick="setAiQuota('10000')">10.000 lượt</button>
+              <button type="button" class="p-chip" onclick="setAiQuota('1000')">1.000 lượt</button>
             </div>
           </div>
-
-          <div class="grid-2" style="margin-top:16px;">
-            <div>
-              <label class="field-lbl">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
-              <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input-light">
-              <div class="preset-chips">
-                <button type="button" class="p-chip" onclick="setD('25/05/2026')">25/05/2026</button>
-                <button type="button" class="p-chip" onclick="setD('26/05/2010')">26/05/2010</button>
-                <button type="button" class="p-chip" onclick="setD('01/01/2022')">01/01/2022</button>
-              </div>
-            </div>
-            <div>
-              <label class="field-lbl">Tên hiển thị (@username)</label>
-              <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-input-light" placeholder="Nhập @username...">
-            </div>
-          </div>
-
-          <div class="grid-2" style="margin-top:16px;">
-            <div>
-              <label class="field-lbl">Mã gói đăng ký (Product Identifier)</label>
-              <select name="productId" class="apple-input-light">
-                <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
-                <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
-                <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
-              </select>
-            </div>
-            <div>
-              <label class="field-lbl">Ngày hết hạn gói</label>
-              <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input-light">
-            </div>
+          <div>
+            <label class="field-lbl">Số lượt đã dùng hôm nay (Ép về 0)</label>
+            <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" class="apple-input">
           </div>
         </div>
 
         <div class="grid-2">
-          <button type="submit" class="apple-btn btn-primary-ink">Lưu Cấu Hình & Mở Khoá Full Hiệu Ứng Lễ Hội / AI</button>
-          <a href="/setdate?reset=1" class="apple-btn btn-soft">Khôi Phục Mặc Định (25/05/2026 · 999.999 Lượt AI)</a>
+          <div>
+            <label class="field-lbl">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
+            <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-input">
+            <div class="preset-chips">
+              <button type="button" class="p-chip" onclick="setD('25/05/2026')">25/05/2026</button>
+              <button type="button" class="p-chip" onclick="setD('25/05/2010')">25/05/2010</button>
+              <button type="button" class="p-chip" onclick="setD('01/01/2022')">01/01/2022</button>
+            </div>
+          </div>
+          <div>
+            <label class="field-lbl">Tên hiển thị (@username)</label>
+            <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-input" placeholder="Nhập @username...">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label class="field-lbl">Mã gói đăng ký (Product Identifier)</label>
+            <select name="productId" class="apple-input">
+              <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
+              <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
+              <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-lbl">Ngày hết hạn gói</label>
+            <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-input">
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:6px;">
+          <button type="submit" class="apple-btn btn-ink">Lưu cấu hình & Đồng bộ Locket Gold</button>
+          <a href="/setdate?reset=1" class="apple-btn btn-subtle">Khôi phục mặc định (25/05/2026 · 999.999 AI)</a>
         </div>
       </form>
     </section>
 
-    <section class="apple-bento-light">
-      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;padding-bottom:18px;border-bottom:1px solid rgba(0,0,0,0.06);">
+    <!-- Danh sách tài khoản đã kích hoạt -->
+    <section class="apple-card-panel">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:18px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
-          <h3 style="font-size:21px;font-weight:700;color:var(--apple-ink);">Danh Sách Tài Khoản Đã Lên Locket Gold (${goldUsersList.length})</h3>
+          <span class="meta-index">CƠ SỞ DỮ LIỆU ĐỒNG BỘ</span>
+          <h3 class="card-title-apple" style="margin:0;">Danh sách tài khoản đã lên Locket Gold (${goldUsersList.length})</h3>
         </div>
         <div style="width:100%;max-width:260px;">
-          <input type="text" id="searchGoldInput" oninput="filterGoldUsers()" class="apple-input-light" style="padding:9px 14px;font-size:12.5px;" placeholder="Tìm @username hoặc UID...">
+          <input type="text" id="searchGoldInput" oninput="filterGoldUsers()" class="apple-input" style="padding:10px 14px;font-size:13px;" placeholder="Tìm @username hoặc UID...">
         </div>
       </div>
       <div id="goldDirectoryList" style="margin-top:8px;">
@@ -1720,7 +2360,171 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 
   </main>
 
+  <!-- =======================================================================
+       ENGINE SCROLLYTELLING 60FPS (requestAnimationFrame + getBoundingClientRect)
+       ======================================================================= -->
   <script>
+    (function() {
+      var topBar = document.getElementById('topProgressBar');
+      var secHero = document.getElementById('secHero');
+      var heroTitle = document.getElementById('heroTitle');
+      var heroSubtext = document.getElementById('heroSubtext');
+      var heroScrollGuide = document.getElementById('heroScrollGuide');
+
+      var secPin = document.getElementById('secPin');
+      var pinProduct = document.getElementById('pinProduct');
+      var pinShadow = document.getElementById('pinShadow');
+      var pinLeftText = document.getElementById('pinLeftText');
+      var pinRightText = document.getElementById('pinRightText');
+
+      var secTeardown = document.getElementById('secTeardown');
+      var teardownHeader = document.getElementById('teardownHeader');
+      var tdCard1 = document.getElementById('tdCard1');
+      var tdCard2 = document.getElementById('tdCard2');
+      var tdCard3 = document.getElementById('tdCard3');
+
+      var secFeatures = document.getElementById('secFeatures');
+      var featCard0 = document.getElementById('featCard0');
+      var featCard1 = document.getElementById('featCard1');
+      var featCard2 = document.getElementById('featCard2');
+
+      var ticking = false;
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function lerp(start, end, t) {
+        return start + (end - start) * clamp(t, 0, 1);
+      }
+
+      function invLerp(start, end, v) {
+        return clamp((v - start) / (end - start), 0, 1);
+      }
+
+      function appleEase(t) {
+        var c = clamp(t, 0, 1);
+        return 1 - Math.pow(1 - c, 3.4);
+      }
+
+      function getSectionProgress(el) {
+        if (!el) return 0;
+        var rect = el.getBoundingClientRect();
+        var winH = window.innerHeight || document.documentElement.clientHeight;
+        var dist = rect.height - winH;
+        if (dist <= 0) {
+          return clamp((winH - rect.top) / (winH + rect.height), 0, 1);
+        }
+        return clamp(-rect.top / dist, 0, 1);
+      }
+
+      function renderScrollytellingFrame() {
+        var winH = window.innerHeight || document.documentElement.clientHeight;
+        var docH = document.documentElement.scrollHeight;
+        var maxScroll = Math.max(1, docH - winH);
+        var scrollProgress = clamp(window.scrollY / maxScroll, 0, 1);
+
+        // 1. Top Progress Bar (width = scrollProgress * 100%)
+        if (topBar) {
+          topBar.style.width = (scrollProgress * 100).toFixed(3) + '%';
+        }
+
+        // 2. Section 1: Hero Zoom (scale 3 -> 0.8, blur 20px -> 0px, opacity 0->1 (0-40%) & 1->0 (80-100%))
+        var pHero = getSectionProgress(secHero);
+        var eHero = appleEase(pHero);
+        if (heroTitle) {
+          var hScale = lerp(3, 0.8, eHero);
+          var hBlur = lerp(20, 0, clamp(pHero / 0.55, 0, 1));
+          var hOp = 1;
+          if (pHero <= 0.4) {
+            hOp = appleEase(invLerp(0, 0.4, pHero));
+          } else if (pHero >= 0.8) {
+            hOp = 1 - appleEase(invLerp(0.8, 1.0, pHero));
+          }
+          heroTitle.style.transform = 'translate3d(0,0,0) scale(' + hScale.toFixed(4) + ')';
+          heroTitle.style.opacity = hOp.toFixed(4);
+          heroTitle.style.filter = 'blur(' + hBlur.toFixed(2) + 'px)';
+        }
+        if (heroSubtext) {
+          var subIn = appleEase(invLerp(0.18, 0.58, pHero));
+          var subOut = 1 - appleEase(invLerp(0.82, 1.0, pHero));
+          var subY = lerp(40, 0, subIn);
+          heroSubtext.style.transform = 'translate3d(0,' + subY.toFixed(2) + 'px,0)';
+          heroSubtext.style.opacity = (subIn * subOut).toFixed(4);
+        }
+        if (heroScrollGuide) {
+          heroScrollGuide.style.opacity = (1 - clamp(pHero * 2.5, 0, 1)).toFixed(3);
+        }
+
+        // 3. Section 2: Pin & Scrub Product (scale 1.4->0.9, rotate -8deg->8deg, translateY 80px->-40px)
+        var pPin = getSectionProgress(secPin);
+        var ePin = appleEase(pPin);
+        var prodScale = lerp(1.4, 0.9, ePin);
+        var prodRot = lerp(-8, 8, ePin);
+        var prodY = lerp(80, -40, ePin);
+
+        if (pinProduct) {
+          pinProduct.style.transform = 'translate3d(0,' + prodY.toFixed(2) + 'px,0) scale(' + prodScale.toFixed(4) + ') rotate(' + prodRot.toFixed(2) + 'deg)';
+        }
+        if (pinShadow) {
+          var shScale = prodScale * 1.1;
+          pinShadow.style.transform = 'translate3d(0,' + (prodY + 26).toFixed(2) + 'px,0) scale(' + shScale.toFixed(4) + ') rotate(' + prodRot.toFixed(2) + 'deg)';
+        }
+        if (pinLeftText) {
+          var lP = appleEase(invLerp(0.20, 0.46, pPin));
+          var lY = lerp(30, 0, lP);
+          pinLeftText.style.transform = 'translate3d(0,' + lY.toFixed(2) + 'px,0)';
+          pinLeftText.style.opacity = lP.toFixed(4);
+        }
+        if (pinRightText) {
+          var rP = appleEase(invLerp(0.55, 0.82, pPin));
+          var rY = lerp(30, 0, rP);
+          pinRightText.style.transform = 'translate3d(0,' + rY.toFixed(2) + 'px,0)';
+          pinRightText.style.opacity = rP.toFixed(4);
+        }
+
+        // 4. Section 3: Teardown Bóc Tách (Card 1: -120px, Card 2: -80px, Card 3: -40px, scale 1->0.95)
+        var pTd = getSectionProgress(secTeardown);
+        var eTd = appleEase(pTd);
+        var tdScale = lerp(1, 0.95, eTd);
+        if (tdCard1) tdCard1.style.transform = 'translate3d(0,' + lerp(0, -120, eTd).toFixed(2) + 'px,0) scale(' + tdScale.toFixed(4) + ')';
+        if (tdCard2) tdCard2.style.transform = 'translate3d(0,' + lerp(0, -80, eTd).toFixed(2) + 'px,0) scale(' + tdScale.toFixed(4) + ')';
+        if (tdCard3) tdCard3.style.transform = 'translate3d(0,' + lerp(0, -40, eTd).toFixed(2) + 'px,0) scale(' + tdScale.toFixed(4) + ')';
+        if (teardownHeader) {
+          var hdP = appleEase(invLerp(0, 0.28, pTd));
+          teardownHeader.style.opacity = hdP.toFixed(4);
+          teardownHeader.style.transform = 'translate3d(0,' + lerp(24, 0, hdP).toFixed(2) + 'px,0)';
+        }
+
+        // 5. Section 4: Features Reveal (Grid 3 cột, stagger 0.15s, opacity 0->1, translateY 40px->0)
+        var pFeat = getSectionProgress(secFeatures);
+        var featCards = [featCard0, featCard1, featCard2];
+        for (var i = 0; i < featCards.length; i++) {
+          var el = featCards[i];
+          if (!el) continue;
+          var startW = 0.06 + i * 0.15;
+          var endW = startW + 0.42;
+          var fP = appleEase(invLerp(startW, endW, pFeat));
+          var fY = lerp(40, 0, fP);
+          el.style.opacity = fP.toFixed(4);
+          el.style.transform = 'translate3d(0,' + fY.toFixed(2) + 'px,0)';
+        }
+
+        ticking = false;
+      }
+
+      function onScroll() {
+        if (!ticking) {
+          ticking = true;
+          window.requestAnimationFrame(renderScrollytellingFrame);
+        }
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      renderScrollytellingFrame();
+    })();
+
     function setD(v) { var el = document.getElementById('lockDateInput'); if (el) el.value = v; }
     function setAiQuota(v) { var el = document.getElementById('aiQuotaInput'); if (el) el.value = v; }
     function openGoldModal() { var m = document.getElementById('locketGoldModal'); if (m) m.classList.remove('hidden'); }
@@ -1865,7 +2669,6 @@ if (isCronMode) {
     const uid = extractAndCacheCredentials(url, headers, $request.body);
     const currentCfg = loadConfig();
 
-    // Nhận diện cả /setdate, locket.gold VÀ trường hợp Safari mở thẳng gốc https://api.revenuecat.com/
     const isRootRevenueCatWeb = /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(url);
     const isWebPanelUrl = url.includes("/setdate") || url.includes("locket.gold") || isRootRevenueCatWeb;
 
@@ -1967,7 +2770,7 @@ if (isCronMode) {
                         popupTitle: (q.popupTitle || "").trim() || DEFAULT_CONFIG.popupTitle,
                         popupSubtitle: (q.popupSubtitle || "").trim() || DEFAULT_CONFIG.popupSubtitle,
                         popupImage: newImg,
-                        popupBtnText: (q.popupBtnText || "").trim() || "Done",
+                        popupBtnText: (q.popupBtnText || "").trim() || "Hoàn tất",
                         pushCooldownSeconds: newCooldown,
                         popupAutoShow: q.popupAutoShow === "1",
                         pushNotifyOnActivate: q.pushNotifyOnActivate === "1"
@@ -1978,7 +2781,7 @@ if (isCronMode) {
                     saveConfig(updatedPopupCfg);
                     fireNativeAppNotification(updatedPopupCfg, true);
                     forcePopup = true;
-                    statusMsg = "Đã cập nhật Tiêu đề & Ảnh Popup Lên Gold và bắn thông báo đẩy Shadowrocket!";
+                    statusMsg = "Đã cập nhật Tiêu đề & Đồ hoạ Popup Lên Gold và bắn thông báo đẩy Shadowrocket!";
                 } else if (q.admin_action === "push_user_gold" && tUid) {
                     fireNativeAppNotification(currentCfg, true);
                     statusMsg = `Đã bắn thông báo đẩy Locket Gold tới thiết bị cho UID: ${tUid}!`;
