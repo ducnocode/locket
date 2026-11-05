@@ -8,6 +8,7 @@
 //   3. Chặn bắt & giải mã CloudFunctions: us-central1-locket-4252a.cloudfunctions.net
 //      cùng api.revenuecat.com & firebaseremoteconfig.googleapis.com
 //   4. Quản lý phiên bản định danh LocketGold Root CA ngay trong lõi Script
+//   5. [MỚI] Cơ chế Bật / Tắt Huy Hiệu Locket Gold cho từng Bạn Bè độc lập
 // ============================================================================
 
 const ROOT_ADMIN_USER = "ngominhduc";
@@ -108,6 +109,7 @@ const DEFAULT_CONFIG = {
     appVersion: "1.0",
     forceSandboxFalse: true,
     alwaysForceBadge: true,
+    friendsBadgeDefault: true, // Mặc định bật hay tắt huy hiệu cho bạn bè mới phát hiện
     cronKeepAlive: true,
     notifyOnSync: true,
     unlockAllCameraEffects: true,
@@ -150,6 +152,7 @@ const ADMIN_SESSION_KEY = "LOCKET_BENTO_ADMIN_SESSION_V4";
 const LAST_INAPP_ALERT_TS_KEY = "LOCKET_INAPP_ALERT_TS_V4";
 const LAST_GOLD_PUSH_TS_KEY = "LOCKET_GOLD_OPEN_ALERT_TS_V6";
 const DOH_STATUS_CACHE_KEY = "LOCKET_DOH_HEALTH_STATUS_V6";
+const FRIENDS_BADGE_DB_KEY = "LOCKET_FRIENDS_BADGE_MAP_V6";
 
 const Env = (() => {
     const isQuanX = typeof $prefs !== "undefined";
@@ -251,6 +254,115 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
         return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}${timeSuffix}`;
     }
     return fallbackDate + timeSuffix;
+}
+
+// ============================================================================
+// CƠ CHẾ QUẢN LÝ BẬT / TẮT HUY HIỆU LOCKET GOLD CHO TỪNG BẠN BÈ
+// ============================================================================
+let _runtimeFriendsDirty = false;
+let _runtimeFriendsCache = null;
+
+function getFriendsBadgeMap() {
+    if (_runtimeFriendsCache) return _runtimeFriendsCache;
+    try {
+        const raw = Env.read(FRIENDS_BADGE_DB_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object") {
+                _runtimeFriendsCache = parsed;
+                return _runtimeFriendsCache;
+            }
+        }
+    } catch (e) {}
+    _runtimeFriendsCache = {};
+    return _runtimeFriendsCache;
+}
+
+function saveFriendsBadgeMap(map) {
+    _runtimeFriendsCache = map || {};
+    Env.write(JSON.stringify(_runtimeFriendsCache), FRIENDS_BADGE_DB_KEY);
+    _runtimeFriendsDirty = false;
+}
+
+function flushFriendsBadgeMapIfNeeded() {
+    if (_runtimeFriendsDirty && _runtimeFriendsCache) {
+        Env.write(JSON.stringify(_runtimeFriendsCache), FRIENDS_BADGE_DB_KEY);
+        _runtimeFriendsDirty = false;
+    }
+}
+
+function resolveFriendBadgeState(friendUid, meta, cfg) {
+    const selfUid = Env.read(USER_ID_CACHE_KEY) || "";
+    if (!friendUid || friendUid.includes("RCAnonymousID")) return true;
+    // Tài khoản chính của mình luôn luôn bật huy hiệu Gold 24/7
+    if (selfUid && friendUid === selfUid) return true;
+
+    const map = getFriendsBadgeMap();
+    const defaultEnabled = cfg && cfg.friendsBadgeDefault !== false;
+    const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
+
+    if (!map[friendUid]) {
+        const uName = (meta && meta.username) || friendUid.slice(0, 10);
+        const fName = (meta && meta.full_name) || uName;
+        const avatar = (meta && meta.avatar) || `https://cdn2.locketcamera.com/v0/b/locket-img/o/users%2F${encodeURIComponent(friendUid)}%2Fpublic%2Fprofile_pic.webp?alt=media`;
+        map[friendUid] = {
+            uid: friendUid,
+            username: uName,
+            full_name: fName,
+            avatar: avatar,
+            badge_enabled: defaultEnabled,
+            updated_at: nowStr
+        };
+        _runtimeFriendsDirty = true;
+    } else {
+        let changed = false;
+        if (meta && meta.username && meta.username !== map[friendUid].username) {
+            map[friendUid].username = meta.username;
+            changed = true;
+        }
+        if (meta && meta.full_name && meta.full_name !== map[friendUid].full_name) {
+            map[friendUid].full_name = meta.full_name;
+            changed = true;
+        }
+        if (meta && meta.avatar && meta.avatar !== map[friendUid].avatar) {
+            map[friendUid].avatar = meta.avatar;
+            changed = true;
+        }
+        if (changed) _runtimeFriendsDirty = true;
+    }
+
+    return map[friendUid].badge_enabled !== false;
+}
+
+function setSingleFriendBadgeState(friendUid, enabled, extraMeta = {}) {
+    if (!friendUid) return null;
+    const map = getFriendsBadgeMap();
+    const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const existing = map[friendUid] || {};
+    const uName = extraMeta.username || existing.username || friendUid.slice(0, 10);
+    const fName = extraMeta.full_name || existing.full_name || uName;
+    const avatar = extraMeta.avatar || existing.avatar || `https://cdn2.locketcamera.com/v0/b/locket-img/o/users%2F${encodeURIComponent(friendUid)}%2Fpublic%2Fprofile_pic.webp?alt=media`;
+
+    map[friendUid] = {
+        uid: friendUid,
+        username: uName,
+        full_name: fName,
+        avatar: avatar,
+        badge_enabled: !!enabled,
+        updated_at: nowStr
+    };
+    saveFriendsBadgeMap(map);
+    return map[friendUid];
+}
+
+function setAllFriendsBadgeState(enabled) {
+    const map = getFriendsBadgeMap();
+    const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
+    for (const k of Object.keys(map)) {
+        map[k].badge_enabled = !!enabled;
+        map[k].updated_at = nowStr;
+    }
+    saveFriendsBadgeMap(map);
 }
 
 // ============================================================================
@@ -392,20 +504,27 @@ function patchCloudFunctionResponsePayload(obj, cfg, reqUrl, resolvedUserId) {
     r.ai_looks_remaining = quotaNum;
 
     if (r.data && typeof r.data === "object" && !Array.isArray(r.data)) {
-        r.data.badge = "locket_gold";
-        r.data.locket_gold_badge = true;
-        r.data.has_gold_badge = true;
-        r.data.is_gold = true;
-        r.data.original_purchase_date = cfg.lockIso;
-        r.data.expires_date = cfg.expireIso;
-        r.data.ai_filter_quota = quotaNum;
-        r.data.ai_filter_remaining = quotaNum;
-        r.data.ai_looks_remaining = quotaNum;
-        r.data.can_use_ai_filter = true;
-        r.data.can_use_holiday_effects = true;
+        const targetUid = r.data.uid || r.data.user_uid || "";
+        const selfUid = Env.read(USER_ID_CACHE_KEY) || "";
+        const isFriendObj = targetUid && selfUid && targetUid !== selfUid;
+        if (!isFriendObj) {
+            r.data.badge = "locket_gold";
+            r.data.locket_gold_badge = true;
+            r.data.has_gold_badge = true;
+            r.data.is_gold = true;
+            r.data.original_purchase_date = cfg.lockIso;
+            r.data.expires_date = cfg.expireIso;
+            r.data.ai_filter_quota = quotaNum;
+            r.data.ai_filter_remaining = quotaNum;
+            r.data.ai_looks_remaining = quotaNum;
+            r.data.can_use_ai_filter = true;
+            r.data.can_use_holiday_effects = true;
+        }
     }
 
-    return deepForceBadgeAndAiQuotaInObject(obj, cfg, 0);
+    const res = deepForceBadgeAndAiQuotaInObject(obj, cfg, 0);
+    flushFriendsBadgeMapIfNeeded();
+    return res;
 }
 
 function triggerShadowrocketPush(cfg, customTitle, customSub, customBody) {
@@ -666,6 +785,7 @@ function loadConfig() {
     cfg.aiFilterQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
     cfg.aiFilterDailyLimit = sanitizeQuotaNumber(cfg.aiFilterDailyLimit || cfg.aiFilterQuota, cfg.aiFilterQuota);
     cfg.aiFilterUsed = sanitizeQuotaNumber(cfg.aiFilterUsed, 0);
+    cfg.friendsBadgeDefault = cfg.friendsBadgeDefault !== false;
 
     if (!cfg.dohServerUrl) cfg.dohServerUrl = INTEGRATED_NET_ENGINE.dohServerUrl;
     if (!cfg.dohPrimaryIp) cfg.dohPrimaryIp = INTEGRATED_NET_ENGINE.serverAddresses[0];
@@ -740,10 +860,13 @@ function extractAndCacheCredentials(url, headers, bodyStr) {
                 parsed.app_user_id ||
                 parsed.localId;
             if (candidate && typeof candidate === "string" && !candidate.includes("RCAnonymousID")) {
-                foundUid = candidate;
-                Env.write(foundUid, USER_ID_CACHE_KEY);
+                // Chỉ ghi đè USER_ID_CACHE_KEY nếu không phải là request fetchProfile của bạn bè
+                if (!url || (!url.includes("fetchUser") && !url.includes("getUser") && !url.includes("friends"))) {
+                    foundUid = candidate;
+                    Env.write(foundUid, USER_ID_CACHE_KEY);
+                }
             }
-            if (uData && typeof uData === "object") {
+            if (uData && typeof uData === "object" && !url.includes("fetchUser") && !url.includes("getUser")) {
                 if (uData.username && typeof uData.username === "string") {
                     foundUsername = uData.username;
                     Env.write(foundUsername, USERNAME_CACHE_KEY);
@@ -1180,6 +1303,7 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
 
     const quotaNum = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
     const usedNum = sanitizeQuotaNumber(cfg.aiFilterUsed, 0);
+    const selfUid = Env.read(USER_ID_CACHE_KEY) || "";
 
     if (Array.isArray(node)) {
         for (let i = 0; i < node.length; i++) {
@@ -1202,28 +1326,56 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
 
     const hasUserShape = !isEffectOrFilterItem && (
         "locket_gold_badge" in node ||
-        ("uid" in node && ("username" in node || "first_name" in node || "profile_picture_url" in node || "badge" in node))
+        ("uid" in node && ("username" in node || "first_name" in node || "last_name" in node || "profile_picture_url" in node || "badge" in node))
     );
 
+    let isFriendWithBadgeOff = false;
+
     if (hasUserShape) {
-        node.badge = "locket_gold";
-        node.locket_gold_badge = true;
-        node.has_gold_badge = true;
-        node.gold_badge = true;
-        node.is_gold = true;
-        node.isGold = true;
-        node.has_gold = true;
-        node.hasGold = true;
-        node.gold_subscription = true;
-        node.subscription_status = "active";
-        node.original_purchase_date = cfg.lockIso;
-        node.expires_date = cfg.expireIso;
-        node.ai_filter_quota = quotaNum;
-        node.ai_filter_remaining = quotaNum;
-        node.ai_looks_remaining = quotaNum;
-        node.remaining_ai_uses = quotaNum;
-        node.can_use_ai_filter = true;
-        node.can_use_holiday_effects = true;
+        const nodeUid = String(node.uid || node.user_uid || "");
+        const isFriend = Boolean(nodeUid && (!selfUid || nodeUid !== selfUid));
+        let shouldShowBadge = true;
+
+        if (isFriend) {
+            const fullName = [node.first_name, node.last_name].filter(Boolean).join(" ").trim() || node.username || nodeUid.slice(0, 10);
+            shouldShowBadge = resolveFriendBadgeState(nodeUid, {
+                username: node.username || fullName,
+                full_name: fullName,
+                avatar: node.profile_picture_url || ""
+            }, cfg);
+        }
+
+        if (shouldShowBadge) {
+            node.badge = "locket_gold";
+            node.locket_gold_badge = true;
+            node.has_gold_badge = true;
+            node.gold_badge = true;
+            node.is_gold = true;
+            node.isGold = true;
+            node.has_gold = true;
+            node.hasGold = true;
+            node.gold_subscription = true;
+            node.subscription_status = "active";
+            node.original_purchase_date = cfg.lockIso;
+            node.expires_date = cfg.expireIso;
+            node.ai_filter_quota = quotaNum;
+            node.ai_filter_remaining = quotaNum;
+            node.ai_looks_remaining = quotaNum;
+            node.remaining_ai_uses = quotaNum;
+            node.can_use_ai_filter = true;
+            node.can_use_holiday_effects = true;
+        } else {
+            isFriendWithBadgeOff = true;
+            node.badge = null;
+            node.locket_gold_badge = false;
+            node.has_gold_badge = false;
+            node.gold_badge = false;
+            node.is_gold = false;
+            node.isGold = false;
+            node.has_gold = false;
+            node.hasGold = false;
+            node.gold_subscription = false;
+        }
     }
 
     if (isEffectOrFilterItem) {
@@ -1269,15 +1421,39 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
 
     if (node.fields && typeof node.fields === "object") {
         if (node.fields.uid || node.fields.username || node.fields.badge || node.fields.profile_picture_url) {
-            node.fields.badge = { stringValue: "locket_gold" };
-            node.fields.locket_gold_badge = { booleanValue: true };
-            node.fields.has_gold_badge = { booleanValue: true };
-            node.fields.is_gold = { booleanValue: true };
-            node.fields.gold_subscription_since = { timestampValue: cfg.lockIso };
-            node.fields.ai_filter_quota = { integerValue: String(quotaNum) };
-            node.fields.ai_filter_remaining = { integerValue: String(quotaNum) };
-            node.fields.ai_looks_remaining = { integerValue: String(quotaNum) };
-            node.fields.remaining_ai_uses = { integerValue: String(quotaNum) };
+            const fUid = (node.fields.uid && node.fields.uid.stringValue) || "";
+            const fUsername = (node.fields.username && node.fields.username.stringValue) || "";
+            const fFirst = (node.fields.first_name && node.fields.first_name.stringValue) || "";
+            const fLast = (node.fields.last_name && node.fields.last_name.stringValue) || "";
+            const fAvatar = (node.fields.profile_picture_url && node.fields.profile_picture_url.stringValue) || "";
+            const isFriendDoc = Boolean(fUid && (!selfUid || fUid !== selfUid));
+            let docBadgeOn = true;
+
+            if (isFriendDoc) {
+                const fullDocName = [fFirst, fLast].filter(Boolean).join(" ").trim() || fUsername || fUid.slice(0, 10);
+                docBadgeOn = resolveFriendBadgeState(fUid, {
+                    username: fUsername || fullDocName,
+                    full_name: fullDocName,
+                    avatar: fAvatar
+                }, cfg);
+            }
+
+            if (docBadgeOn) {
+                node.fields.badge = { stringValue: "locket_gold" };
+                node.fields.locket_gold_badge = { booleanValue: true };
+                node.fields.has_gold_badge = { booleanValue: true };
+                node.fields.is_gold = { booleanValue: true };
+                node.fields.gold_subscription_since = { timestampValue: cfg.lockIso };
+                node.fields.ai_filter_quota = { integerValue: String(quotaNum) };
+                node.fields.ai_filter_remaining = { integerValue: String(quotaNum) };
+                node.fields.ai_looks_remaining = { integerValue: String(quotaNum) };
+                node.fields.remaining_ai_uses = { integerValue: String(quotaNum) };
+            } else {
+                node.fields.badge = { nullValue: null };
+                node.fields.locket_gold_badge = { booleanValue: false };
+                node.fields.has_gold_badge = { booleanValue: false };
+                node.fields.is_gold = { booleanValue: false };
+            }
         }
         for (const fk of Object.keys(node.fields)) {
             const flow = fk.toLowerCase();
@@ -1297,9 +1473,9 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         const low = k.toLowerCase();
         const val = node[k];
 
-        if (hasUserShape && k === "badge" && (val === null || val === "" || val === false || val === "none")) {
+        if (hasUserShape && !isFriendWithBadgeOff && k === "badge" && (val === null || val === "" || val === false || val === "none")) {
             node[k] = "locket_gold";
-        } else if (hasUserShape && (k === "locket_gold_badge" || k === "has_gold_badge" || k === "show_gold_badge" || k === "is_gold" || k === "isGold" || k === "has_gold" || k === "hasGold") && val === false) {
+        } else if (hasUserShape && !isFriendWithBadgeOff && (k === "locket_gold_badge" || k === "has_gold_badge" || k === "show_gold_badge" || k === "is_gold" || k === "isGold" || k === "has_gold" || k === "hasGold") && val === false) {
             node[k] = true;
         } else if (
             typeof val === "boolean" &&
@@ -1357,6 +1533,9 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         }
     }
 
+    if (depth === 0) {
+        flushFriendsBadgeMapIfNeeded();
+    }
     return node;
 }
 
@@ -1419,6 +1598,51 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     const db = getLocalStore();
     const usersList = Object.values(db.users || {});
     const goldUsersList = usersList.filter(u => u.gold_active !== false);
+
+    // Danh sách bạn bè để Bật / Tắt huy hiệu Locket Gold từng người
+    const friendsMap = getFriendsBadgeMap();
+    const friendsList = Object.values(friendsMap).filter(f => f && f.uid && f.uid !== cachedUid);
+    const activeFriendsBadgeCount = friendsList.filter(f => f.badge_enabled !== false).length;
+
+    let friendsBadgeListHtml = "";
+    if (friendsList.length === 0) {
+        friendsBadgeListHtml = `
+        <div class="empty-row">
+            Chưa ghi nhận bạn bè nào trong bộ nhớ. Hãy mở ứng dụng Locket và lướt danh sách bạn bè 1 lần (hoặc thêm thủ công bằng ô bên trên) để bật/tắt huy hiệu từng người.
+        </div>`;
+    } else {
+        for (const f of friendsList) {
+            const isBadgeOn = f.badge_enabled !== false;
+            const fUser = f.username || (f.uid ? f.uid.slice(0, 10) : "friend");
+            const fFull = f.full_name || fUser;
+            const fAvatar = f.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fFull)}&background=1d1d1f&color=fff`;
+
+            friendsBadgeListHtml += `
+            <div class="dir-item friend-badge-item" data-friend-search="${escapeHtml((fUser + " " + fFull + " " + f.uid).toLowerCase())}">
+                <div class="dir-left">
+                    <img src="${escapeHtml(fAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(fFull)}&background=1d1d1f&color=fff'" class="dir-avatar" alt="avatar">
+                    <div class="dir-info">
+                        <div class="dir-name-row">
+                            <span class="dir-fullname">${escapeHtml(fFull)}</span>
+                            <span class="dir-handle">@${escapeHtml(fUser)}</span>
+                            <span id="friendBadgePill_${escapeHtml(f.uid)}" class="pill-badge ${isBadgeOn ? "pill-gold" : "pill-rose"}">
+                                ${isBadgeOn ? "ĐANG HIỆN HUY HIỆU GOLD" : "ĐÃ TẮT HUY HIỆU GOLD"}
+                            </span>
+                        </div>
+                        <div class="dir-mono">
+                            UID Bạn bè: ${escapeHtml(f.uid)} · Cập nhật: ${escapeHtml(f.updated_at || "Mới ghi nhận")}
+                        </div>
+                    </div>
+                </div>
+                <div class="dir-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <button type="button" id="friendToggleBtn_${escapeHtml(f.uid)}" onclick="toggleSingleFriendBadge('${escapeHtml(f.uid)}', ${isBadgeOn ? "false" : "true"})" class="apple-btn ${isBadgeOn ? "btn-chip-amber" : "btn-chip-emerald"}">
+                        ${isBadgeOn ? "Tắt huy hiệu người này" : "Bật huy hiệu người này"}
+                    </button>
+                    <a href="/setdate?friend_action=delete&friend_uid=${encodeURIComponent(f.uid)}#friendsBadgeSection" class="apple-btn btn-chip-rose">Xoá</a>
+                </div>
+            </div>`;
+        }
+    }
 
     let goldDirectoryHtml = "";
     if (goldUsersList.length === 0) {
@@ -1664,6 +1888,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   .dir-handle { font-size: 12.5px; color: var(--text-secondary); }
   .dir-mono { font-family: "SF Mono", ui-monospace, monospace; font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
   .dir-tag { font-family: "SF Mono", monospace; font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 999px; background: #f2f2f7; }
+  .empty-row { padding: 28px 12px; text-align: center; font-size: 13px; color: var(--text-secondary); }
   .toast-banner { padding: 16px 22px; border-radius: 18px; background: #1d1d1f; color: #fbfbfd; font-size: 13.5px; font-weight: 500; display: ${statusMsg ? "block" : "none"}; }
   .block-banner { padding: 22px 26px; border-radius: var(--radius-apple); background: #fff1f2; border: 1px solid rgba(244, 63, 94, 0.3); color: #881337; display: ${cfg.isBlockedByAdmin ? "flex" : "none"}; flex-direction: column; gap: 6px; }
   .locket-gold-modal-backdrop { position: fixed; inset: 0; z-index: 9999; background: rgba(29, 29, 31, 0.45); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -1712,6 +1937,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     <div class="global-nav-inner">
       <a href="/setdate" class="nav-brand">LOCKET GOLD PRO</a>
       <div class="nav-actions">
+        <a href="#friendsBadgeSection" class="nav-btn">Huy hiệu Bạn bè (${activeFriendsBadgeCount}/${friendsList.length})</a>
         <a href="#dohEngineSection" class="nav-btn">Lõi DoH & CA</a>
         <a href="#consoleSection" class="nav-btn">Cấu hình</a>
         <button type="button" onclick="openGoldModal()" class="nav-btn">Popup Gold</button>
@@ -2011,6 +2237,54 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           </div>
         </div>
       `}
+    </section>
+
+    <!-- =====================================================================
+         [MỚI] BẢNG QUẢN LÝ BẬT / TẮT HUY HIỆU LOCKET GOLD CHO TỪNG BẠN BÈ
+         ===================================================================== -->
+    <section id="friendsBadgeSection" class="apple-card-panel">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
+        <div>
+          <span class="meta-index">TUỲ CHỈNH HIỂN THỊ HUY HIỆU BẠN BÈ ĐỘC LẬP</span>
+          <h2 class="card-title-apple" style="margin:0;">Bật / Tắt Huy Hiệu Locket Gold Từng Bạn Bè (${activeFriendsBadgeCount}/${friendsList.length})</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
+            Tài khoản chính của bạn luôn giữ cứng huy hiệu Gold. Bạn có thể bật hoặc tắt huy hiệu Gold của từng người bạn bên dưới.
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="/setdate?friend_action=enable_all#friendsBadgeSection" class="apple-btn btn-chip-emerald" style="padding:10px 16px;">Bật tất cả bạn bè</a>
+          <a href="/setdate?friend_action=disable_all#friendsBadgeSection" class="apple-btn btn-chip-amber" style="padding:10px 16px;">Tắt tất cả bạn bè</a>
+          <a href="/setdate?friend_action=toggle_default&default_val=${cfg.friendsBadgeDefault !== false ? "0" : "1"}#friendsBadgeSection" class="apple-btn btn-chip-dark" style="padding:10px 16px;">
+            Mặc định bạn mới: ${cfg.friendsBadgeDefault !== false ? "ĐANG BẬT" : "ĐANG TẮT"}
+          </a>
+        </div>
+      </div>
+
+      <!-- Form thêm nhanh hoặc gán trạng thái huy hiệu cho 1 UID bạn bè bất kỳ -->
+      <form method="GET" action="/setdate#friendsBadgeSection" style="margin-top:20px;padding:20px;border-radius:18px;background:#fbfbfd;border:1px solid rgba(29,29,31,0.07);">
+        <input type="hidden" name="friend_action" value="upsert_friend">
+        <span class="meta-index" style="margin-bottom:10px;">THÊM HOẶC CHỈNH NHANH HUY HIỆU BẠN BÈ THEO UID / USERNAME</span>
+        <div class="grid-4">
+          <input type="text" name="friend_uid" class="apple-input" placeholder="Nhập UID bạn bè..." required>
+          <input type="text" name="friend_user" class="apple-input" placeholder="Tên hoặc @username...">
+          <select name="friend_badge" class="apple-input">
+            <option value="1">Bật huy hiệu Locket Gold</option>
+            <option value="0">Tắt huy hiệu Locket Gold</option>
+          </select>
+          <button type="submit" class="apple-btn btn-ink">Lưu trạng thái bạn bè</button>
+        </div>
+      </form>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-bottom:12px;border-bottom:1px solid rgba(29,29,31,0.06);">
+        <span class="meta-index" style="margin:0;">DANH SÁCH BẠN BÈ ĐÃ GHI NHẬN TỪ LOCKET (${friendsList.length})</span>
+        <div style="width:100%;max-width:260px;">
+          <input type="text" id="searchFriendBadgeInput" oninput="filterFriendsBadgeList()" class="apple-input" style="padding:9px 14px;font-size:13px;" placeholder="Tìm tên bạn bè hoặc UID...">
+        </div>
+      </div>
+
+      <div id="friendsBadgeDirectoryList" style="margin-top:6px;">
+        ${friendsBadgeListHtml}
+      </div>
     </section>
 
     <!-- =====================================================================
@@ -2372,6 +2646,44 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         })
         .catch(function() { window.location.href = '/setdate?doh_test=1'; });
     }
+    function toggleSingleFriendBadge(fUid, nextStateBool) {
+      var toast = document.getElementById('statusToast');
+      var pill = document.getElementById('friendBadgePill_' + fUid);
+      var btn = document.getElementById('friendToggleBtn_' + fUid);
+      var enableVal = nextStateBool ? '1' : '0';
+
+      fetch('/setdate?api=toggle_friend_badge&friend_uid=' + encodeURIComponent(fUid) + '&enable=' + enableVal + '&t=' + Date.now(), { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d && d.ok) {
+            var isNowOn = !!d.badge_enabled;
+            if (pill) {
+              pill.className = 'pill-badge ' + (isNowOn ? 'pill-gold' : 'pill-rose');
+              pill.textContent = isNowOn ? 'ĐANG HIỆN HUY HIỆU GOLD' : 'ĐÃ TẮT HUY HIỆU GOLD';
+            }
+            if (btn) {
+              btn.className = 'apple-btn ' + (isNowOn ? 'btn-chip-amber' : 'btn-chip-emerald');
+              btn.textContent = isNowOn ? 'Tắt huy hiệu người này' : 'Bật huy hiệu người này';
+              btn.setAttribute('onclick', "toggleSingleFriendBadge('" + fUid + "', " + (isNowOn ? "false" : "true") + ")");
+            }
+            if (toast) {
+              toast.style.display = 'block';
+              toast.textContent = d.msg || 'Đã cập nhật trạng thái huy hiệu bạn bè!';
+            }
+          }
+        })
+        .catch(function() {
+          window.location.href = '/setdate?friend_action=toggle&friend_uid=' + encodeURIComponent(fUid) + '&enable=' + enableVal + '#friendsBadgeSection';
+        });
+    }
+    function filterFriendsBadgeList() {
+      var q = (document.getElementById('searchFriendBadgeInput').value || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#friendsBadgeDirectoryList .friend-badge-item');
+      for (var i = 0; i < rows.length; i++) {
+        var hay = rows[i].getAttribute('data-friend-search') || '';
+        rows[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
+      }
+    }
     function resetDefaultGoldArt() {
       var inp = document.getElementById('adminPopupImgInput');
       if (inp) inp.value = '';
@@ -2520,6 +2832,25 @@ if (isCronMode) {
                     })
                 }
             });
+        } else if (q.api === "toggle_friend_badge") {
+            const fUid = (q.friend_uid || "").trim();
+            const enableFlag = q.enable === "1" || q.enable === "true";
+            const updatedFriend = setSingleFriendBadgeState(fUid, enableFlag);
+            Env.done({
+                response: {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Cache-Control": "no-store, no-cache, must-revalidate"
+                    },
+                    body: JSON.stringify({
+                        ok: !!updatedFriend,
+                        friend_uid: fUid,
+                        badge_enabled: enableFlag,
+                        msg: `Đã ${enableFlag ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${updatedFriend ? updatedFriend.username : fUid})! Mở lại Locket để áp dụng.`
+                    })
+                }
+            });
         } else if (q.api === "doh_probe") {
             probeIntegratedDohEndpoint(currentCfg, (probeResult) => {
                 Env.done({
@@ -2572,6 +2903,44 @@ if (isCronMode) {
             let forcePopup = q.gold_popup === "1";
             let statusMsg = "";
             const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
+
+            // Xử lý các thao tác Bật / Tắt Huy Hiệu Bạn Bè từ bảng điều khiển
+            if (q.friend_action) {
+                const fUid = (q.friend_uid || "").trim();
+                const fUser = (q.friend_user || "").trim().replace(/^@/, "");
+                if (q.friend_action === "toggle" && fUid) {
+                    const en = q.enable === "1";
+                    const rec = setSingleFriendBadgeState(fUid, en);
+                    statusMsg = `Đã ${en ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${rec ? rec.username : fUid})!`;
+                } else if (q.friend_action === "upsert_friend" && fUid) {
+                    const en = q.friend_badge !== "0";
+                    const rec = setSingleFriendBadgeState(fUid, en, {
+                        username: fUser || fUid.slice(0, 10),
+                        full_name: fUser || fUid.slice(0, 10)
+                    });
+                    statusMsg = `Đã lưu bạn bè @${rec.username} (${fUid}) — Trạng thái huy hiệu: ${en ? "ĐANG BẬT" : "ĐÃ TẮT"}!`;
+                } else if (q.friend_action === "enable_all") {
+                    setAllFriendsBadgeState(true);
+                    const updatedDefault = { ...loadConfig(), friendsBadgeDefault: true };
+                    saveConfig(updatedDefault);
+                    statusMsg = "Đã BẬT huy hiệu Locket Gold cho toàn bộ danh sách bạn bè!";
+                } else if (q.friend_action === "disable_all") {
+                    setAllFriendsBadgeState(false);
+                    const updatedDefault = { ...loadConfig(), friendsBadgeDefault: false };
+                    saveConfig(updatedDefault);
+                    statusMsg = "Đã TẮT huy hiệu Locket Gold của toàn bộ bạn bè (Chỉ giữ huy hiệu cho riêng bạn)!";
+                } else if (q.friend_action === "toggle_default") {
+                    const newDef = q.default_val === "1";
+                    const updatedDefault = { ...loadConfig(), friendsBadgeDefault: newDef };
+                    saveConfig(updatedDefault);
+                    statusMsg = `Đã đặt mặc định cho bạn bè mới phát hiện: ${newDef ? "TỰ ĐỘNG BẬT GOLD" : "TỰ ĐỘNG TẮT GOLD"}!`;
+                } else if (q.friend_action === "delete" && fUid) {
+                    const map = getFriendsBadgeMap();
+                    delete map[fUid];
+                    saveFriendsBadgeMap(map);
+                    statusMsg = `Đã xoá bạn bè (${fUid}) khỏi danh sách tuỳ chỉnh.`;
+                }
+            }
 
             if (q.push_test === "1") {
                 fireNativeAppNotification(currentCfg, true);
