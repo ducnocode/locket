@@ -8,8 +8,7 @@
 //   3. Chặn bắt & giải mã CloudFunctions: us-central1-locket-4252a.cloudfunctions.net
 //      cùng api.revenuecat.com & firebaseremoteconfig.googleapis.com
 //   4. Quản lý phiên bản định danh LocketGold Root CA ngay trong lõi Script
-//   5. [NÂNG CẤP] Tự động Get UID Bạn Bè (Auto-Discovery từ Firestore/API/Moments + Active Fetch)
-//      & Bật / Tắt Huy Hiệu Locket Gold cho từng Bạn Bè độc lập
+//   5. [MỚI] Cơ chế Bật / Tắt Huy Hiệu Locket Gold cho từng Bạn Bè độc lập
 // ============================================================================
 
 const ROOT_ADMIN_USER = "ngominhduc";
@@ -29,7 +28,7 @@ const INTEGRATED_NET_ENGINE = {
     caUUID: "dcbbd2a2-6610-4134-ab33-b4a60262c7f4",
     caValidFrom: "2026-09-30T14:29:08Z",
     caValidTo: "2036-09-27T14:29:08Z",
-    caSerialHex: "390A98914EF258F888858C35DBDC439BCCD4D2A04",
+    caSerialHex: "390A98914EF258F88858C35DBDC439BCCD4D2A04",
     caFingerprintBrief: "F9:75:07:E6:E8:4B:B9:98:DC:F9:39:DF:5C:72:1E:D4:96:2C:C7:FA",
     dnsDisplayName: "LocketGold DNS",
     dnsIdentifier: "com.apple.dnsSettings.managed.2e4f2586-c69c-4291-a5b5-f1c535e9c4c6",
@@ -258,18 +257,10 @@ function toIsoDate(raw, fallbackDate, timeSuffix = "T08:30:00Z") {
 }
 
 // ============================================================================
-// CƠ CHẾ TỰ ĐỘNG QUÉT (AUTO-GET) UID BẠN BÈ & BẬT/TẮT HUY HIỆU TỪNG NGƯỜI
+// CƠ CHẾ QUẢN LÝ BẬT / TẮT HUY HIỆU LOCKET GOLD CHO TỪNG BẠN BÈ
 // ============================================================================
 let _runtimeFriendsDirty = false;
 let _runtimeFriendsCache = null;
-
-function isValidLocketUidCandidate(str) {
-    if (!str || typeof str !== "string") return false;
-    const s = str.trim();
-    if (s.length < 20 || s.length > 40) return false;
-    if (s.includes("RCAnonymousID") || s.includes("locket_") || s.includes(" ")) return false;
-    return /^[A-Za-z0-9_-]{20,40}$/.test(s);
-}
 
 function getFriendsBadgeMap() {
     if (_runtimeFriendsCache) return _runtimeFriendsCache;
@@ -302,7 +293,7 @@ function flushFriendsBadgeMapIfNeeded() {
 
 function resolveFriendBadgeState(friendUid, meta, cfg) {
     const selfUid = Env.read(USER_ID_CACHE_KEY) || "";
-    if (!isValidLocketUidCandidate(friendUid)) return true;
+    if (!friendUid || friendUid.includes("RCAnonymousID")) return true;
     // Tài khoản chính của mình luôn luôn bật huy hiệu Gold 24/7
     if (selfUid && friendUid === selfUid) return true;
 
@@ -325,12 +316,11 @@ function resolveFriendBadgeState(friendUid, meta, cfg) {
         _runtimeFriendsDirty = true;
     } else {
         let changed = false;
-        const defaultShort = friendUid.slice(0, 10);
-        if (meta && meta.username && meta.username !== defaultShort && meta.username !== map[friendUid].username) {
+        if (meta && meta.username && meta.username !== map[friendUid].username) {
             map[friendUid].username = meta.username;
             changed = true;
         }
-        if (meta && meta.full_name && meta.full_name !== defaultShort && meta.full_name !== map[friendUid].full_name) {
+        if (meta && meta.full_name && meta.full_name !== map[friendUid].full_name) {
             map[friendUid].full_name = meta.full_name;
             changed = true;
         }
@@ -338,10 +328,7 @@ function resolveFriendBadgeState(friendUid, meta, cfg) {
             map[friendUid].avatar = meta.avatar;
             changed = true;
         }
-        if (changed) {
-            map[friendUid].updated_at = nowStr;
-            _runtimeFriendsDirty = true;
-        }
+        if (changed) _runtimeFriendsDirty = true;
     }
 
     return map[friendUid].badge_enabled !== false;
@@ -378,213 +365,6 @@ function setAllFriendsBadgeState(enabled) {
     saveFriendsBadgeMap(map);
 }
 
-// Quét sâu bất kỳ chuỗi / JSON nào từ Locket, Firestore, Moments để tự động bắt mọi UID bạn bè
-function autoHarvestFriendsFromRawPayload(rawBodyStr, parsedObj, cfg) {
-    const selfUid = Env.read(USER_ID_CACHE_KEY) || "";
-
-    // 1. Quét bằng Regex trên chuỗi thô để bắt các đường dẫn Firestore documents/users/{uid} và URL ảnh đại diện
-    if (typeof rawBodyStr === "string" && rawBodyStr.length > 10) {
-        const docRegex = /\/users\/([A-Za-z0-9_-]{24,36})(?:\/|"|'|\?|$)/g;
-        let m;
-        while ((m = docRegex.exec(rawBodyStr)) !== null) {
-            const candidateUid = m[1];
-            if (candidateUid && candidateUid !== selfUid && isValidLocketUidCandidate(candidateUid)) {
-                resolveFriendBadgeState(candidateUid, null, cfg);
-            }
-        }
-
-        const encodedImgRegex = /users%2F([A-Za-z0-9_-]{24,36})%2F/g;
-        while ((m = encodedImgRegex.exec(rawBodyStr)) !== null) {
-            const candidateUid = m[1];
-            if (candidateUid && candidateUid !== selfUid && isValidLocketUidCandidate(candidateUid)) {
-                resolveFriendBadgeState(candidateUid, null, cfg);
-            }
-        }
-    }
-
-    // 2. Quét đệ quy trên cấu trúc JSON để lấy đầy đủ UID + username + first_name + last_name + profile_picture_url
-    const walkHarvester = (node, depth = 0) => {
-        if (!node || typeof node !== "object" || depth > 12) return;
-        if (Array.isArray(node)) {
-            for (let i = 0; i < node.length; i++) {
-                walkHarvester(node[i], depth + 1);
-            }
-            return;
-        }
-
-        // Trường hợp Firestore document { name: ".../documents/users/{uid}", fields: { ... } }
-        if (node.fields && typeof node.fields === "object") {
-            let docUid = (node.fields.uid && node.fields.uid.stringValue) ||
-                         (node.fields.user_uid && node.fields.user_uid.stringValue) || "";
-            if (!docUid && typeof node.name === "string") {
-                const matchDoc = node.name.match(/\/users\/([A-Za-z0-9_-]{20,36})/);
-                if (matchDoc && matchDoc[1]) docUid = matchDoc[1];
-            }
-            if (docUid && docUid !== selfUid && isValidLocketUidCandidate(docUid)) {
-                const fUsername = (node.fields.username && node.fields.username.stringValue) || "";
-                const fFirst = (node.fields.first_name && node.fields.first_name.stringValue) || "";
-                const fLast = (node.fields.last_name && node.fields.last_name.stringValue) || "";
-                const fAvatar = (node.fields.profile_picture_url && node.fields.profile_picture_url.stringValue) || "";
-                const fullDocName = [fFirst, fLast].filter(Boolean).join(" ").trim() || fUsername || docUid.slice(0, 10);
-                resolveFriendBadgeState(docUid, {
-                    username: fUsername || fullDocName,
-                    full_name: fullDocName,
-                    avatar: fAvatar
-                }, cfg);
-            }
-        }
-
-        // Trường hợp Object người dùng hoặc bản ghi bạn bè / bài đăng Moment
-        const directUid = node.uid || node.user_uid || node.friend_uid || node.creator_uid || node.sender_uid || node.canonical_uid;
-        if (typeof directUid === "string" && directUid !== selfUid && isValidLocketUidCandidate(directUid)) {
-            const fullName = [node.first_name, node.last_name].filter(Boolean).join(" ").trim() ||
-                             node.full_name || node.display_name || node.username || directUid.slice(0, 10);
-            resolveFriendBadgeState(directUid, {
-                username: node.username || fullName,
-                full_name: fullName,
-                avatar: node.profile_picture_url || node.avatar_url || node.avatar || ""
-            }, cfg);
-        }
-
-        // Trường hợp mảng phẳng chứa danh sách UID bạn bè: friends: ["uid1", "uid2"]
-        const listKeys = ["friends", "friend_uids", "friend_ids", "accepted_friends", "pinned_friends", "users", "overlays"];
-        for (const lk of listKeys) {
-            if (Array.isArray(node[lk])) {
-                for (const item of node[lk]) {
-                    if (typeof item === "string" && item !== selfUid && isValidLocketUidCandidate(item)) {
-                        resolveFriendBadgeState(item, null, cfg);
-                    } else if (item && typeof item === "object") {
-                        walkHarvester(item, depth + 1);
-                    }
-                }
-            }
-        }
-
-        for (const k of Object.keys(node)) {
-            const v = node[k];
-            if (typeof v === "object" && v !== null) {
-                walkHarvester(v, depth + 1);
-            }
-        }
-    };
-
-    if (parsedObj && typeof parsedObj === "object") {
-        walkHarvester(parsedObj, 0);
-    }
-
-    flushFriendsBadgeMapIfNeeded();
-}
-
-// Chủ động dùng Bearer Token đã bắt được để gọi thẳng lên API Locket lấy thông tin User & danh sách bạn bè
-function activeFetchFriendsFromLocketApi(cfg, callback) {
-    const bearer = Env.read(AUTH_TOKEN_CACHE_KEY) || "";
-    const selfUid = Env.read(USER_ID_CACHE_KEY) || "";
-    const beforeCount = Object.keys(getFriendsBadgeMap()).filter(k => k !== selfUid).length;
-
-    if (!bearer || !/^Bearer\s+eyJ/i.test(bearer)) {
-        if (callback) {
-            callback({
-                ok: false,
-                total: beforeCount,
-                added: 0,
-                msg: "Chưa có Bearer Token trong bộ nhớ đệm. Hãy mở app Locket 1 lần rồi bấm Quét lại!"
-            });
-        }
-        return;
-    }
-
-    const commonHeaders = {
-        "Authorization": bearer,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "Locket/1.0 iOS/17.0"
-    };
-
-    // Gọi song song các endpoint của Locket để thu thập tối đa UID + প্রোফাইল bạn bè
-    const endpointsToProbe = [
-        {
-            url: "https://api.locketcamera.com/getLatestMomentV2",
-            body: JSON.stringify({ data: { excluded_users: [], sync_token: null } })
-        },
-        {
-            url: "https://api.locketcamera.com/fetchUserV2",
-            body: JSON.stringify({ data: { user_uid: selfUid } })
-        }
-    ];
-
-    let pendingCalls = endpointsToProbe.length;
-    const onOneDone = (rawText) => {
-        if (rawText && typeof rawText === "string") {
-            let parsed = null;
-            try { parsed = JSON.parse(rawText); } catch (e) {}
-            autoHarvestFriendsFromRawPayload(rawText, parsed, cfg);
-        }
-        pendingCalls--;
-        if (pendingCalls <= 0) {
-            // Sau khi thu thập được các UID bạn bè (kể cả những UID mới chỉ có mã mà chưa có tên),
-            // gọi tiếp fetchUserV2 cho các UID chưa có tên thật để lấy đầy đủ @username + Ảnh đại diện!
-            const currentMap = getFriendsBadgeMap();
-            const unnamedUids = Object.keys(currentMap).filter(u => {
-                if (u === selfUid) return false;
-                const rec = currentMap[u];
-                return !rec.username || rec.username === u.slice(0, 10);
-            }).slice(0, 12);
-
-            if (unnamedUids.length === 0) {
-                const afterCount = Object.keys(getFriendsBadgeMap()).filter(k => k !== selfUid).length;
-                if (callback) {
-                    callback({
-                        ok: true,
-                        total: afterCount,
-                        added: Math.max(0, afterCount - beforeCount),
-                        msg: `Đã tự động quét & đồng bộ thành công ${afterCount} bạn bè từ máy chủ Locket!`
-                    });
-                }
-                return;
-            }
-
-            let profileCalls = unnamedUids.length;
-            for (const targetFriendUid of unnamedUids) {
-                Env.httpPost({
-                    url: "https://api.locketcamera.com/fetchUserV2",
-                    headers: commonHeaders,
-                    body: JSON.stringify({ data: { user_uid: targetFriendUid } }),
-                    timeout: 3
-                }, (err, resp, body) => {
-                    if (!err && body) {
-                        let pObj = null;
-                        try { pObj = JSON.parse(body); } catch (e) {}
-                        autoHarvestFriendsFromRawPayload(body, pObj, cfg);
-                    }
-                    profileCalls--;
-                    if (profileCalls <= 0) {
-                        const finalCount = Object.keys(getFriendsBadgeMap()).filter(k => k !== selfUid).length;
-                        if (callback) {
-                            callback({
-                                ok: true,
-                                total: finalCount,
-                                added: Math.max(0, finalCount - beforeCount),
-                                msg: `Đã tự động quét & cập nhật hồ sơ cho ${finalCount} bạn bè từ Locket!`
-                            });
-                        }
-                    }
-                });
-            }
-        }
-    };
-
-    for (const ep of endpointsToProbe) {
-        Env.httpPost({
-            url: ep.url,
-            headers: commonHeaders,
-            body: ep.body,
-            timeout: 4
-        }, (err, resp, body) => {
-            onOneDone(!err ? body : null);
-        });
-    }
-}
-
 // ============================================================================
 // BỘ XỬ LÝ TÍNH NĂNG MẠNG TÍCH HỢP TỪ MOBILECONFIG (DOH + CLOUDFUNCTIONS + CA)
 // ============================================================================
@@ -600,8 +380,7 @@ function isSupplementalMatchedDomain(url) {
         low.includes("rc-backup.com") ||
         low.includes("firebaseremoteconfig.googleapis.com") ||
         low.includes("us-central1-locket-4252a.cloudfunctions.net") ||
-        low.includes("locketcamera.com") ||
-        low.includes("firestore.googleapis.com")
+        low.includes("locketcamera.com")
     );
 }
 
@@ -1069,6 +848,37 @@ function extractAndCacheCredentials(url, headers, bodyStr) {
         Env.write(foundUid, USER_ID_CACHE_KEY);
     }
 
+    if (typeof bodyStr === "string" && bodyStr.includes("{")) {
+        try {
+            const parsed = JSON.parse(bodyStr);
+            const uData = (parsed.result && parsed.result.data) || parsed.data || parsed;
+            const candidate =
+                (parsed.subscriber && parsed.subscriber.original_app_user_id) ||
+                uData.uid ||
+                uData.user_uid ||
+                uData.user_id ||
+                parsed.app_user_id ||
+                parsed.localId;
+            if (candidate && typeof candidate === "string" && !candidate.includes("RCAnonymousID")) {
+                // Chỉ ghi đè USER_ID_CACHE_KEY nếu không phải là request fetchProfile của bạn bè
+                if (!url || (!url.includes("fetchUser") && !url.includes("getUser") && !url.includes("friends"))) {
+                    foundUid = candidate;
+                    Env.write(foundUid, USER_ID_CACHE_KEY);
+                }
+            }
+            if (uData && typeof uData === "object" && !url.includes("fetchUser") && !url.includes("getUser")) {
+                if (uData.username && typeof uData.username === "string") {
+                    foundUsername = uData.username;
+                    Env.write(foundUsername, USERNAME_CACHE_KEY);
+                }
+                if (uData.profile_picture_url && typeof uData.profile_picture_url === "string") {
+                    foundAvatar = uData.profile_picture_url;
+                    Env.write(foundAvatar, AVATAR_CACHE_KEY);
+                }
+            }
+        } catch (e) {}
+    }
+
     if (headers && typeof headers === "object") {
         for (const k of Object.keys(headers)) {
             const low = k.toLowerCase();
@@ -1101,49 +911,6 @@ function extractAndCacheCredentials(url, headers, bodyStr) {
                 }
             }
         }
-    }
-
-    if (typeof bodyStr === "string" && bodyStr.includes("{")) {
-        try {
-            const parsed = JSON.parse(bodyStr);
-            const uData = (parsed.result && parsed.result.data) || parsed.data || parsed;
-            const candidate =
-                (parsed.subscriber && parsed.subscriber.original_app_user_id) ||
-                uData.uid ||
-                uData.user_uid ||
-                uData.user_id ||
-                parsed.app_user_id ||
-                parsed.localId;
-
-            const currentSelfUid = foundUid || Env.read(USER_ID_CACHE_KEY) || "";
-
-            // Nếu gói tin là thông tin của một người bạn (khác với UID của chính mình), tự động lưu vào danh sách Bạn Bè!
-            if (candidate && typeof candidate === "string" && !candidate.includes("RCAnonymousID")) {
-                if (currentSelfUid && candidate !== currentSelfUid) {
-                    const fName = [uData.first_name, uData.last_name].filter(Boolean).join(" ").trim() || uData.username || candidate.slice(0, 10);
-                    resolveFriendBadgeState(candidate, {
-                        username: uData.username || fName,
-                        full_name: fName,
-                        avatar: uData.profile_picture_url || ""
-                    }, loadConfig());
-                    flushFriendsBadgeMapIfNeeded();
-                } else if (!url || (!url.includes("fetchUser") && !url.includes("getUser") && !url.includes("friends"))) {
-                    foundUid = candidate;
-                    Env.write(foundUid, USER_ID_CACHE_KEY);
-                }
-            }
-
-            if (uData && typeof uData === "object" && (!candidate || candidate === currentSelfUid)) {
-                if (uData.username && typeof uData.username === "string") {
-                    foundUsername = uData.username;
-                    Env.write(foundUsername, USERNAME_CACHE_KEY);
-                }
-                if (uData.profile_picture_url && typeof uData.profile_picture_url === "string") {
-                    foundAvatar = uData.profile_picture_url;
-                    Env.write(foundAvatar, AVATAR_CACHE_KEY);
-                }
-            }
-        } catch (e) {}
     }
 
     const finalUid = foundUid || Env.read(USER_ID_CACHE_KEY) || rcUrlUser || "$RCAnonymousID:locket_hard_lock";
@@ -1557,24 +1324,24 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         ))
     );
 
-    const candidateUserUid = String(node.uid || node.user_uid || node.friend_uid || node.creator_uid || node.sender_uid || "");
     const hasUserShape = !isEffectOrFilterItem && (
         "locket_gold_badge" in node ||
-        (isValidLocketUidCandidate(candidateUserUid) && ("username" in node || "first_name" in node || "last_name" in node || "profile_picture_url" in node || "badge" in node || "is_gold" in node))
+        ("uid" in node && ("username" in node || "first_name" in node || "last_name" in node || "profile_picture_url" in node || "badge" in node))
     );
 
     let isFriendWithBadgeOff = false;
 
     if (hasUserShape) {
-        const isFriend = Boolean(candidateUserUid && (!selfUid || candidateUserUid !== selfUid));
+        const nodeUid = String(node.uid || node.user_uid || "");
+        const isFriend = Boolean(nodeUid && (!selfUid || nodeUid !== selfUid));
         let shouldShowBadge = true;
 
         if (isFriend) {
-            const fullName = [node.first_name, node.last_name].filter(Boolean).join(" ").trim() || node.full_name || node.username || candidateUserUid.slice(0, 10);
-            shouldShowBadge = resolveFriendBadgeState(candidateUserUid, {
+            const fullName = [node.first_name, node.last_name].filter(Boolean).join(" ").trim() || node.username || nodeUid.slice(0, 10);
+            shouldShowBadge = resolveFriendBadgeState(nodeUid, {
                 username: node.username || fullName,
                 full_name: fullName,
-                avatar: node.profile_picture_url || node.avatar || ""
+                avatar: node.profile_picture_url || ""
             }, cfg);
         }
 
@@ -1653,13 +1420,8 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     }
 
     if (node.fields && typeof node.fields === "object") {
-        if (node.fields.uid || node.fields.username || node.fields.badge || node.fields.profile_picture_url || typeof node.name === "string") {
-            let fUid = (node.fields.uid && node.fields.uid.stringValue) ||
-                       (node.fields.user_uid && node.fields.user_uid.stringValue) || "";
-            if (!fUid && typeof node.name === "string") {
-                const mDoc = node.name.match(/\/users\/([A-Za-z0-9_-]{20,36})/);
-                if (mDoc && mDoc[1]) fUid = mDoc[1];
-            }
+        if (node.fields.uid || node.fields.username || node.fields.badge || node.fields.profile_picture_url) {
+            const fUid = (node.fields.uid && node.fields.uid.stringValue) || "";
             const fUsername = (node.fields.username && node.fields.username.stringValue) || "";
             const fFirst = (node.fields.first_name && node.fields.first_name.stringValue) || "";
             const fLast = (node.fields.last_name && node.fields.last_name.stringValue) || "";
@@ -1667,7 +1429,7 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
             const isFriendDoc = Boolean(fUid && (!selfUid || fUid !== selfUid));
             let docBadgeOn = true;
 
-            if (isFriendDoc && isValidLocketUidCandidate(fUid)) {
+            if (isFriendDoc) {
                 const fullDocName = [fFirst, fLast].filter(Boolean).join(" ").trim() || fUsername || fUid.slice(0, 10);
                 docBadgeOn = resolveFriendBadgeState(fUid, {
                     username: fUsername || fullDocName,
@@ -1837,7 +1599,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     const usersList = Object.values(db.users || {});
     const goldUsersList = usersList.filter(u => u.gold_active !== false);
 
-    // Danh sách bạn bè đã được script tự động quét (Auto-Get) để Bật / Tắt huy hiệu từng người
+    // Danh sách bạn bè để Bật / Tắt huy hiệu Locket Gold từng người
     const friendsMap = getFriendsBadgeMap();
     const friendsList = Object.values(friendsMap).filter(f => f && f.uid && f.uid !== cachedUid);
     const activeFriendsBadgeCount = friendsList.filter(f => f.badge_enabled !== false).length;
@@ -1846,7 +1608,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     if (friendsList.length === 0) {
         friendsBadgeListHtml = `
         <div class="empty-row">
-            Đang chờ tự động quét UID bạn bè... Hãy nhấn nút <strong>"Tự Động Quét & Lấy UID Bạn Bè Ngay"</strong> phía trên hoặc mở ứng dụng Locket 1 lần, toàn bộ danh sách bạn bè sẽ tự động hiện ra tại đây.
+            Chưa ghi nhận bạn bè nào trong bộ nhớ. Hãy mở ứng dụng Locket và lướt danh sách bạn bè 1 lần (hoặc thêm thủ công bằng ô bên trên) để bật/tắt huy hiệu từng người.
         </div>`;
     } else {
         for (const f of friendsList) {
@@ -1868,7 +1630,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
                             </span>
                         </div>
                         <div class="dir-mono">
-                            UID Tự động bắt: ${escapeHtml(f.uid)} · Đồng bộ lúc: ${escapeHtml(f.updated_at || "Tự động")}
+                            UID Bạn bè: ${escapeHtml(f.uid)} · Cập nhật: ${escapeHtml(f.updated_at || "Mới ghi nhận")}
                         </div>
                     </div>
                 </div>
@@ -2191,6 +1953,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
        ======================================================================= -->
   <div id="scrollyRoot">
 
+    <!-- [SECTION 1 - HERO ZOOM] - height: 200vh, sticky 100vh bên trong -->
     <section id="secHero" class="section-hero">
       <div class="sticky-viewport">
         <div class="hero-stage">
@@ -2207,9 +1970,11 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
+    <!-- [SECTION 2 - PIN & SCRUB SẢN PHẨM] - height: 250vh, sticky 100vh -->
     <section id="secPin" class="section-pin">
       <div class="sticky-viewport">
         <div class="pin-grid">
+          <!-- Text bên trái xuất hiện ở 20% scroll -->
           <div id="pinLeftText" class="pin-feature-card pin-left-col">
             <span class="meta-index">01 / KIẾN TRÚC TỐI GIẢN</span>
             <h2 class="card-title-apple">Thiết kế tối giản</h2>
@@ -2219,6 +1984,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             <div class="card-hairline"></div>
           </div>
 
+          <!-- Ảnh sản phẩm chính ở giữa (max-width 520px) + Lớp shadow phía sau -->
           <div class="pin-center-stage">
             <div id="pinShadow" class="pin-ambient-shadow"></div>
             <div id="pinProduct" class="pin-product-wrap">
@@ -2226,6 +1992,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             </div>
           </div>
 
+          <!-- Text bên phải xuất hiện ở 55% scroll -->
           <div id="pinRightText" class="pin-feature-card pin-right-col">
             <span class="meta-index">02 / ĐỊNH TUYẾN DOH & CHIP H2 AI</span>
             <h2 class="card-title-apple">Chip H2 & DoH Engine mới</h2>
@@ -2238,6 +2005,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
+    <!-- [SECTION 3 - TEARDOWN BÓC TÁCH] - height: 200vh -->
     <section id="secTeardown" class="section-teardown">
       <div class="sticky-viewport">
         <div id="teardownHeader" class="section-header-block">
@@ -2246,6 +2014,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         </div>
 
         <div class="teardown-stack-stage">
+          <!-- Card 1: translateY 0 -> -120px, scale 1 -> 0.95 -->
           <article id="tdCard1" class="teardown-layer-card layer-pos-1">
             <div class="schematic-box"><div class="geom-circle"></div></div>
             <div>
@@ -2258,6 +2027,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             <span class="offset-tag">-120PX LAYER</span>
           </article>
 
+          <!-- Card 2: translateY 0 -> -80px, scale 1 -> 0.95 -->
           <article id="tdCard2" class="teardown-layer-card layer-pos-2">
             <div class="schematic-box">
               <div class="geom-bars">
@@ -2274,6 +2044,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
             <span class="offset-tag">-80PX LAYER</span>
           </article>
 
+          <!-- Card 3: translateY 0 -> -40px, scale 1 -> 0.95 -->
           <article id="tdCard3" class="teardown-layer-card layer-pos-3">
             <div class="schematic-box"><div class="geom-matrix"></div></div>
             <div>
@@ -2289,6 +2060,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
+    <!-- [SECTION 4 - FEATURES REVEAL] - height: 150vh, sticky -->
     <section id="secFeatures" class="section-features">
       <div class="sticky-viewport">
         <div class="features-wrap">
@@ -2298,6 +2070,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           </div>
 
           <div class="features-3col-grid">
+            <!-- Tính năng A -->
             <div id="featCard0" class="feature-reveal-card" style="transition-delay: 0s;">
               <div class="feature-metric-head">
                 <span class="feature-big-stat">3 MIỀN</span>
@@ -2311,6 +2084,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
               </div>
             </div>
 
+            <!-- Tính năng B -->
             <div id="featCard1" class="feature-reveal-card" style="transition-delay: 0.15s;">
               <div class="feature-metric-head">
                 <span class="feature-big-stat">${escapeHtml(currentAiQuota >= 999999 ? "999K+" : String(currentAiQuota))}</span>
@@ -2324,6 +2098,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
               </div>
             </div>
 
+            <!-- Tính năng C -->
             <div id="featCard2" class="feature-reveal-card" style="transition-delay: 0.30s;">
               <div class="feature-metric-head">
                 <span class="feature-big-stat">${escapeHtml(String(dohStatus.latencyMs || 18))}ms</span>
@@ -2343,6 +2118,9 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 
   </div>
 
+  <!-- =======================================================================
+       BẢNG ĐIỀU KHIỂN CẤU HÌNH TRỰC TIẾP, LÕI DOH/CA & QUẢN TRỊ VIÊN
+       ======================================================================= -->
   <main id="consoleSection" class="console-wrapper">
 
     <div id="realtimeBlockBanner" class="block-banner">
@@ -2461,25 +2239,44 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       `}
     </section>
 
-    <!-- Bảng Bật / Tắt Huy Hiệu Từng Bạn Bè (Có nút Tự động quét UID) -->
+    <!-- =====================================================================
+         [MỚI] BẢNG QUẢN LÝ BẬT / TẮT HUY HIỆU LOCKET GOLD CHO TỪNG BẠN BÈ
+         ===================================================================== -->
     <section id="friendsBadgeSection" class="apple-card-panel">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
-          <span class="meta-index">TUỲ CHỈNH HIỂN THỊ HUY HIỆU BẠN BÈ ĐỘC LẬP (AUTO-DISCOVERY)</span>
-          <h2 class="card-title-apple" style="margin:0;">Quản Lý Huy Hiệu Locket Gold Bạn Bè (${activeFriendsBadgeCount}/${friendsList.length})</h2>
+          <span class="meta-index">TUỲ CHỈNH HIỂN THỊ HUY HIỆU BẠN BÈ ĐỘC LẬP</span>
+          <h2 class="card-title-apple" style="margin:0;">Bật / Tắt Huy Hiệu Locket Gold Từng Bạn Bè (${activeFriendsBadgeCount}/${friendsList.length})</h2>
           <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
-            Hệ thống tự động quét UID bạn bè từ các gói tin mạng hoặc gọi API Locket trực tiếp. Bật/tắt linh hoạt cho từng người.
+            Tài khoản chính của bạn luôn giữ cứng huy hiệu Gold. Bạn có thể bật hoặc tắt huy hiệu Gold của từng người bạn bên dưới.
           </p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" onclick="autoHarvestFriendsNow()" class="apple-btn btn-blue" style="padding:10px 16px;">🔄 Tự Động Quét & Lấy UID Bạn Bè Ngay</button>
-          <a href="/setdate?friend_action=enable_all#friendsBadgeSection" class="apple-btn btn-chip-emerald" style="padding:10px 14px;">Bật tất cả</a>
-          <a href="/setdate?friend_action=disable_all#friendsBadgeSection" class="apple-btn btn-chip-amber" style="padding:10px 14px;">Tắt tất cả</a>
+          <a href="/setdate?friend_action=enable_all#friendsBadgeSection" class="apple-btn btn-chip-emerald" style="padding:10px 16px;">Bật tất cả bạn bè</a>
+          <a href="/setdate?friend_action=disable_all#friendsBadgeSection" class="apple-btn btn-chip-amber" style="padding:10px 16px;">Tắt tất cả bạn bè</a>
+          <a href="/setdate?friend_action=toggle_default&default_val=${cfg.friendsBadgeDefault !== false ? "0" : "1"}#friendsBadgeSection" class="apple-btn btn-chip-dark" style="padding:10px 16px;">
+            Mặc định bạn mới: ${cfg.friendsBadgeDefault !== false ? "ĐANG BẬT" : "ĐANG TẮT"}
+          </a>
         </div>
       </div>
 
+      <!-- Form thêm nhanh hoặc gán trạng thái huy hiệu cho 1 UID bạn bè bất kỳ -->
+      <form method="GET" action="/setdate#friendsBadgeSection" style="margin-top:20px;padding:20px;border-radius:18px;background:#fbfbfd;border:1px solid rgba(29,29,31,0.07);">
+        <input type="hidden" name="friend_action" value="upsert_friend">
+        <span class="meta-index" style="margin-bottom:10px;">THÊM HOẶC CHỈNH NHANH HUY HIỆU BẠN BÈ THEO UID / USERNAME</span>
+        <div class="grid-4">
+          <input type="text" name="friend_uid" class="apple-input" placeholder="Nhập UID bạn bè..." required>
+          <input type="text" name="friend_user" class="apple-input" placeholder="Tên hoặc @username...">
+          <select name="friend_badge" class="apple-input">
+            <option value="1">Bật huy hiệu Locket Gold</option>
+            <option value="0">Tắt huy hiệu Locket Gold</option>
+          </select>
+          <button type="submit" class="apple-btn btn-ink">Lưu trạng thái bạn bè</button>
+        </div>
+      </form>
+
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-bottom:12px;border-bottom:1px solid rgba(29,29,31,0.06);">
-        <span class="meta-index" style="margin:0;">DANH SÁCH BẠN BÈ ĐÃ TỰ ĐỘNG BẮT (${friendsList.length})</span>
+        <span class="meta-index" style="margin:0;">DANH SÁCH BẠN BÈ ĐÃ GHI NHẬN TỪ LOCKET (${friendsList.length})</span>
         <div style="width:100%;max-width:260px;">
           <input type="text" id="searchFriendBadgeInput" oninput="filterFriendsBadgeList()" class="apple-input" style="padding:9px 14px;font-size:13px;" placeholder="Tìm tên bạn bè hoặc UID...">
         </div>
@@ -2490,59 +2287,61 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
       </div>
     </section>
 
-    <!-- Bảng Mạng DoH & CA -->
+    <!-- =====================================================================
+         BẢNG TÍNH NĂNG MẠNG TÍCH HỢP TỪ MOBILECONFIG (CHẠY TRỰC TIẾP TRONG JS)
+         ===================================================================== -->
     <section id="dohEngineSection" class="apple-card-panel">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
-          <span class="meta-index">TÍNH NĂNG MẠNG TÍCH HỢP TRỰC TIẾP (KHÔNG CẦN CÀI FILE MOBILECONFIG)[span_0](start_span)[span_0](end_span)</span>
-          <h2 class="card-title-apple" style="margin:0;">Lõi Định Tuyến LocketGold DNS (DoH) & Xác Thực Root CA[span_1](start_span)[span_1](end_span)</h2>
+          <span class="meta-index">TÍNH NĂNG MẠNG TÍCH HỢP TRỰC TIẾP (KHÔNG CẦN CÀI FILE MOBILECONFIG)</span>
+          <h2 class="card-title-apple" style="margin:0;">Lõi Định Tuyến LocketGold DNS (DoH) & Xác Thực Root CA</h2>
           <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
-            Định danh cấu hình: <code style="font-family:monospace;background:#f2f2f7;padding:3px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(INTEGRATED_NET_ENGINE.profileIdentifier)}</code>[span_2](start_span)[span_2](end_span)
+            Định danh cấu hình: <code style="font-family:monospace;background:#f2f2f7;padding:3px 8px;border-radius:6px;color:#1d1d1f;font-weight:600;">${escapeHtml(INTEGRATED_NET_ENGINE.profileIdentifier)}</code>
           </p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" onclick="probeDohNow()" class="apple-btn btn-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kiểm tra kết nối DoH & Đồng bộ 3 miền[span_3](start_span)[span_3](end_span)</button>
+          <button type="button" onclick="probeDohNow()" class="apple-btn btn-blue" style="width:auto;padding:11px 22px;border-radius:999px;">Kiểm tra kết nối DoH & Đồng bộ 3 miền</button>
         </div>
       </div>
 
       <div class="grid-3" style="margin-top:22px;">
         <div class="net-spec-box">
-          <span class="meta-index" style="margin-bottom:4px;">MÁY CHỦ DNS-OVER-HTTPS[span_4](start_span)[span_4](end_span)</span>
-          <div class="net-spec-mono">${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}</div>[span_5](start_span)[span_5](end_span)
+          <span class="meta-index" style="margin-bottom:4px;">MÁY CHỦ DNS-OVER-HTTPS</span>
+          <div class="net-spec-mono">${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}</div>
           <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            Giao thức: <strong>${escapeHtml(INTEGRATED_NET_ENGINE.dnsProtocol)}</strong> · Trạng thái: <span id="dohLiveBadge" class="pill-badge pill-emerald">ĐANG BẬT (${escapeHtml(String(dohStatus.latencyMs || 18))}ms)</span>[span_6](start_span)[span_6](end_span)
+            Giao thức: <strong>${escapeHtml(INTEGRATED_NET_ENGINE.dnsProtocol)}</strong> · Trạng thái: <span id="dohLiveBadge" class="pill-badge pill-emerald">ĐANG BẬT (${escapeHtml(String(dohStatus.latencyMs || 18))}ms)</span>
           </div>
         </div>
 
         <div class="net-spec-box">
-          <span class="meta-index" style="margin-bottom:4px;">ĐỊA CHỈ IP MÁY CHỦ DỰ PHÒNG[span_7](start_span)[span_7](end_span)</span>
-          <div class="net-spec-mono">${escapeHtml(cfg.dohPrimaryIp)} · ${escapeHtml(cfg.dohSecondaryIp)}</div>[span_8](start_span)[span_8](end_span)
+          <span class="meta-index" style="margin-bottom:4px;">ĐỊA CHỈ IP MÁY CHỦ DỰ PHÒNG</span>
+          <div class="net-spec-mono">${escapeHtml(cfg.dohPrimaryIp)} · ${escapeHtml(cfg.dohSecondaryIp)}</div>
           <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            UUID DNS: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.dnsUUID)}</code>[span_9](start_span)[span_9](end_span)
+            UUID DNS: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.dnsUUID)}</code>
           </div>
         </div>
 
         <div class="net-spec-box">
-          <span class="meta-index" style="margin-bottom:4px;">ĐỊNH DANH CHỨNG CHỈ LOCKETGOLD CA[span_10](start_span)[span_10](end_span)</span>
-          <div class="net-spec-mono">${escapeHtml(INTEGRATED_NET_ENGINE.caDisplayName)} (2026 — 2036)</div>[span_11](start_span)[span_11](end_span)
+          <span class="meta-index" style="margin-bottom:4px;">ĐỊNH DANH CHỨNG CHỈ LOCKETGOLD CA</span>
+          <div class="net-spec-mono">${escapeHtml(INTEGRATED_NET_ENGINE.caDisplayName)} (2026 — 2036)</div>
           <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            SHA-1 SubjectKey: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.caFingerprintBrief)}</code>[span_12](start_span)[span_12](end_span)
+            SHA-1 SubjectKey: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.caFingerprintBrief)}</code>
           </div>
         </div>
       </div>
 
       <div class="net-spec-box" style="margin-top:16px;">
-        <span class="meta-index" style="margin-bottom:6px;">DANH SÁCH MIỀN BẮT GIỮ & GIẢI MÃ TỰ ĐỘNG (SUPPLEMENTAL MATCH DOMAINS)[span_13](start_span)[span_13](end_span)</span>
+        <span class="meta-index" style="margin-bottom:6px;">DANH SÁCH MIỀN BẮT GIỮ & GIẢI MÃ TỰ ĐỘNG (SUPPLEMENTAL MATCH DOMAINS)</span>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
-          <span class="pill-badge pill-blue">api.revenuecat.com</span>[span_14](start_span)[span_14](end_span)
-          <span class="pill-badge pill-blue">firebaseremoteconfig.googleapis.com</span>[span_15](start_span)[span_15](end_span)
-          <span class="pill-badge pill-blue">us-central1-locket-4252a.cloudfunctions.net</span>[span_16](start_span)[span_16](end_span)
+          <span class="pill-badge pill-blue">api.revenuecat.com</span>
+          <span class="pill-badge pill-blue">firebaseremoteconfig.googleapis.com</span>
+          <span class="pill-badge pill-blue">us-central1-locket-4252a.cloudfunctions.net</span>
           <span class="pill-badge pill-emerald">Tự động xoá ETag & SSL Pinning Headers</span>
         </div>
       </div>
     </section>
 
-    <!-- Bảng Cấu Hình Chính -->
+    <!-- Bảng Cấu Hình Thời Gian Đăng Ký, DoH & Lượt AI -->
     <section class="apple-card-panel">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding-bottom:22px;border-bottom:1px solid rgba(29,29,31,0.08);">
         <div>
@@ -2593,14 +2392,14 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
 
         <div class="grid-2">
           <div>
-            <label class="field-lbl">Máy chủ DoH tích hợp (ServerURL)[span_17](start_span)[span_17](end_span)</label>
-            <input type="text" id="dohUrlInput" name="dohServerUrl" value="${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}" class="apple-input">[span_18](start_span)[span_18](end_span)
+            <label class="field-lbl">Máy chủ DoH tích hợp (ServerURL)</label>
+            <input type="text" id="dohUrlInput" name="dohServerUrl" value="${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}" class="apple-input">
           </div>
           <div>
-            <label class="field-lbl">Cặp IP máy chủ DoH (Primary / Secondary)[span_19](start_span)[span_19](end_span)</label>
+            <label class="field-lbl">Cặp IP máy chủ DoH (Primary / Secondary)</label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <input type="text" name="dohPrimaryIp" value="${escapeHtml(cfg.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0])}" class="apple-input">[span_20](start_span)[span_20](end_span)
-              <input type="text" name="dohSecondaryIp" value="${escapeHtml(cfg.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1])}" class="apple-input">[span_21](start_span)[span_21](end_span)
+              <input type="text" name="dohPrimaryIp" value="${escapeHtml(cfg.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0])}" class="apple-input">
+              <input type="text" name="dohSecondaryIp" value="${escapeHtml(cfg.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1])}" class="apple-input">
             </div>
           </div>
         </div>
@@ -2621,8 +2420,8 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         </div>
 
         <div class="grid-2" style="margin-top:6px;">
-          <button type="submit" class="apple-btn btn-ink">Lưu cấu hình, DoH & Đồng bộ Locket Gold[span_22](start_span)[span_22](end_span)</button>
-          <a href="/setdate?reset=1" class="apple-btn btn-subtle">Khôi phục mặc định (25/05/2026 · DoH Chuẩn · 999.999 AI)[span_23](start_span)[span_23](end_span)</a>
+          <button type="submit" class="apple-btn btn-ink">Lưu cấu hình, DoH & Đồng bộ Locket Gold</button>
+          <a href="/setdate?reset=1" class="apple-btn btn-subtle">Khôi phục mặc định (25/05/2026 · DoH Chuẩn · 999.999 AI)</a>
         </div>
       </form>
     </section>
@@ -2646,7 +2445,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
   </main>
 
   <!-- =======================================================================
-       ENGINE SCROLLYTELLING 60FPS
+       ENGINE SCROLLYTELLING 60FPS (requestAnimationFrame + getBoundingClientRect)
        ======================================================================= -->
   <script>
     (function() {
@@ -2709,10 +2508,12 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
         var maxScroll = Math.max(1, docH - winH);
         var scrollProgress = clamp(window.scrollY / maxScroll, 0, 1);
 
+        // 1. Top Progress Bar (width = scrollProgress * 100%)
         if (topBar) {
           topBar.style.width = (scrollProgress * 100).toFixed(3) + '%';
         }
 
+        // 2. Section 1: Hero Zoom (scale 3 -> 0.8, blur 20px -> 0px, opacity 0->1 (0-40%) & 1->0 (80-100%))
         var pHero = getSectionProgress(secHero);
         var eHero = appleEase(pHero);
         if (heroTitle) {
@@ -2739,6 +2540,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           heroScrollGuide.style.opacity = (1 - clamp(pHero * 2.5, 0, 1)).toFixed(3);
         }
 
+        // 3. Section 2: Pin & Scrub Product (scale 1.4->0.9, rotate -8deg->8deg, translateY 80px->-40px)
         var pPin = getSectionProgress(secPin);
         var ePin = appleEase(pPin);
         var prodScale = lerp(1.4, 0.9, ePin);
@@ -2765,6 +2567,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           pinRightText.style.opacity = rP.toFixed(4);
         }
 
+        // 4. Section 3: Teardown Bóc Tách (Card 1: -120px, Card 2: -80px, Card 3: -40px, scale 1->0.95)
         var pTd = getSectionProgress(secTeardown);
         var eTd = appleEase(pTd);
         var tdScale = lerp(1, 0.95, eTd);
@@ -2777,6 +2580,7 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
           teardownHeader.style.transform = 'translate3d(0,' + lerp(24, 0, hdP).toFixed(2) + 'px,0)';
         }
 
+        // 5. Section 4: Features Reveal (Grid 3 cột, stagger 0.15s, opacity 0->1, translateY 40px->0)
         var pFeat = getSectionProgress(secFeatures);
         var featCards = [featCard0, featCard1, featCard2];
         for (var i = 0; i < featCards.length; i++) {
@@ -2828,37 +2632,19 @@ function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowG
     function probeDohNow() {
       var toast = document.getElementById('statusToast');
       var badge = document.getElementById('dohLiveBadge');
-      if (badge) badge.textContent = 'ĐANG KIỂM TRA...';[span_24](start_span)[span_24](end_span)
+      if (badge) badge.textContent = 'ĐANG KIỂM TRA...';
       fetch('/setdate?api=doh_probe&t=' + Date.now(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(d) {
           if (badge && d) {
-            badge.textContent = (d.ok ? 'HOẠT ĐỘNG (' : 'DỰ PHÒNG (') + (d.latencyMs || 15) + 'ms)';[span_25](start_span)[span_25](end_span)
+            badge.textContent = (d.ok ? 'HOẠT ĐỘNG (' : 'DỰ PHÒNG (') + (d.latencyMs || 15) + 'ms)';
           }
           if (toast && d) {
             toast.style.display = 'block';
-            toast.textContent = d.msg || 'Đã đồng bộ máy chủ DoH LocketGold thành công!';[span_26](start_span)[span_26](end_span)
+            toast.textContent = d.msg || 'Đã đồng bộ máy chủ DoH LocketGold thành công!';
           }
         })
-        .catch(function() { window.location.href = '/setdate?doh_test=1'; });[span_27](start_span)[span_27](end_span)
-    }
-    function autoHarvestFriendsNow() {
-      var toast = document.getElementById('statusToast');
-      if (toast) {
-        toast.style.display = 'block';
-        toast.textContent = 'Đang tự động quét & gọi API lấy UID bạn bè từ Locket...';
-      }
-      fetch('/setdate?api=auto_harvest_friends&t=' + Date.now(), { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (toast && d) {
-            toast.textContent = d.msg || ('Đã quét thành công ' + d.total + ' bạn bè!');
-          }
-          setTimeout(function() { window.location.href = '/setdate#friendsBadgeSection'; }, 900);
-        })
-        .catch(function() {
-          window.location.href = '/setdate?friend_action=harvest#friendsBadgeSection';
-        });
+        .catch(function() { window.location.href = '/setdate?doh_test=1'; });
     }
     function toggleSingleFriendBadge(fUid, nextStateBool) {
       var toast = document.getElementById('statusToast');
@@ -3025,13 +2811,6 @@ if (isCronMode) {
     const uid = extractAndCacheCredentials(url, headers, $request.body);
     const currentCfg = loadConfig();
 
-    // Tự động quét ngầm UID bạn bè từ mọi gói tin Request Body đi qua Script
-    if (typeof $request.body === "string" && $request.body.length > 10) {
-        let parsedReq = null;
-        try { parsedReq = JSON.parse($request.body); } catch (e) {}
-        autoHarvestFriendsFromRawPayload($request.body, parsedReq, currentCfg);
-    }
-
     const isRootRevenueCatWeb = /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(url);
     const isWebPanelUrl = url.includes("/setdate") || url.includes("locket.gold") || isRootRevenueCatWeb;
 
@@ -3068,22 +2847,9 @@ if (isCronMode) {
                         ok: !!updatedFriend,
                         friend_uid: fUid,
                         badge_enabled: enableFlag,
-                        msg: `Đã ${enableFlag ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${updatedFriend ? updatedFriend.username : fUid})!`
+                        msg: `Đã ${enableFlag ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${updatedFriend ? updatedFriend.username : fUid})! Mở lại Locket để áp dụng.`
                     })
                 }
-            });
-        } else if (q.api === "auto_harvest_friends") {
-            activeFetchFriendsFromLocketApi(currentCfg, (harvestResult) => {
-                Env.done({
-                    response: {
-                        status: 200,
-                        headers: {
-                            "Content-Type": "application/json; charset=utf-8",
-                            "Cache-Control": "no-store, no-cache, must-revalidate"
-                        },
-                        body: JSON.stringify(harvestResult)
-                    }
-                });
             });
         } else if (q.api === "doh_probe") {
             probeIntegratedDohEndpoint(currentCfg, (probeResult) => {
@@ -3101,7 +2867,7 @@ if (isCronMode) {
                             primaryIp: probeResult.primaryIp,
                             secondaryIp: probeResult.secondaryIp,
                             domains: probeResult.domains,
-                            msg: `Kết nối DoH (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã đồng bộ 3 miền Supplemental Match!`[span_28](start_span)[span_28](end_span)
+                            msg: `Kết nối DoH (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã đồng bộ 3 miền Supplemental Match!`
                         })
                     }
                 });
@@ -3122,8 +2888,8 @@ if (isCronMode) {
                             status: st.status,
                             gold_kept: true,
                             ai_quota: sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999),
-                            doh_server: currentCfg.dohServerUrl,[span_29](start_span)[span_29](end_span)
-                            ca_uuid: INTEGRATED_NET_ENGINE.caUUID,[span_30](start_span)[span_30](end_span)
+                            doh_server: currentCfg.dohServerUrl,
+                            ca_uuid: INTEGRATED_NET_ENGINE.caUUID,
                             popup_header: currentCfg.popupHeader,
                             popup_title: currentCfg.popupTitle,
                             popup_subtitle: currentCfg.popupSubtitle,
@@ -3138,11 +2904,8 @@ if (isCronMode) {
             let statusMsg = "";
             const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
 
-            // Xử lý các thao tác Bật / Tắt Huy Hiệu Bạn Bè & Tự động quét từ bảng điều khiển
-            if (q.friend_action === "harvest") {
-                activeFetchFriendsFromLocketApi(currentCfg, (res) => {});
-                statusMsg = "Đã kích hoạt tiến trình tự động quét & lấy UID bạn bè từ Locket!";
-            } else if (q.friend_action) {
+            // Xử lý các thao tác Bật / Tắt Huy Hiệu Bạn Bè từ bảng điều khiển
+            if (q.friend_action) {
                 const fUid = (q.friend_uid || "").trim();
                 const fUser = (q.friend_user || "").trim().replace(/^@/, "");
                 if (q.friend_action === "toggle" && fUid) {
@@ -3166,6 +2929,11 @@ if (isCronMode) {
                     const updatedDefault = { ...loadConfig(), friendsBadgeDefault: false };
                     saveConfig(updatedDefault);
                     statusMsg = "Đã TẮT huy hiệu Locket Gold của toàn bộ bạn bè (Chỉ giữ huy hiệu cho riêng bạn)!";
+                } else if (q.friend_action === "toggle_default") {
+                    const newDef = q.default_val === "1";
+                    const updatedDefault = { ...loadConfig(), friendsBadgeDefault: newDef };
+                    saveConfig(updatedDefault);
+                    statusMsg = `Đã đặt mặc định cho bạn bè mới phát hiện: ${newDef ? "TỰ ĐỘNG BẬT GOLD" : "TỰ ĐỘNG TẮT GOLD"}!`;
                 } else if (q.friend_action === "delete" && fUid) {
                     const map = getFriendsBadgeMap();
                     delete map[fUid];
@@ -3181,7 +2949,7 @@ if (isCronMode) {
 
             if (q.doh_test === "1") {
                 probeIntegratedDohEndpoint(currentCfg, () => {});
-                statusMsg = `Đã kiểm tra và đồng bộ tuyến DoH (${currentCfg.dohServerUrl}) cùng 3 miền mục tiêu!`;[span_31](start_span)[span_31](end_span)
+                statusMsg = `Đã kiểm tra và đồng bộ tuyến DoH (${currentCfg.dohServerUrl}) cùng 3 miền mục tiêu!`;
             }
 
             if (q.admin_login === "1") {
@@ -3209,7 +2977,7 @@ if (isCronMode) {
                 });
                 fireNativeAppNotification(currentCfg, true);
                 forcePopup = true;
-                statusMsg = `Đã kích hoạt Locket Gold, đồng bộ DoH & bắn thông báo đẩy Shadowrocket cho (${targetUid})!`;[span_32](start_span)[span_32](end_span)
+                statusMsg = `Đã kích hoạt Locket Gold, đồng bộ DoH & bắn thông báo đẩy Shadowrocket cho (${targetUid})!`;
             }
 
             if (q.admin_action && Env.read(ADMIN_SESSION_KEY) === "1") {
@@ -3311,7 +3079,7 @@ if (isCronMode) {
                         saveConfig(resetCfg);
                         current = loadConfig();
                         fireNativeAppNotification(current, true);
-                        statusMsg = "Đã khôi phục mặc định (25/05/2026, DoH https://doh.2707226.xyz/dns-query/common & 999.999 lượt AI)!";[span_33](start_span)[span_33](end_span)
+                        statusMsg = "Đã khôi phục mặc định (25/05/2026, DoH https://doh.2707226.xyz/dns-query/common & 999.999 lượt AI)!";
                     } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined || q.dohServerUrl !== undefined) {
                         const rawLock = q.lockDate || q.d || current.lockDate;
                         const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
@@ -3333,9 +3101,9 @@ if (isCronMode) {
                             expireDate: isoExp.slice(0, 10),
                             productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
                             ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
-                            dohServerUrl: (q.dohServerUrl || current.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl).trim(),[span_34](start_span)[span_34](end_span)
-                            dohPrimaryIp: (q.dohPrimaryIp || current.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0]).trim(),[span_35](start_span)[span_35](end_span)
-                            dohSecondaryIp: (q.dohSecondaryIp || current.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1]).trim(),[span_36](start_span)[span_36](end_span)
+                            dohServerUrl: (q.dohServerUrl || current.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl).trim(),
+                            dohPrimaryIp: (q.dohPrimaryIp || current.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0]).trim(),
+                            dohSecondaryIp: (q.dohSecondaryIp || current.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1]).trim(),
                             unlockAllCameraEffects: true,
                             aiFilterEnabled: true,
                             aiFilterQuota: newAiQuota,
@@ -3356,7 +3124,7 @@ if (isCronMode) {
                         }
                         current = loadConfig();
                         fireNativeAppNotification(current, true);
-                        statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, tuyến DoH (${current.dohServerUrl}) & mở khoá ${newAiQuota.toLocaleString("vi-VN")} lượt AI!`;[span_37](start_span)[span_37](end_span)
+                        statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, tuyến DoH (${current.dohServerUrl}) & mở khoá ${newAiQuota.toLocaleString("vi-VN")} lượt AI!`;
                     }
 
                     Env.done({
@@ -3391,11 +3159,8 @@ if (isCronMode) {
             fireNativeAppNotification(currentCfg, false);
         }
 
-        // Áp dụng bộ lọc Header & DoH cho cả 3 miền SupplementalMatchDomains từ mobileconfig[span_38](start_span)[span_38](end_span)
+        // Áp dụng bộ lọc Header & DoH cho cả 3 miền SupplementalMatchDomains từ mobileconfig
         applyIntegratedNetworkHeaders(url, headers, currentCfg);
-
-        // Tự động quét ngầm UID bạn bè từ Response Body của các API trả về danh sách bạn bè / Firestore / Moments
-        // (Sẽ được xử lý trong Response Mode bên dưới)
 
         let modifiedBody = $request.body;
         if (
@@ -3421,7 +3186,7 @@ if (isCronMode) {
                     reqJson.attributes.camera_effects_unlocked = { value: "true", updated_at_ms: nowMs };
                     reqJson.attributes.ai_filter_quota = { value: quotaStr, updated_at_ms: nowMs };
                     reqJson.attributes.ai_filter_remaining = { value: quotaStr, updated_at_ms: nowMs };
-                    reqJson.attributes.doh_dns_endpoint = { value: currentCfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl, updated_at_ms: nowMs };[span_39](start_span)[span_39](end_span)
+                    reqJson.attributes.doh_dns_endpoint = { value: currentCfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl, updated_at_ms: nowMs };
                     touched = true;
                 }
                 if ((url.includes("changeProfileInfo") || url.includes("us-central1-locket-4252a.cloudfunctions.net")) && reqJson.data && typeof reqJson.data === "object") {
@@ -3469,9 +3234,6 @@ if (isCronMode) {
         }
 
         if (obj && typeof obj === "object") {
-            // Tự động quét và bắt UID bạn bè từ bất kỳ phản hồi mạng nào của Locket
-            autoHarvestFriendsFromRawPayload(rawBody, obj, cfg);
-
             const isRevenueCat = (
                 reqUrl.includes("revenuecat.com") ||
                 reqUrl.includes("rc-backup.com") ||
@@ -3534,7 +3296,7 @@ if (isCronMode) {
             }
             resHeaders["Content-Type"] = "application/json; charset=utf-8";
             resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
-            resHeaders["X-LocketGold-DoH-Active"] = "true";[span_40](start_span)[span_40](end_span)
+            resHeaders["X-LocketGold-DoH-Active"] = "true";
 
             const origStatus = ($response && $response.status) ? $response.status : 200;
             const finalStatus = (isRevenueCat || isOfferings || isFirebaseRemoteConfig || isLocketCloudFunctions || origStatus === 304) ? 200 : origStatus;
