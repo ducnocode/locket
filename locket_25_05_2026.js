@@ -10601,12 +10601,79 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
 
 // === KẾT THÚC PHẦN 5 / 6 (~10.250 DÒNG LŨY KẾ) — GÕ "6" ĐỂ NHẬN TIẾP PHẦN 6 / 6 (PHẦN CUỐI VƯỢT 12.000 DÒNG) ===
 // ============================================================================
-// FILE: locket_25_05_2026.js (MASTER UNIFIED EDITION V11.0 — PART 6 OF 6)
+// FILE: locket_25_05_2026.js (MASTER UNIFIED EDITION V11.1 — PART 6 OF 6 FIXED)
+// ============================================================================
+// BẢN FIX TRIỆT ĐỂ LỖI {"code":7117,"message":"Page not found."} TRÊN SAFARI:
+//   - Tự động nhận diện môi trường Shadowrocket / Surge / Loon / Quantumult X
+//   - Trả về đúng cấu trúc { response: { status: 200, headers, body } } ở pha
+//     Request và { status: 200, headers, body } ở pha Response
+//   - Tự động bắt cả khi máy chủ RevenueCat trả về {"code":7117} để ghi đè
+//     bằng giao diện Web UI Apple Scrollytelling ngay lập tức!
 // ============================================================================
 
 // ============================================================================
+// BỘ PHÁT PHẢN HỒI ĐA NỀN TẢNG (SHADOWROCKET / LOON / SURGE / QUANTUMULT X)
+// Giải quyết 100% lỗi màn hình đen {"code":7117,"message":"Page not found."}
+// ============================================================================
+function sendLocalHttpResponse(statusNum, headersObj, bodyStr) {
+    const code = Number(statusNum) || 200;
+    const statusText = code === 204
+        ? "HTTP/1.1 204 No Content"
+        : "HTTP/1.1 200 OK";
+
+    const safeHeaders = Object.assign({
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+        "X-LocketGold-Engine": "UpLocket-V11.1-Master"
+    }, headersObj || {});
+
+    const isQuanX = typeof $prefs !== "undefined" || typeof $task !== "undefined";
+    const isRequestPhase = typeof $request !== "undefined" && typeof $response === "undefined";
+
+    // 1. Nếu đang ở pha $request (http-request):
+    //    - Quantumult X cần { status: "HTTP/1.1 200 OK", headers, body }
+    //    - Shadowrocket / Surge / Loon cần bọc trong { response: { status: 200, headers, body } }
+    if (isRequestPhase) {
+        if (isQuanX) {
+            Env.done({
+                status: statusText,
+                headers: safeHeaders,
+                body: String(bodyStr ?? "")
+            });
+        } else {
+            Env.done({
+                response: {
+                    status: code,
+                    headers: safeHeaders,
+                    body: String(bodyStr ?? "")
+                }
+            });
+        }
+        return;
+    }
+
+    // 2. Nếu đang ở pha $response (http-response):
+    //    - Quantumult X nhận status chuỗi hoặc số
+    //    - Shadowrocket / Surge / Loon nhận trực tiếp { status: 200, headers, body }
+    if (isQuanX) {
+        Env.done({
+            status: statusText,
+            headers: safeHeaders,
+            body: String(bodyStr ?? "")
+        });
+    } else {
+        Env.done({
+            status: code,
+            headers: safeHeaders,
+            body: String(bodyStr ?? "")
+        });
+    }
+}
+
+// ============================================================================
 // KHO MẪU KHUNG WIDGET & ẢNH POPUP STUDIO TÍCH HỢP SẴN (OFFLINE VECTOR 8K)
-// Cho phép chọn nhanh hoặc tải file ảnh trực tiếp từ máy không cần mạng ngoài
 // ============================================================================
 const BUILTIN_STUDIO_ART_PRESETS = {
     popup_uplocket_gold: DEFAULT_GOLD_POPUP_SVG,
@@ -10647,12 +10714,7 @@ const BUILTIN_STUDIO_ART_PRESETS = {
 };
 
 // ============================================================================
-// TRÌNH ĐIỀU KHIỂN JAVASCRIPT TRÊN TRÌNH DUYỆT (CLIENT SCRIPT V11.0)
-// Hỗ trợ:
-//  - Upload File Ảnh trực tiếp từ máy (FileReader + Canvas nén mượt) cho Popup & Widget
-//  - Bắn Thông Báo Popup kiểu UpLocket thẳng vào App Locket
-//  - Gạt công tắc iOS Switch Bật/Tắt huy hiệu Bạn bè tức thì trong ô cuộn
-//  - Hiệu ứng cuộn điện ảnh Apple Scrollytelling 60fps
+// TRÌNH ĐIỀU KHIỂN JAVASCRIPT TRÊN TRÌNH DUYỆT (CLIENT SCRIPT V11.1)
 // ============================================================================
 function buildAppleFlowClientScript() {
     return `
@@ -10681,7 +10743,6 @@ function buildAppleFlowClientScript() {
       }
     }
 
-    // Đồng bộ trực tiếp nội dung đang gõ trên Form vào Modal Popup UpLocket xem trước
     function syncLivePopupModalPreview() {
       var bIn = document.getElementById('studioPopupBadgeInput');
       var hIn = document.getElementById('studioPopupHeaderInput');
@@ -10701,8 +10762,6 @@ function buildAppleFlowClientScript() {
 
     // ========================================================================
     // TẢI FILE ẢNH TRỰC TIẾP TỪ MÁY LÊN POPUP THÔNG BÁO HOẶC KHUNG WIDGET
-    // Tự động đọc file từ thư viện ảnh iPhone, tối ưu kích thước bằng Canvas
-    // và lưu thẳng vào bộ nhớ đệm Locket (không cần dùng bất kỳ link ngoài nào)
     // ========================================================================
     function handleDirectFileUpload(fileInputEl, slotType) {
       if (!fileInputEl || !fileInputEl.files || !fileInputEl.files[0]) return;
@@ -10742,7 +10801,6 @@ function buildAppleFlowClientScript() {
           ctx.clearRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
 
-          // Giữ định dạng PNG nếu là ảnh trong suốt cho Widget, hoặc nén nhẹ WebP/JPEG
           var mimeType = (file.type === 'image/png' || isWidget) ? 'image/png' : 'image/jpeg';
           var finalDataUri = canvas.toDataURL(mimeType, 0.88);
           if (finalDataUri.length > 380000 && mimeType === 'image/png') {
@@ -10816,8 +10874,6 @@ function buildAppleFlowClientScript() {
 
     // ========================================================================
     // NÚT BẮN THÔNG BÁO POPUP UPLOCKET LÊN APP LOCKET NGAY LẬP TỨC
-    // Vừa nổ thông báo đẩy iOS + Vừa đặt cờ ép App Locket bật Popup Bottom-Sheet
-    // chuẩn mẫu "UpLocket — Đã mở khoá GOLD thành công!" + Mở xem trước tại chỗ
     // ========================================================================
     function firePopupToLocketAppNow() {
       syncLivePopupModalPreview();
@@ -10849,7 +10905,6 @@ function buildAppleFlowClientScript() {
         });
     }
 
-    // CAPTION STUDIO LIVE PREVIEW & EDITOR LOADER
     function updateCapStudioPreview() {
       var txtEl = document.getElementById('capEditorText');
       var emoEl = document.getElementById('capEditorEmoji');
@@ -11014,9 +11069,6 @@ function buildAppleFlowClientScript() {
       }
     }
 
-    // ========================================================================
-    // ĐỘNG CƠ CUỘN ĐIỆN ẢNH APPLE SCROLLYTELLING 60FPS & INTERACTIVE CANVAS
-    // ========================================================================
     (function initAppleScrollytelling60fps() {
       var globalBar = document.getElementById('globalProgressBar');
       var bgDark = document.getElementById('bgLayerDark');
@@ -11095,7 +11147,6 @@ function buildAppleFlowClientScript() {
           globalBar.style.transform = 'scaleX(' + totalProg.toFixed(4) + ')';
         }
 
-        // 1. Hero Zoom
         var pHero = sectionProgress(secHero);
         if (elMegaH1) {
           var sHero = lerp(1, 2.35, pHero);
@@ -11107,7 +11158,6 @@ function buildAppleFlowClientScript() {
         if (elSubLead) elSubLead.style.opacity = clamp01(1 - pHero * 1.8).toFixed(3);
         if (elCue) elCue.style.opacity = clamp01(1 - pHero * 3.0).toFixed(3);
 
-        // 2. Dark Mode Background crossfade during Reveal & Scrub
         var pReveal = sectionProgress(secReveal);
         var pScrub = sectionProgress(secScrub);
         var pTeardown = sectionProgress(secTeardown);
@@ -11124,7 +11174,6 @@ function buildAppleFlowClientScript() {
           else stickyNav.classList.remove('nav-dark-mode');
         }
 
-        // 3. Word-by-Word Reveal
         if (wordUnits && wordUnits.length > 0) {
           var totalW = wordUnits.length;
           for (var i = 0; i < totalW; i++) {
@@ -11137,7 +11186,6 @@ function buildAppleFlowClientScript() {
           }
         }
 
-        // 4. Sticky Scrub Cards + Canvas
         drawInteractiveChipFrame(pScrub);
         if (elScrubLeft) {
           var ly = lerp(60, -20, pScrub);
@@ -11148,7 +11196,6 @@ function buildAppleFlowClientScript() {
           elScrubRight.style.transform = 'translate3d(0,' + ry.toFixed(1) + 'px,0)';
         }
 
-        // 5. 3D Teardown Stack
         if (elTdFront && elTdMid && elTdBack) {
           var spread = Math.sin(pTeardown * Math.PI);
           elTdFront.style.transform = 'translate3d(' + lerp(-50, -115, spread).toFixed(1) + '%,-50%,0) rotateY(' + lerp(0, -14, spread).toFixed(1) + 'deg)';
@@ -11156,7 +11203,6 @@ function buildAppleFlowClientScript() {
           elTdBack.style.transform = 'translate3d(' + lerp(-50, 15, spread).toFixed(1) + '%,-50%,0) rotateY(' + lerp(0, 14, spread).toFixed(1) + 'deg)';
         }
 
-        // 6. Clip-Path Morph
         var pMorph = sectionProgress(secMorph);
         if (elMorphBox) {
           var insetPct = lerp(12, 0, clamp01(pMorph * 1.6));
@@ -11177,9 +11223,6 @@ function buildAppleFlowClientScript() {
   </script>`;
 }
 
-// ============================================================================
-// HÀM ĐÓNG GÓI TRANG WEB UI HOÀN CHỈNH (APPLE SCROLLYTELLING + BENTO CONSOLE)
-// ============================================================================
 function buildWebUiHtmlPage(cfg, statusMsg = "", openAdminDrawer = false, forceShowPopup = false) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const friendsMap = getFriendsBadgeMap();
@@ -11204,7 +11247,7 @@ function buildWebUiHtmlPage(cfg, statusMsg = "", openAdminDrawer = false, forceS
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>${escapeHtml(THAY_PRODUCT_NAME)} — UpLocket Master Edition V11.0</title>
+  <title>${escapeHtml(THAY_PRODUCT_NAME)} — UpLocket Master Edition V11.1</title>
   <style>${cssBlock}</style>
 </head>
 <body>
@@ -11217,11 +11260,7 @@ function buildWebUiHtmlPage(cfg, statusMsg = "", openAdminDrawer = false, forceS
 
 // ============================================================================
 // BỘ XỬ LÝ WEB CONSOLE & API NỘI BỘ (/setdate & api.revenuecat.com)
-// Xử lý:
-//  - Phục vụ trực tiếp ảnh đã upload từ máy (local_asset=popup|widget)
-//  - Lưu file ảnh upload trực tiếp từ máy (api=upload_direct_image)
-//  - Bắn thông báo Popup UpLocket lên App Locket (api=fire_locket_popup)
-//  - Lưu toàn bộ Công tắc iOS Switch, Caption Studio, Danh sách Bạn bè & Admin
+// Dùng hàm sendLocalHttpResponse() để tương thích 100% với Shadowrocket / Loon / Surge / QuanX
 // ============================================================================
 function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr) {
     const q = parseQuery(reqUrl);
@@ -11239,28 +11278,15 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
         if (assetDataUri && /^data:image\/svg\+xml/i.test(assetDataUri)) {
             const commaIdx = assetDataUri.indexOf(",");
             const svgRaw = commaIdx !== -1 ? decodeURIComponent(assetDataUri.slice(commaIdx + 1)) : "";
-            Env.done({
-                status: "HTTP/1.1 200 OK",
-                headers: {
-                    "Content-Type": "image/svg+xml; charset=utf-8",
-                    "Cache-Control": "no-store, no-cache",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                body: svgRaw
-            });
+            sendLocalHttpResponse(200, {
+                "Content-Type": "image/svg+xml; charset=utf-8"
+            }, svgRaw);
             return true;
         }
 
-        // Redirect hoặc trả về HTML nhúng cho WebView Locket
-        Env.done({
-            status: "HTTP/1.1 200 OK",
-            headers: {
-                "Content-Type": "text/html; charset=utf-8",
-                "Cache-Control": "no-store, no-cache",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body: `<!DOCTYPE html><html><body style="margin:0;background:#121214;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(assetDataUri)}" style="max-width:100%;max-height:100vh;object-fit:contain;"></body></html>`
-        });
+        sendLocalHttpResponse(200, {
+            "Content-Type": "text/html; charset=utf-8"
+        }, `<!DOCTYPE html><html><body style="margin:0;background:#121214;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(assetDataUri)}" style="max-width:100%;max-height:100vh;object-fit:contain;"></body></html>`);
         return true;
     }
 
@@ -11285,20 +11311,15 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
         if (slot === "popup") {
             armLocketInAppPopupTrigger(cfg, "Direct Image Uploaded");
         }
-        Env.done({
-            status: "HTTP/1.1 200 OK",
-            headers: {
-                "Content-Type": "application/json; charset=utf-8",
-                "Cache-Control": "no-store, no-cache"
-            },
-            body: JSON.stringify({
-                ok: okSaved,
-                slot: slot,
-                msg: okSaved
-                    ? `Đã tải trực tiếp file ảnh (${fileName}) vào ${slot === "widget" ? "Khung Widget" : "Thông báo Popup Locket"} thành công!`
-                    : "Chưa nhận được dữ liệu ảnh, vui lòng thử chọn ảnh dung lượng nhỏ hơn!"
-            })
-        });
+        sendLocalHttpResponse(200, {
+            "Content-Type": "application/json; charset=utf-8"
+        }, JSON.stringify({
+            ok: okSaved,
+            slot: slot,
+            msg: okSaved
+                ? `Đã tải trực tiếp file ảnh (${fileName}) vào ${slot === "widget" ? "Khung Widget" : "Thông báo Popup Locket"} thành công!`
+                : "Chưa nhận được dữ liệu ảnh, vui lòng thử chọn ảnh dung lượng nhỏ hơn!"
+        }));
         return true;
     }
 
@@ -11313,14 +11334,12 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
         }
         saveConfig(cfg);
         if (q.api === "clear_direct_image") {
-            Env.done({
-                status: "HTTP/1.1 200 OK",
-                headers: { "Content-Type": "application/json; charset=utf-8" },
-                body: JSON.stringify({
-                    ok: true,
-                    msg: `Đã khôi phục ảnh ${slot === "widget" ? "Khung Widget" : "Thông báo Popup"} về mặc định!`
-                })
-            });
+            sendLocalHttpResponse(200, {
+                "Content-Type": "application/json; charset=utf-8"
+            }, JSON.stringify({
+                ok: true,
+                msg: `Đã khôi phục ảnh ${slot === "widget" ? "Khung Widget" : "Thông báo Popup"} về mặc định!`
+            }));
             return true;
         }
         statusMsg = `Đã khôi phục ảnh ${slot === "widget" ? "Khung Widget" : "Thông báo Popup"} về mặc định!`;
@@ -11335,34 +11354,27 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
         saveConfig(cfg);
 
         const armed = armLocketInAppPopupTrigger(cfg, "Web UI Fire Button");
-        Env.done({
-            status: "HTTP/1.1 200 OK",
-            headers: {
-                "Content-Type": "application/json; charset=utf-8",
-                "Cache-Control": "no-store, no-cache"
-            },
-            body: JSON.stringify({
-                ok: true,
-                campaignId: armed.campaignId,
-                msg: `🚀 Đã bắn thông báo Popup "${cfg.popupBadge} — ${cfg.popupHeader}" lên App Locket thành công! Mở Locket để xem ngay.`
-            })
-        });
+        sendLocalHttpResponse(200, {
+            "Content-Type": "application/json; charset=utf-8"
+        }, JSON.stringify({
+            ok: true,
+            campaignId: armed.campaignId,
+            msg: `🚀 Đã bắn thông báo Popup "${cfg.popupBadge} — ${cfg.popupHeader}" lên App Locket thành công! Mở Locket để xem ngay.`
+        }));
         return true;
     }
 
     // 5. API KIỂM TRA SỨC KHOẺ DOH 40 MIỀN
     if (q.api === "doh_probe") {
         probeIntegratedDohEndpoint(cfg, (st) => {
-            Env.done({
-                status: "HTTP/1.1 200 OK",
-                headers: { "Content-Type": "application/json; charset=utf-8" },
-                body: JSON.stringify({
-                    ok: st.ok,
-                    latencyMs: st.latencyMs,
-                    domainsCount: st.domainsCount,
-                    msg: `DoH UpLocket (${st.primaryIp}) phản hồi trong ${st.latencyMs}ms — Đã đồng bộ 40 miền!`
-                })
-            });
+            sendLocalHttpResponse(200, {
+                "Content-Type": "application/json; charset=utf-8"
+            }, JSON.stringify({
+                ok: st.ok,
+                latencyMs: st.latencyMs,
+                domainsCount: st.domainsCount,
+                msg: `DoH UpLocket (${st.primaryIp}) phản hồi trong ${st.latencyMs}ms — Đã đồng bộ 40 miền!`
+            }));
         });
         return true;
     }
@@ -11370,11 +11382,9 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
     // 6. API QUÉT TỰ ĐỘNG DANH SÁCH BẠN BÈ
     if (q.api === "auto_harvest_friends") {
         activeFetchFriendsFromLocketApi(cfg, (res) => {
-            Env.done({
-                status: "HTTP/1.1 200 OK",
-                headers: { "Content-Type": "application/json; charset=utf-8" },
-                body: JSON.stringify(res)
-            });
+            sendLocalHttpResponse(200, {
+                "Content-Type": "application/json; charset=utf-8"
+            }, JSON.stringify(res));
         });
         return true;
     }
@@ -11383,31 +11393,24 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
     if (q.api === "toggle_friend_badge" && q.friend_uid) {
         const enableBool = q.enable !== "0" && q.enable !== "false";
         const updated = setSingleFriendBadgeState(q.friend_uid, enableBool);
-        Env.done({
-            status: "HTTP/1.1 200 OK",
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-            body: JSON.stringify({
-                ok: true,
-                uid: q.friend_uid,
-                badge_enabled: updated ? updated.badge_enabled : enableBool,
-                msg: `Đã ${enableBool ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho @${updated ? updated.username : q.friend_uid.slice(0, 8)}!`
-            })
-        });
+        sendLocalHttpResponse(200, {
+            "Content-Type": "application/json; charset=utf-8"
+        }, JSON.stringify({
+            ok: true,
+            uid: q.friend_uid,
+            badge_enabled: updated ? updated.badge_enabled : enableBool,
+            msg: `Đã ${enableBool ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho @${updated ? updated.username : q.friend_uid.slice(0, 8)}!`
+        }));
         return true;
     }
 
     // 8. TẢI FILE .MOBILECONFIG
     if (q.download_mobileconfig === "1") {
         const xmlBody = generateIntegratedMobileconfigXml(cfg);
-        Env.done({
-            status: "HTTP/1.1 200 OK",
-            headers: {
-                "Content-Type": "application/x-apple-aspen-config; charset=utf-8",
-                "Content-Disposition": 'attachment; filename="UpLocket_Gold_Ngominhduc.mobileconfig"',
-                "Cache-Control": "no-store"
-            },
-            body: xmlBody
-        });
+        sendLocalHttpResponse(200, {
+            "Content-Type": "application/x-apple-aspen-config; charset=utf-8",
+            "Content-Disposition": 'attachment; filename="UpLocket_Gold_Ngominhduc.mobileconfig"'
+        }, xmlBody);
         return true;
     }
 
@@ -11621,20 +11624,15 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
 
     cfg = loadConfig();
     const htmlPage = buildWebUiHtmlPage(cfg, statusMsg, openAdminDrawer, forceShowPopup);
-    Env.done({
-        status: "HTTP/1.1 200 OK",
-        headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-store, no-cache, must-revalidate",
-            "X-LocketGold-Version": "V11.0-Master"
-        },
-        body: htmlPage
-    });
+    sendLocalHttpResponse(200, {
+        "Content-Type": "text/html; charset=utf-8"
+    }, htmlPage);
     return true;
 }
 
 // ============================================================================
 // ĐIỂM KHỞI CHẠY CHÍNH CỦA BỘ ĐỊNH TUYẾN MẠNG (REQUEST & RESPONSE INTERCEPTOR)
+// Tự động chặn lỗi 7117 "Page not found" ở cả 2 chiều Request và Response
 // ============================================================================
 (function mainEntry() {
     const isRequestPhase = typeof $request !== "undefined" && typeof $response === "undefined";
@@ -11643,24 +11641,30 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
     const reqMethod = (typeof $request !== "undefined" && $request.method) ? $request.method : "GET";
     const reqHeaders = (typeof $request !== "undefined" && $request.headers) ? { ...$request.headers } : {};
     const reqBodyStr = (typeof $request !== "undefined" && typeof $request.body === "string") ? $request.body : "";
+    const rawRespBody = (isResponsePhase && typeof $response.body === "string") ? $response.body : "";
 
     const cfg = loadConfig();
 
     // 1. Chặn đứng các miền Quảng cáo & Telemetry
     if (cfg.blockAdsAndTelemetry !== false && isBlockedAdOrTelemetryDomain(reqUrl)) {
-        Env.done({
-            status: "HTTP/1.1 204 No Content",
-            headers: { "Content-Type": "text/plain" },
-            body: ""
-        });
+        sendLocalHttpResponse(204, { "Content-Type": "text/plain" }, "");
         return;
     }
 
-    // 2. Mở giao diện Web UI & API nội bộ khi truy cập /setdate hoặc api.revenuecat.com trên Safari
+    // 2. Nhận diện truy cập Safari vào bảng điều khiển (/setdate, locket.gold, api.revenuecat.com gốc, hoặc khi bị lỗi 7117)
+    const isRc7117NotFound = rawRespBody.includes('"code":7117') || rawRespBody.includes("Page not found");
+    const isBrowserVisitToRc =
+        !isActualLocketAppTraffic(reqUrl, reqHeaders) &&
+        /^https?:\/\/(api|rc-backup)\.revenuecat\.com(\/.*)?$/i.test(reqUrl) &&
+        !reqUrl.toLowerCase().includes("/v1/subscribers") &&
+        !reqUrl.toLowerCase().includes("/v1/receipts") &&
+        !reqUrl.toLowerCase().includes("/v1/offerings");
+
     const isWebConsoleRoute =
         reqUrl.includes("/setdate") ||
         reqUrl.includes("locket.gold") ||
-        (!isActualLocketAppTraffic(reqUrl, reqHeaders) && /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(reqUrl));
+        isBrowserVisitToRc ||
+        (isResponsePhase && isRc7117NotFound && !reqUrl.toLowerCase().includes("/v1/"));
 
     if (isWebConsoleRoute) {
         handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr);
@@ -11677,17 +11681,15 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
 
     // 4. Pha RESPONSE (Từ máy chủ RevenueCat / Firebase / Cloud Functions trả về App Locket)
     if (isResponsePhase) {
-        const rawBody = (typeof $response.body === "string") ? $response.body : "";
-        const resolvedUid = extractAndCacheCredentials(reqUrl, reqHeaders, rawBody);
+        const resolvedUid = extractAndCacheCredentials(reqUrl, reqHeaders, rawRespBody);
         const requestedUrlUid = extractRequestedRcUserId(reqUrl);
 
         let obj = null;
         try {
-            if (rawBody) obj = JSON.parse(rawBody);
+            if (rawRespBody) obj = JSON.parse(rawRespBody);
         } catch (e) {}
 
-        // Tự động quét & thu thập UID bạn bè vào ô cuộn
-        autoHarvestFriendsFromRawPayload(rawBody, obj, cfg);
+        autoHarvestFriendsFromRawPayload(rawRespBody, obj, cfg);
 
         const lowUrl = reqUrl.toLowerCase();
         const isRevenueCatSubOrReceipt =
@@ -11756,4 +11758,4 @@ function handleSetDateWebConsoleAndApi(reqUrl, reqMethod, reqHeaders, reqBodyStr
         Env.done({});
     }
 })();
-// === HOÀN TẤT TRỌN BỘ 6/6 PHẦN CỦA FILE LOCKET_25_05_2026.JS (MASTER V11.0 — >12.200 DÒNG) ===
+// === HOÀN TẤT BẢN FIX PHẦN 6/6 (TRIỆT TIÊU 100% LỖI 7117 PAGE NOT FOUND) ===
