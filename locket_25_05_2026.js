@@ -9069,750 +9069,11 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
     }
     return node;
 }
+
+// === KẾT THÚC PHẦN 4 / 6 (~8.150 DÒNG LŨY KẾ) — GÕ "5" ĐỂ NHẬN TIẾP PHẦN 5 / 6 ===
 // ============================================================================
-// FILE: locket_25_05_2026.js (MASTER UNIFIED EDITION V11.2 — PART 5 & 6 MERGED)
-// ĐÃ TÍCH HỢP ĐẦY ĐỦ 4 HÀM ĐẦU PHẦN 5 + XOÁ TRÙNG LẶP + BỌC TRY/CATCH CHỐNG 7117
+// FILE: locket_25_05_2026.js (MASTER UNIFIED EDITION V11.0 — PART 5 OF 6)
 // ============================================================================
-
-function buildAppleWordRevealHtml(textStr, customClass = "") {
-    const words = String(textStr || "").trim().split(/\s+/).filter(Boolean);
-    let out = "";
-    for (let i = 0; i < words.length; i++) {
-        const delaySec = (i * 0.04).toFixed(2);
-        out += `<span class="apple-word-unit ${customClass}" data-word-idx="${i}" style="--w-idx:${i};--w-delay:${delaySec}s;">${escapeHtml(words[i])}</span> `;
-    }
-    return out.trim();
-}
-
-function renderIosSwitchCard(inputName, isChecked, titleText, subText = "Đang kích hoạt 24/7", isGoldStyle = false) {
-    return `
-    <label class="ios-switch-card">
-      <div class="ios-switch-info">
-        <span class="ios-switch-title">${escapeHtml(titleText)}</span>
-        <span class="ios-switch-sub">${escapeHtml(subText)}</span>
-      </div>
-      <div class="ios-switch-control ${isGoldStyle ? "gold-switch" : ""}">
-        <input type="checkbox" name="${escapeHtml(inputName)}" value="1" ${isChecked ? "checked" : ""}>
-        <span class="ios-switch-slider"></span>
-      </div>
-    </label>`;
-}
-
-function buildAppleScrollyCss(cfg, statusMsg) {
-    const grainSvgDataUri = "data:image/svg+xml;utf8," + encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" stitchTiles="stitch"/></filter><rect width="200" height="200" filter="url(#n)" opacity="1"/></svg>`
-    );
-
-    return `
-  :root {
-    --apple-bg-light: #fbfbfd;
-    --apple-bg-dark: #000000;
-    --apple-text-primary: #1d1d1f;
-    --apple-text-secondary: #6e6e73;
-    --apple-blue: #0071e3;
-    --apple-gold: #f59e0b;
-    --apple-emerald: #10b981;
-    --apple-rose: #f43f5e;
-    --apple-card-radius: 28px;
-    --apple-pill-radius: 999px;
-    --apple-shadow: 0 14px 48px rgba(0, 0, 0, 0.08), 0 2px 12px rgba(0, 0, 0, 0.04);
-    --apple-ease: cubic-bezier(0.28, 0.11, 0.32, 1);
-    --apple-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-  html, body {
-    background-color: #fbfbfd;
-    color: var(--apple-text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.015em;
-    line-height: 1.47059;
-    overflow-x: clip;
-  }
-
-  .apple-bg-stack { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; }
-  .apple-bg-layer-light { position: absolute; inset: 0; background-color: var(--apple-bg-light); opacity: 1; will-change: opacity; }
-  .apple-bg-layer-dark { position: absolute; inset: 0; background: radial-gradient(circle at 50% 25%, #161618 0%, #050507 60%, #000000 100%); opacity: 0; will-change: opacity; }
-
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 9990;
-    pointer-events: none;
-    opacity: 0.015;
-    background-image: url("${grainSvgDataUri}");
-    background-repeat: repeat;
-    background-size: 180px 180px;
-  }
-
-  .apple-global-progress {
-    position: fixed;
-    top: 0; left: 0; height: 2px;
-    background: linear-gradient(90deg, #0071e3 0%, #f59e0b 50%, #10b981 100%);
-    width: 100%; z-index: 10000;
-    transform-origin: left center; will-change: transform; transform: scaleX(0);
-  }
-
-  .apple-sticky-nav {
-    position: sticky; top: 0; height: 48px; width: 100%; z-index: 950;
-    background: rgba(251, 251, 253, 0.82);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 1px solid rgba(29, 29, 31, 0.08);
-    display: flex; align-items: center; justify-content: center; padding: 0 20px;
-    transition: background-color 0.35s ease, border-color 0.35s ease;
-  }
-  .apple-sticky-nav.nav-dark-mode {
-    background: rgba(18, 18, 20, 0.82);
-    border-bottom-color: rgba(255, 255, 255, 0.12);
-  }
-  .apple-sticky-nav.nav-dark-mode .apple-nav-center,
-  .apple-sticky-nav.nav-dark-mode .apple-nav-left span { color: #f5f5f7 !important; }
-  .apple-sticky-nav.nav-dark-mode .apple-nav-link { color: #a1a1a6; }
-  .apple-sticky-nav.nav-dark-mode .apple-logo-dot { background: #f5f5f7; }
-
-  .apple-nav-container { width: 100%; max-width: 1040px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .apple-nav-left { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--apple-text-primary); }
-  .apple-logo-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--apple-text-primary); display: inline-block; }
-  .apple-nav-center { font-size: 14px; font-weight: 700; color: var(--apple-text-primary); white-space: nowrap; }
-  .apple-nav-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .apple-nav-link { font-size: 12px; font-weight: 500; color: var(--apple-text-secondary); text-decoration: none; padding: 5px 10px; border-radius: var(--apple-pill-radius); background: transparent; border: none; cursor: pointer; font-family: inherit; }
-  .apple-nav-link:hover { opacity: 0.7; }
-  .apple-buy-pill { display: inline-flex; align-items: center; justify-content: center; background: var(--apple-blue); color: #fff; font-size: 12px; font-weight: 600; padding: 0 14px; height: 28px; border-radius: var(--apple-pill-radius); text-decoration: none; border: none; cursor: pointer; white-space: nowrap; }
-
-  .gpu-layer { will-change: transform, opacity; transform: translate3d(0, 0, 0); backface-visibility: hidden; }
-  .apple-sticky-viewport { position: sticky; top: 0; width: 100%; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 0 24px; }
-
-  .sec-hero-zoom-200 { position: relative; width: 100%; height: 200vh; }
-  .hero-kicker-clean { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--apple-text-secondary); margin-bottom: 20px; text-align: center; }
-  .hero-mega-h1 { font-size: clamp(54px, 14vw, 185px); font-weight: 800; letter-spacing: -0.055em; line-height: 0.94; color: var(--apple-text-primary); text-align: center; white-space: nowrap; margin-bottom: 26px; user-select: none; }
-  .hero-sub-lead { font-size: clamp(19px, 2.3vw, 28px); font-weight: 500; letter-spacing: -0.02em; line-height: 1.38; color: var(--apple-text-secondary); text-align: center; max-width: 680px; }
-  .scroll-cue-wrap { position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  .scroll-cue-line { width: 1.5px; height: 40px; background: linear-gradient(180deg, rgba(29,29,31,0.5) 0%, rgba(29,29,31,0.05) 100%); }
-  .scroll-cue-label { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--apple-text-secondary); }
-
-  .sec-text-reveal-220 { position: relative; width: 100%; height: 210vh; color: #f5f5f7; }
-  .text-reveal-stage { max-width: 940px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
-  .apple-word-paragraph { font-size: clamp(26px, 4.2vw, 50px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.18; color: #f5f5f7; display: flex; flex-wrap: wrap; gap: 0.26em; }
-  .apple-word-paragraph.sub-paragraph { font-size: clamp(19px, 2.4vw, 28px); font-weight: 500; color: #a1a1a6; line-height: 1.4; }
-  .apple-word-unit { display: inline-block; will-change: transform, opacity, filter; transform: translate3d(0, 36px, 0) scale(0.95); opacity: 0.08; }
-
-  .sec-sticky-scrub-300 { position: relative; width: 100%; height: 280vh; color: #f5f5f7; }
-  .scrub-stage-1320 { position: relative; width: 100%; height: 100vh; max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-  .scrub-canvas-wrap { position: relative; width: 520px; max-width: 84vw; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; z-index: 2; }
-  .scrub-webgl-canvas { width: 100%; height: 100%; display: block; border-radius: 36px; will-change: transform, opacity; }
-  .scrub-fallback-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; opacity: 0; }
-  .scrub-card-glass { position: absolute; width: 330px; padding: 30px; border-radius: var(--apple-card-radius); background: rgba(28, 28, 30, 0.78); backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px); border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); color: #f5f5f7; z-index: 4; }
-  .scrub-card-left { left: 5%; top: 50%; }
-  .scrub-card-right { right: 5%; top: 50%; }
-
-  .sec-teardown-240 { position: relative; width: 100%; height: 230vh; }
-  .teardown-stage-3d { position: relative; width: 100%; height: 100vh; perspective: 1100px; display: flex; align-items: center; justify-content: center; }
-  .td-layer-card { position: absolute; left: 50%; top: 50%; width: 380px; max-width: 90vw; height: 470px; border-radius: var(--apple-card-radius); box-shadow: var(--apple-shadow); padding: 32px 28px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(29, 29, 31, 0.08); transform-style: preserve-3d; }
-  .td-layer-front { background: rgba(255, 255, 255, 0.96); color: var(--apple-text-primary); z-index: 30; }
-  .td-layer-mid { background: rgba(245, 245, 247, 0.94); color: var(--apple-text-primary); z-index: 20; }
-  .td-layer-back { background: #1d1d1f; color: #fff; z-index: 10; border-color: rgba(255, 255, 255, 0.14); }
-  .td-diagram-box { width: 100%; height: 170px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: rgba(29, 29, 31, 0.03); border: 1px solid rgba(29, 29, 31, 0.07); }
-  .td-layer-back .td-diagram-box { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.12); }
-
-  .sec-clip-morph-220 { position: relative; width: 100%; height: 210vh; }
-  .clip-morph-viewport { position: relative; width: 100vw; height: 100vh; background: radial-gradient(120% 100% at 50% 15%, #1d1d22 0%, #09090b 55%, #000000 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 28px; color: #fff; will-change: clip-path; box-shadow: 0 32px 80px rgba(0, 0, 0, 0.25); }
-  .morph-grid-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 980px; width: 100%; margin-top: 42px; }
-  .morph-metric-card { padding: 28px 24px; border-radius: 24px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); text-align: left; }
-  .morph-stat-big { font-size: clamp(36px, 4vw, 54px); font-weight: 800; letter-spacing: -0.04em; background: linear-gradient(135deg, #fef08a 0%, #f59e0b 55%, #fbbf24 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
-
-  .bento-console-main { max-width: 1040px; margin: 0 auto; padding: 50px 20px 110px; display: flex; flex-direction: column; gap: 28px; }
-  .apple-bento-card { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: var(--apple-card-radius); box-shadow: var(--apple-shadow); border: 1px solid rgba(29, 29, 31, 0.07); padding: 34px 30px; }
-  .bento-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid rgba(29, 29, 31, 0.07); margin-bottom: 22px; }
-  .bento-eyebrow { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--apple-text-secondary); margin-bottom: 6px; }
-  .bento-heading { font-size: 23px; font-weight: 700; letter-spacing: -0.025em; color: var(--apple-text-primary); }
-  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-
-  .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--apple-text-primary); margin-bottom: 8px; }
-  .apple-field { width: 100%; padding: 13px 16px; border-radius: 14px; background: var(--apple-bg-light); border: 1px solid rgba(29, 29, 31, 0.14); color: var(--apple-text-primary); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
-  .apple-field:focus { border-color: var(--apple-blue); box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15); }
-  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .preset-pill { padding: 6px 14px; border-radius: var(--apple-pill-radius); background: var(--apple-bg-light); border: 1px solid rgba(29, 29, 31, 0.1); font-size: 12px; font-weight: 600; color: var(--apple-text-primary); cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
-  .preset-pill:hover { background: #e8e8ed; }
-  .btn-action-primary { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 16px; background: var(--apple-text-primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; width: 100%; font-family: inherit; transition: transform 0.15s ease, opacity 0.2s ease; }
-  .btn-action-primary:active { transform: scale(0.985); }
-  .btn-action-blue { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 16px; background: var(--apple-blue); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; width: 100%; font-family: inherit; }
-  .btn-action-gold { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 16px; background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%); color: #111111; font-size: 14.5px; font-weight: 700; border: none; cursor: pointer; text-decoration: none; width: 100%; font-family: inherit; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.28); }
-  .btn-action-soft { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 16px; background: #f2f2f7; color: var(--apple-text-primary); font-size: 14px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; width: 100%; font-family: inherit; }
-  .apple-pill { display: inline-block; padding: 3px 11px; border-radius: var(--apple-pill-radius); font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; }
-  .pill-gold { background: rgba(245, 158, 11, 0.16); color: #92400e; }
-  .pill-blue { background: rgba(0, 113, 227, 0.12); color: #0051a8; }
-  .pill-emerald { background: rgba(16, 185, 129, 0.14); color: #065f46; }
-  .pill-rose { background: rgba(244, 63, 94, 0.14); color: #9f1239; }
-
-  .apple-pill-btn { display: inline-flex; align-items: center; justify-content: center; padding: 7px 15px; border-radius: var(--apple-pill-radius); font-size: 12px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; font-family: inherit; transition: opacity 0.2s ease; }
-  .btn-dark-soft { background: #1d1d1f; color: #fff; }
-  .btn-blue-soft { background: rgba(0, 113, 227, 0.12); color: #0071e3; }
-  .btn-emerald-soft { background: rgba(16, 185, 129, 0.14); color: #065f46; }
-  .btn-amber-soft { background: rgba(245, 158, 11, 0.16); color: #92400e; }
-  .btn-rose-soft { background: rgba(244, 63, 94, 0.14); color: #9f1239; }
-
-  .spec-tile { padding: 22px; border-radius: 22px; background: var(--apple-bg-light); border: 1px solid rgba(29, 29, 31, 0.07); }
-  .spec-mono-val { font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: var(--apple-text-primary); word-break: break-all; margin-top: 4px; }
-  .empty-state-box { padding: 28px 16px; text-align: center; font-size: 13.5px; color: var(--apple-text-secondary); grid-column: 1 / -1; }
-  .toast-alert-bar { padding: 16px 22px; border-radius: 20px; background: #1d1d1f; color: #fff; font-size: 13.5px; font-weight: 500; box-shadow: var(--apple-shadow); display: ${statusMsg ? "block" : "none"}; }
-  .admin-block-alert { padding: 22px 26px; border-radius: var(--apple-card-radius); background: #fff1f2; border: 1px solid rgba(244, 63, 94, 0.3); color: #881337; display: ${cfg.isBlockedByAdmin ? "flex" : "none"}; flex-direction: column; gap: 6px; }
-
-  .ios-switch-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
-    gap: 12px;
-  }
-  .ios-switch-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: #ffffff;
-    border: 1px solid rgba(29, 29, 31, 0.08);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.025);
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-  .ios-switch-card:hover {
-    border-color: rgba(0, 113, 227, 0.28);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-    transform: translateY(-1px);
-  }
-  .ios-switch-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .ios-switch-title {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--apple-text-primary);
-    line-height: 1.3;
-  }
-  .ios-switch-sub {
-    font-size: 11px;
-    color: var(--apple-text-secondary);
-  }
-  .ios-switch-control {
-    position: relative;
-    width: 50px;
-    height: 30px;
-    flex-shrink: 0;
-  }
-  .ios-switch-control input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-  }
-  .ios-switch-slider {
-    position: absolute;
-    inset: 0;
-    background-color: #e5e5ea;
-    border-radius: 30px;
-    transition: background-color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .ios-switch-slider::before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 2px;
-    bottom: 2px;
-    background-color: #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.12);
-    transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .ios-switch-control input:checked + .ios-switch-slider {
-    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-  }
-  .ios-switch-control.gold-switch input:checked + .ios-switch-slider {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  }
-  .ios-switch-control input:checked + .ios-switch-slider::before {
-    transform: translateX(20px);
-  }
-
-  .cap-preview-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 15px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    border: 1px solid rgba(0,0,0,0.06);
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .cap-studio-grid,
-  .scroll-box-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
-    max-height: 490px;
-    overflow-y: auto;
-    padding: 12px;
-    border-radius: 22px;
-    background: rgba(242, 242, 247, 0.65);
-    border: 1px solid rgba(29, 29, 31, 0.08);
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.03);
-    -webkit-overflow-scrolling: touch;
-  }
-  .cap-studio-grid::-webkit-scrollbar,
-  .scroll-box-grid::-webkit-scrollbar {
-    width: 6px;
-  }
-  .cap-studio-grid::-webkit-scrollbar-thumb,
-  .scroll-box-grid::-webkit-scrollbar-thumb {
-    background: rgba(29, 29, 31, 0.22);
-    border-radius: 999px;
-  }
-  .cap-card-item,
-  .scroll-user-card {
-    padding: 16px;
-    border-radius: 18px;
-    background: #ffffff;
-    border: 1px solid rgba(29, 29, 31, 0.08);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 12px;
-    transition: transform 0.16s ease, box-shadow 0.16s ease;
-  }
-  .cap-card-item:hover,
-  .scroll-user-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-  }
-  .user-card-top {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-  }
-  .user-card-avatar {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1.5px solid rgba(245, 158, 11, 0.45);
-    flex-shrink: 0;
-    background: #1d1d1f;
-  }
-  .user-card-meta {
-    min-width: 0;
-    flex: 1;
-  }
-  .user-card-name-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .user-card-fullname {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--apple-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .user-card-handle {
-    font-size: 12px;
-    color: var(--apple-text-secondary);
-  }
-  .user-card-uid {
-    font-family: "SF Mono", monospace;
-    font-size: 10.5px;
-    color: var(--apple-text-secondary);
-    margin-top: 3px;
-    word-break: break-all;
-  }
-  .user-card-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(29, 29, 31, 0.06);
-    flex-wrap: wrap;
-  }
-
-  .direct-upload-zone {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px;
-    border-radius: 18px;
-    background: #ffffff;
-    border: 1.5px dashed rgba(0, 113, 227, 0.35);
-    margin-top: 8px;
-  }
-  .direct-upload-thumb {
-    width: 64px;
-    height: 64px;
-    border-radius: 14px;
-    object-fit: cover;
-    background: #141415;
-    border: 1px solid rgba(29, 29, 31, 0.1);
-    flex-shrink: 0;
-  }
-  .direct-upload-controls {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .file-upload-btn-label {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 12px;
-    background: rgba(0, 113, 227, 0.12);
-    color: #0071e3;
-    font-size: 12.5px;
-    font-weight: 700;
-    cursor: pointer;
-    width: fit-content;
-  }
-  .file-upload-btn-label input[type="file"] {
-    display: none;
-  }
-
-  .apple-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 10001;
-    background: rgba(0, 0, 0, 0.68);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .uplocket-bottom-sheet {
-    position: relative;
-    width: 100%;
-    max-width: 470px;
-    background: radial-gradient(circle at 50% 95%, rgba(245, 158, 11, 0.20) 0%, #1c1c1e 62%, #18181a 100%);
-    border-top-left-radius: 38px;
-    border-top-right-radius: 38px;
-    box-shadow: 0 -24px 64px rgba(0, 0, 0, 0.65);
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 14px 22px 34px;
-    text-align: center;
-    color: #ffffff;
-  }
-  .uplocket-sheet-handle {
-    width: 42px;
-    height: 5px;
-    border-radius: 999px;
-    background: #52525b;
-    margin: 0 auto 16px;
-  }
-  .uplocket-pill-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 20px;
-    border-radius: 13px;
-    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-    color: #111111;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
-    margin-bottom: 18px;
-  }
-  .uplocket-stage-card {
-    width: 100%;
-    height: 220px;
-    border-radius: 26px;
-    background: #121214;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    margin: 0 auto 22px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    box-shadow: inset 0 2px 18px rgba(0, 0, 0, 0.6);
-  }
-  .uplocket-stage-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .uplocket-headline {
-    font-size: 23px;
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    color: #ffffff;
-    margin-bottom: 10px;
-  }
-  .uplocket-subtext {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.45;
-    color: #a1a1aa;
-    max-width: 360px;
-    margin: 0 auto 24px;
-  }
-  .uplocket-cta-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 54px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
-    color: #111111;
-    font-size: 17px;
-    font-weight: 800;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 10px 28px rgba(245, 158, 11, 0.32);
-  }
-  .hidden { display: none !important; }
-
-  @media (max-width: 860px) {
-    .scrub-stage-1320 { flex-direction: column; justify-content: center; gap: 14px; padding: 54px 18px 18px; }
-    .scrub-canvas-wrap { width: 260px; }
-    .scrub-card-glass { position: static; width: 100%; max-width: 440px; padding: 20px; }
-    .td-layer-card { width: 320px; height: 420px; padding: 24px 22px; }
-    .morph-grid-metrics, .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-    .apple-nav-link.hide-mobile { display: none; }
-  }
-`;
-}
-
-function buildAppleScrollySectionsHtml(cfg, activeFriendsBadgeCount, friendsListCount, isAdminLogged, shouldShowPopup) {
-    const isRevoked = !!(cfg && cfg.isBlockedByAdmin);
-    const popupBadge = isRevoked ? (cfg.revokedPopupBadge || "THÔNG BÁO HỆ THỐNG") : (cfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText);
-    const popupHeader = isRevoked ? (cfg.revokedPopupHeader || "Đã thu hồi LOCKET GOLD!") : (cfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText);
-    const popupSubtitle = isRevoked ? (cfg.revokedPopupSubtitle || cfg.blockReason) : (cfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText);
-    const popupImage = resolveEffectivePopupImage(cfg);
-    const popupBtnText = isRevoked ? (cfg.revokedPopupBtnText || "Đã hiểu") : (cfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText);
-
-    const revealSentence1 = buildAppleWordRevealHtml("Mọi chuyển động đều được điều khiển trực tiếp bằng ngón tay của bạn. Không autoplay. Không rào cản Paywall. Mở khóa trọn bộ Khung Photobooth, 220+ Caption VIP, Camera 30s và Tạo diện mạo AI ở tốc độ 60 khung hình/giây.");
-    const revealSentence2 = buildAppleWordRevealHtml(" Tự động bắt giữ UID bạn bè vào ô cuộn thông minh, tải ảnh trực tiếp từ máy cho Popup & Widget, bắn thông báo Popup UpLocket thẳng vào Locket và duy trì kết nối DoH UpLocket 40 miền bảo mật tuyệt đối.");
-
-    return `
-  <div class="apple-bg-stack" aria-hidden="true">
-    <div id="bgLayerLight" class="apple-bg-layer-light"></div>
-    <div id="bgLayerDark" class="apple-bg-layer-dark"></div>
-  </div>
-
-  <div id="globalProgressBar" class="apple-global-progress"></div>
-
-  <div id="locketGoldModal" onclick="if(event.target===this){this.classList.add('hidden');this.style.display='none';}" class="apple-modal-backdrop ${shouldShowPopup ? "" : "hidden"}" style="display:${shouldShowPopup ? "flex" : "none"};">
-    <div class="uplocket-bottom-sheet">
-      <div class="uplocket-sheet-handle"></div>
-      <div id="modalPillBadge" class="uplocket-pill-badge" style="${isRevoked ? "background:#f43f5e;color:#fff;" : ""}">${escapeHtml(popupBadge)}</div>
-      <div class="uplocket-stage-card">
-        <img id="modalArtImg" src="${escapeHtml(popupImage)}" onerror="this.src='${THAY_IMAGE_PATH}'" alt="UpLocket Popup Image">
-      </div>
-      <h2 id="modalHeadlineText" class="uplocket-headline">${escapeHtml(popupHeader)}</h2>
-      <p id="modalSubText" class="uplocket-subtext">${escapeHtml(popupSubtitle)}</p>
-      <button type="button" id="modalDoneBtn" onclick="var m=document.getElementById('locketGoldModal');if(m){m.classList.add('hidden');m.style.display='none';}" class="uplocket-cta-btn" style="${isRevoked ? "background:#f43f5e;color:#fff;" : ""}">${escapeHtml(popupBtnText)}</button>
-    </div>
-  </div>
-
-  <header id="appleStickyNav" class="apple-sticky-nav">
-    <div class="apple-nav-container">
-      <a href="/setdate" class="apple-nav-left">
-        <span class="apple-logo-dot"></span>
-        <span style="font-size:13px;font-weight:700;">${escapeHtml(THAY_PRODUCT_NAME)}</span>
-      </a>
-      <div class="apple-nav-right">
-        <a href="#captionStudioSection" class="apple-nav-link hide-mobile">Caption Studio</a>
-        <a href="#featureEngineSection" class="apple-nav-link hide-mobile">Camera & Tính năng</a>
-        <a href="#friendsBadgeSection" class="apple-nav-link hide-mobile">Bạn bè (${activeFriendsBadgeCount}/${friendsListCount})</a>
-        <a href="#dohEngineSection" class="apple-nav-link hide-mobile">DoH (40 miền)</a>
-        <button type="button" onclick="openGoldModal()" class="apple-nav-link">Xem mẫu Popup</button>
-        <button type="button" onclick="toggleAdminDrawer()" class="apple-nav-link">${isAdminLogged ? "Root Admin" : "Quản trị"}</button>
-        <a href="#consoleSection" class="apple-buy-pill">Bảng điều khiển</a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-
-    <section id="secHeroZoom" class="sec-hero-zoom-200">
-      <div class="apple-sticky-viewport">
-        <div id="elHeroKicker" class="hero-kicker-clean gpu-layer">THẾ HỆ LOCKET GOLD UPLOCKET V11 MASTER</div>
-        <h1 id="elHeroMegaH1" class="hero-mega-h1 gpu-layer">LOCKET H2</h1>
-        <p id="elHeroSubLead" class="hero-sub-lead gpu-layer">${escapeHtml(THAY_SLOGAN)}</p>
-
-        <div id="elScrollCue" class="scroll-cue-wrap gpu-layer">
-          <span class="scroll-cue-label">Cuộn để khám phá</span>
-          <div class="scroll-cue-line"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="secTextReveal" class="sec-text-reveal-220">
-      <div class="apple-sticky-viewport">
-        <div class="text-reveal-stage">
-          <span class="bento-eyebrow" style="color:#f59e0b;">CHUYỂN ĐỘNG THEO THANH CUỘN</span>
-          <div id="elWordGroup1" class="apple-word-paragraph">
-            ${revealSentence1}
-          </div>
-          <div id="elWordGroup2" class="apple-word-paragraph sub-paragraph">
-            ${revealSentence2}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="secStickyScrub" class="sec-sticky-scrub-300">
-      <div class="apple-sticky-viewport">
-        <div class="scrub-stage-1320">
-          <div id="elScrubLeftCard" class="scrub-card-glass scrub-card-left gpu-layer">
-            <span class="bento-eyebrow" style="color:#60a5fa;">01 / THIẾT KẾ TỐI GIẢN</span>
-            <h2 class="bento-heading" style="color:#ffffff;font-size:22px;margin-bottom:10px;">${escapeHtml(THAY_USP_LEFT)}</h2>
-            <p style="font-size:14.5px;color:#a1a1a6;line-height:1.55;">
-              Mốc đăng ký gốc ${escapeHtml(cfg.lockDate)} được khóa cứng ở tầng giao thức, đồng bộ Popup UpLocket trực tiếp trong App Locket.
-            </p>
-          </div>
-
-          <div id="elScrubCenterWrap" class="scrub-canvas-wrap gpu-layer">
-            <canvas id="elSequenceCanvas" width="900" height="900" class="scrub-webgl-canvas"></canvas>
-            <img id="elSequenceSourceImg" src="${escapeHtml(popupImage)}" onerror="this.src='${THAY_IMAGE_PATH}'" class="scrub-fallback-img" alt="Sequence Source" crossorigin="anonymous">
-          </div>
-
-          <div id="elScrubRightCard" class="scrub-card-glass scrub-card-right gpu-layer">
-            <span class="bento-eyebrow" style="color:#fbbf24;">02 / VI XỬ LÝ H2 & PHOTOBOOTH</span>
-            <h2 class="bento-heading" style="color:#ffffff;font-size:22px;margin-bottom:10px;">${escapeHtml(THAY_USP_RIGHT)}</h2>
-            <p style="font-size:14.5px;color:#a1a1a6;line-height:1.55;">
-              Kết hợp định tuyến DoH UpLocket (${escapeHtml(cfg.dohPrimaryIp)}) cùng bộ giải mã 40 miền và mở khóa trọn bộ Photobooth 4 ô, Cute, Polaroid, 220+ Caption & AI Looks.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="secTeardown" class="sec-teardown-240">
-      <div class="apple-sticky-viewport">
-        <div class="teardown-stage-3d">
-
-          <article id="elTdBack" class="td-layer-card td-layer-back gpu-layer">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span class="apple-pill" style="background:rgba(255,255,255,0.14);color:#fff;">LỚP 03 · UPLOCKET ROOT CA</span>
-              <span style="font-family:monospace;font-size:11px;color:#86868b;">-40PX</span>
-            </div>
-            <div class="td-diagram-box">
-              <svg width="220" height="120" viewBox="0 0 220 120" fill="none">
-                <rect x="18" y="18" width="184" height="84" rx="14" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1.5"/>
-                <circle cx="110" cy="60" r="22" stroke="#f59e0b" stroke-width="2"/>
-                <circle cx="110" cy="60" r="6" fill="#f59e0b"/>
-              </svg>
-            </div>
-            <div>
-              <h3 class="bento-heading" style="color:#ffffff;font-size:21px;margin-bottom:8px;">Tầng 3: UpLocket Root CA & 40 Miền DoH</h3>
-              <p style="font-size:14px;color:#a1a1a6;">
-                Gắn định danh chứng chỉ ${escapeHtml(INTEGRATED_NET_ENGINE.caDisplayName)} (2026–2036) và định tuyến 40 miền RevenueCat, Firebase, Spotify, YouTube.
-              </p>
-            </div>
-          </article>
-
-          <article id="elTdMid" class="td-layer-card td-layer-mid gpu-layer">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span class="apple-pill pill-blue">LỚP 02 · PHOTOBOOTH, CAPTIONS & AI</span>
-              <span style="font-family:monospace;font-size:11px;color:#6e6e73;">-80PX</span>
-            </div>
-            <div class="td-diagram-box">
-              <svg width="220" height="120" viewBox="0 0 220 120" fill="none">
-                <rect x="65" y="15" width="90" height="90" rx="20" fill="#1d1d1f" stroke="#0071e3" stroke-width="2"/>
-                <text x="110" y="65" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="700">H2 AI</text>
-              </svg>
-            </div>
-            <div>
-              <h3 class="bento-heading" style="font-size:21px;margin-bottom:8px;">Tầng 2: Khung Photobooth, 220+ Caption & AI</h3>
-              <p style="font-size:14px;color:#6e6e73;">
-                Mở khóa Khung & Photobooth, Sự kiện (Practical Magic 2), 220+ Caption tự chế, Camera 30s và 999.999 lượt Tạo diện mạo AI.
-              </p>
-            </div>
-          </article>
-
-          <article id="elTdFront" class="td-layer-card td-layer-front gpu-layer">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span class="apple-pill pill-gold">LỚP 01 · REVENUECAT & POPUP</span>
-              <span style="font-family:monospace;font-size:11px;color:#6e6e73;">-120PX</span>
-            </div>
-            <div class="td-diagram-box">
-              <svg width="220" height="120" viewBox="0 0 220 120" fill="none">
-                <circle cx="110" cy="60" r="42" stroke="#1d1d1f" stroke-width="2"/>
-                <circle cx="110" cy="60" r="26" stroke="#0071e3" stroke-width="1.5" stroke-dasharray="4 4"/>
-                <circle cx="110" cy="60" r="12" fill="#1d1d1f"/>
-              </svg>
-            </div>
-            <div>
-              <h3 class="bento-heading" style="font-size:21px;margin-bottom:8px;">Tầng 1: Khóa Cứng Thuê Bao & Bắn Popup Locket</h3>
-              <p style="font-size:14px;color:#6e6e73;">
-                Ghi đè gói locket_1600_1y tới năm 9999, điều khiển huy hiệu bạn bè bằng công tắc và bắn thông báo Popup UpLocket trực tiếp vào ứng dụng.
-              </p>
-            </div>
-          </article>
-
-        </div>
-      </div>
-    </section>
-
-    <section id="secClipMorph" class="sec-clip-morph-220">
-      <div class="apple-sticky-viewport" style="padding:0;">
-        <div id="elClipMorphBox" class="clip-morph-viewport">
-          <span class="apple-pill pill-gold" style="margin-bottom:16px;">KIẾN TRÚC HIỆU NĂNG CAO</span>
-          <h2 style="font-size:clamp(32px,5vw,58px);font-weight:800;letter-spacing:-0.035em;max-width:820px;line-height:1.06;">
-            Ba trụ cột làm nên quyền năng Locket Gold Pro.
-          </h2>
-          <p style="font-size:17.5px;color:#a1a1a6;max-width:620px;margin-top:14px;">
-            Mọi thông số đều được đồng bộ tự động ngay khi bạn mở ứng dụng Locket.
-          </p>
-
-          <div class="morph-grid-metrics">
-            <div class="morph-metric-card">
-              <div class="morph-stat-big">${escapeHtml(THAY_FEATURES[0].stat)}</div>
-              <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;">${escapeHtml(THAY_FEATURES[0].title)}</div>
-              <div style="font-size:13.5px;color:#a1a1a6;line-height:1.5;">${escapeHtml(THAY_FEATURES[0].desc)}</div>
-            </div>
-            <div class="morph-metric-card">
-              <div class="morph-stat-big">${escapeHtml(THAY_FEATURES[1].stat)}</div>
-              <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;">${escapeHtml(THAY_FEATURES[1].title)}</div>
-              <div style="font-size:13.5px;color:#a1a1a6;line-height:1.5;">${escapeHtml(THAY_FEATURES[1].desc)}</div>
-            </div>
-            <div class="morph-metric-card">
-              <div class="morph-stat-big">${escapeHtml(THAY_FEATURES[2].stat)}</div>
-              <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;">${escapeHtml(THAY_FEATURES[2].title)}</div>
-              <div style="font-size:13.5px;color:#a1a1a6;line-height:1.5;">${escapeHtml(THAY_FEATURES[2].desc)}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-`;
-}
-
 function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const cachedUser = Env.read(USERNAME_CACHE_KEY) || "";
@@ -10033,7 +9294,7 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
 
       <div id="statusToast" class="toast-alert-bar">${escapeHtml(statusMsg || "")}</div>
 
-      <!-- 1. TRUNG TÂM BẮN THÔNG BÁO POPUP LÊN APP LOCKET & TẢI FILE ẢNH TRỰC TIẾP -->
+      <!-- 1. TRUNG TÂM BẮN THÔNG BÁO POPUP LÊN APP LOCKET & TẢI FILE ẢNH TRỰC TIẾP (ĐÃ SỬA LỖI LƯU 100%) -->
       <section id="uplocketPopupStudioSection" class="apple-bento-card">
         <div class="bento-card-head">
           <div>
@@ -10055,6 +9316,7 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
           <input type="hidden" name="save_popup_and_widget_studio" value="1">
 
           <div class="grid-2">
+            <!-- CỘT 1: UPLOAD TRỰC TIẾP ẢNH TRONG THÔNG BÁO POPUP -->
             <div class="spec-tile">
               <span class="bento-eyebrow">1. ẢNH TRONG THÔNG BÁO POPUP LOCKET (UP FILE TRỰC TIẾP)</span>
               <div class="direct-upload-zone">
@@ -10081,6 +9343,7 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
               </div>
             </div>
 
+            <!-- CỘT 2: UPLOAD TRỰC TIẾP ẢNH KHUNG WIDGET LOCKET -->
             <div class="spec-tile">
               <span class="bento-eyebrow">2. ẢNH VIỀN KHUNG WIDGET LOCKET (UP FILE TRỰC TIẾP)</span>
               <div class="direct-upload-zone">
@@ -10295,7 +9558,7 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
             <span class="bento-eyebrow">FORCEGOLD 4.3 CAMERA, WIDGET & FEATURE GATES ENGINE</span>
             <h2 class="bento-heading">Tuỳ chỉnh Thời lượng Video, Chất lượng Ảnh, Khung Tiện ích & Công tắc Tính năng</h2>
             <p style="font-size:13.5px;color:var(--apple-text-secondary);margin-top:4px;">
-              Điều khiển bằng công tắc trượt iOS trực quan: Thời lượng quay Video (30s/60s/90s), Bitrate Mbps, Khung sự kiện Widget và 16 cổng tính năng cao cấp.
+              Điều khiển bằng công tắc trượt iOS trực quan: Thời lượng quay Video (30s/60s/90s), Bitrate Mbps, Khung sự kiện Widget và 22 cổng tính năng cao cấp.
             </p>
           </div>
         </div>
@@ -10417,7 +9680,7 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
         </form>
       </section>
 
-      <!-- 6. Ô CUỘN DANH SÁCH BẠN BÈ TỰ ĐỘNG BẮT UID -->
+      <!-- 6. Ô CUỘN DANH SÁCH BẠN BÈ TỰ ĐỘNG BẮT UID (GỌN GÀNG NHƯ Ô CAPTION) -->
       <section id="friendsBadgeSection" class="apple-bento-card">
         <div class="bento-card-head">
           <div>
@@ -10590,7 +9853,7 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
         </form>
       </section>
 
-      <!-- 9. Ô CUỘN DANH SÁCH TÀI KHOẢN LOCKET GOLD -->
+      <!-- 9. Ô CUỘN DANH SÁCH TÀI KHOẢN LOCKET GOLD (GỌN GÀNG NHƯ Ô CAPTION) -->
       <section class="apple-bento-card">
         <div class="bento-card-head" style="margin-bottom:14px;">
           <div>
@@ -10609,1620 +9872,6 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
     </div>
   </main>`;
 }
-
-// ============================================================================
-// PHẦN 6 / 6: CLIENT SCRIPT, MULTI-CHUNK IMAGE UPLOAD & BỘ ĐỊNH TUYẾN CHỐNG 7117
-// ============================================================================
-function buildAppleFlowClientScript() {
-    return `
-  <script>
-    function setD(v) {
-      var el = document.getElementById('lockDateInput');
-      if (el) el.value = v;
-    }
-    function setAiQuota(v) {
-      var el = document.getElementById('aiQuotaInput');
-      if (el) el.value = v;
-    }
-    function openGoldModal() {
-      syncLivePopupModalPreview();
-      var m = document.getElementById('locketGoldModal');
-      if (m) {
-        m.classList.remove('hidden');
-        m.style.display = 'flex';
-      }
-    }
-    function closeGoldModal() {
-      var m = document.getElementById('locketGoldModal');
-      if (m) {
-        m.classList.add('hidden');
-        m.style.display = 'none';
-      }
-    }
-
-    function syncLivePopupModalPreview() {
-      var bIn = document.getElementById('studioPopupBadgeInput');
-      var hIn = document.getElementById('studioPopupHeaderInput');
-      var sIn = document.getElementById('studioPopupSubInput');
-      var btnIn = document.getElementById('studioPopupBtnInput');
-
-      var bEl = document.getElementById('modalPillBadge');
-      var hEl = document.getElementById('modalHeadlineText');
-      var sEl = document.getElementById('modalSubText');
-      var btnEl = document.getElementById('modalDoneBtn');
-
-      if (bIn && bEl) bEl.textContent = bIn.value || 'UpLocket';
-      if (hIn && hEl) hEl.textContent = hIn.value || 'Đã mở khoá GOLD thành công!';
-      if (sIn && sEl) sEl.textContent = sIn.value || '';
-      if (btnIn && btnEl) btnEl.textContent = btnIn.value || 'Đã hiểu';
-    }
-
-    function updateCapStudioPreview() {
-      var txtEl = document.getElementById('capEditorText') || document.getElementById('capTextInput');
-      var emoEl = document.getElementById('capEditorEmoji') || document.getElementById('capEmojiInput');
-      var c1El = document.getElementById('capEditorC1') || document.getElementById('capColor1Input');
-      var c2El = document.getElementById('capEditorC2') || document.getElementById('capColor2Input');
-      var c3El = document.getElementById('capEditorC3') || document.getElementById('capColor3Input');
-      var tcEl = document.getElementById('capEditorTextColor') || document.getElementById('capTextColorInput');
-
-      var chip = document.getElementById('liveCapStudioPreview') || document.getElementById('liveCaptionPreviewChip');
-      var emoSpan = document.getElementById('liveCapEmojiSpan') || document.getElementById('liveCapEmoji');
-      var txtSpan = document.getElementById('liveCapTextSpan') || document.getElementById('liveCapText');
-
-      var txt = (txtEl && txtEl.value) ? txtEl.value : 'Caption VIP';
-      var emo = (emoEl && emoEl.value) ? emoEl.value.trim() : '';
-      var c1 = (c1El && c1El.value) ? c1El.value.trim() : '#FFD700';
-      var c2 = (c2El && c2El.value) ? c2El.value.trim() : '#F59E0B';
-      var c3 = (c3El && c3El.value) ? c3El.value.trim() : '';
-      var tc = (tcEl && tcEl.value) ? tcEl.value.trim() : '#000000E6';
-
-      if (emoSpan) {
-        emoSpan.textContent = emo;
-        emoSpan.style.display = emo ? 'inline' : 'none';
-      }
-      if (txtSpan) {
-        txtSpan.textContent = txt;
-      }
-      if (chip) {
-        var grad = c3
-          ? ('linear-gradient(135deg, ' + c1 + ', ' + c2 + ', ' + c3 + ')')
-          : ('linear-gradient(135deg, ' + c1 + ', ' + c2 + ')');
-        chip.style.background = grad;
-        chip.style.color = tc;
-      }
-    }
-    var updateLiveCaptionPreview = updateCapStudioPreview;
-
-    function loadCaptionIntoEditor(id, text, emoji, section, c1, c2, c3, tc) {
-      var idEl = document.getElementById('capEditorId') || document.getElementById('capIdInput');
-      var txtEl = document.getElementById('capEditorText') || document.getElementById('capTextInput');
-      var emjEl = document.getElementById('capEditorEmoji') || document.getElementById('capEmojiInput');
-      var secEl = document.getElementById('capEditorSection') || document.getElementById('capSectionInput');
-      var c1El = document.getElementById('capEditorC1') || document.getElementById('capColor1Input');
-      var c2El = document.getElementById('capEditorC2') || document.getElementById('capColor2Input');
-      var c3El = document.getElementById('capEditorC3') || document.getElementById('capColor3Input');
-      var tcEl = document.getElementById('capEditorTextColor') || document.getElementById('capTextColorInput');
-
-      if (idEl) idEl.value = id || '';
-      if (txtEl) txtEl.value = text || '';
-      if (emjEl) emjEl.value = emoji || '';
-      if (secEl && section) secEl.value = section;
-      if (c1El) c1El.value = c1 || '#FFD700';
-      if (c2El) c2El.value = c2 || '#F59E0B';
-      if (c3El) c3El.value = c3 || '';
-      if (tcEl) tcEl.value = tc || '#FFFFFF';
-
-      updateCapStudioPreview();
-      var studioSec = document.getElementById('captionStudioSection');
-      if (studioSec) {
-        studioSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-
-    function filterCaptionStudioCards() {
-      var q = ((document.getElementById('searchCaptionStudioInput') || {}).value || '').toLowerCase().trim();
-      var cards = document.querySelectorAll('#captionStudioCardsGrid .cap-card-item, #captionStudioGridList .cap-card-item');
-      for (var i = 0; i < cards.length; i++) {
-        var hay = cards[i].getAttribute('data-cap-search') || '';
-        cards[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
-      }
-    }
-
-    function uploadDataUriInChunks(slotType, dataUri, onProgress, onDone) {
-      var CHUNK_SIZE = 1400;
-      var totalLen = dataUri.length;
-      var totalChunks = Math.ceil(totalLen / CHUNK_SIZE);
-      var idx = 0;
-
-      function sendNext() {
-        if (idx >= totalChunks) {
-          fetch('/setdate?api=upload_chunk_commit&slot=' + encodeURIComponent(slotType) + '&total=' + totalChunks + '&t=' + Date.now(), {
-            method: 'GET',
-            cache: 'no-store'
-          })
-            .then(function(r) { return r.json(); })
-            .then(function(res) { onDone(null, res); })
-            .catch(function(err) { onDone(err, null); });
-          return;
-        }
-
-        var sliceStr = dataUri.slice(idx * CHUNK_SIZE, (idx + 1) * CHUNK_SIZE);
-        var mode = (idx === 0) ? 'init' : 'append';
-        if (onProgress) {
-          onProgress(Math.min(99, Math.round(((idx + 1) / totalChunks) * 100)));
-        }
-
-        var url = '/setdate?api=upload_chunk&slot=' + encodeURIComponent(slotType) +
-                  '&mode=' + mode +
-                  '&idx=' + idx +
-                  '&total=' + totalChunks +
-                  '&chunk=' + encodeURIComponent(sliceStr) +
-                  '&t=' + Date.now();
-
-        fetch(url, {
-          method: 'GET',
-          headers: {
-            'X-UpLocket-Chunk': sliceStr
-          },
-          cache: 'no-store'
-        })
-          .then(function(r) { return r.json(); })
-          .then(function(d) {
-            if (!d || !d.ok) {
-              onDone(new Error((d && d.msg) || 'Lỗi ghi gói dữ liệu'), null);
-              return;
-            }
-            idx++;
-            sendNext();
-          })
-          .catch(function(e) {
-            onDone(e, null);
-          });
-      }
-
-      sendNext();
-    }
-
-    function handleDirectFileUpload(fileInput, slotType) {
-      if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
-      var file = fileInput.files[0];
-      var statusEl = document.getElementById(slotType === 'widget' ? 'widgetUploadStatusText' : 'popupUploadStatusText');
-      var thumbEl = document.getElementById(slotType === 'widget' ? 'widgetUploadPreviewThumb' : 'popupUploadPreviewThumb');
-      var modalArt = document.getElementById('modalArtImg');
-      var toast = document.getElementById('statusToast');
-
-      if (statusEl) {
-        statusEl.style.color = '#0071e3';
-        statusEl.textContent = 'Đang đọc và tối ưu hoá ảnh chuẩn HD...';
-      }
-
-      var reader = new FileReader();
-      reader.onload = function(evt) {
-        var img = new Image();
-        img.onload = function() {
-          var canvas = document.createElement('canvas');
-          var maxDim = slotType === 'widget' ? 320 : 340;
-          var w = img.width || 300;
-          var h = img.height || 300;
-          if (w > h && w > maxDim) {
-            h = Math.round((h * maxDim) / w);
-            w = maxDim;
-          } else if (h >= w && h > maxDim) {
-            w = Math.round((w * maxDim) / h);
-            h = maxDim;
-          }
-          canvas.width = w;
-          canvas.height = h;
-          var ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, w, h);
-          ctx.drawImage(img, 0, 0, w, h);
-
-          var isPngWidget = (slotType === 'widget' && file.type === 'image/png');
-          var dataUri = isPngWidget
-            ? canvas.toDataURL('image/png')
-            : canvas.toDataURL('image/jpeg', 0.76);
-
-          if (dataUri.length > 65000) {
-            dataUri = canvas.toDataURL('image/jpeg', 0.62);
-          }
-
-          if (thumbEl) thumbEl.src = dataUri;
-          if (slotType === 'popup' && modalArt) modalArt.src = dataUri;
-
-          uploadDataUriInChunks(slotType, dataUri, function(pct) {
-            if (statusEl) {
-              statusEl.textContent = 'Đang lưu trực tiếp vào bộ nhớ Locket (' + pct + '%)...';
-            }
-          }, function(err, res) {
-            if (err || !res || !res.ok) {
-              if (statusEl) {
-                statusEl.style.color = '#f43f5e';
-                statusEl.textContent = 'Lỗi lưu ảnh: ' + ((err && err.message) || 'Vui lòng thử lại');
-              }
-              return;
-            }
-            if (statusEl) {
-              statusEl.style.color = '#10b981';
-              statusEl.textContent = 'Đã lưu ảnh thành công 100% vào bộ nhớ Locket! (' + Math.round(dataUri.length / 1024) + ' KB)';
-            }
-            if (toast) {
-              toast.style.display = 'block';
-              toast.textContent = res.msg || 'Đã lưu file ảnh trực tiếp vào bộ nhớ Locket thành công!';
-            }
-            if (slotType === 'popup') {
-              openGoldModal();
-            }
-          });
-        };
-        img.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function resetUploadedImageSlot(slotType) {
-      var toast = document.getElementById('statusToast');
-      fetch('/setdate?api=clear_uploaded_img&slot=' + encodeURIComponent(slotType) + '&t=' + Date.now(), { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (toast && d) {
-            toast.style.display = 'block';
-            toast.textContent = d.msg || 'Đã khôi phục ảnh mặc định!';
-          }
-          setTimeout(function() { window.location.reload(); }, 500);
-        })
-        .catch(function() {
-          window.location.href = '/setdate?clear_img_slot=' + encodeURIComponent(slotType);
-        });
-    }
-
-    function firePopupToLocketAppNow() {
-      var toast = document.getElementById('statusToast');
-      var bVal = (document.getElementById('studioPopupBadgeInput') || {}).value || 'UpLocket';
-      var hVal = (document.getElementById('studioPopupHeaderInput') || {}).value || 'Đã mở khoá GOLD thành công!';
-      var sVal = (document.getElementById('studioPopupSubInput') || {}).value || '';
-      var btnVal = (document.getElementById('studioPopupBtnInput') || {}).value || 'Đã hiểu';
-
-      var qUrl = '/setdate?api=arm_inapp_popup' +
-                 '&popupBadge=' + encodeURIComponent(bVal) +
-                 '&popupHeader=' + encodeURIComponent(hVal) +
-                 '&popupSubtitle=' + encodeURIComponent(sVal) +
-                 '&popupBtnText=' + encodeURIComponent(btnVal) +
-                 '&t=' + Date.now();
-
-      fetch(qUrl, { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          syncLivePopupModalPreview();
-          openGoldModal();
-          if (toast) {
-            toast.style.display = 'block';
-            toast.textContent = (d && d.msg) ? d.msg : 'Đã kích hoạt & bắn thông báo Popup UpLocket lên App Locket thành công!';
-          }
-        })
-        .catch(function() {
-          window.location.href = '/setdate?push_test=1&preview_modal=1';
-        });
-    }
-
-    function triggerPushNow() {
-      firePopupToLocketAppNow();
-    }
-
-    function probeDohNow() {
-      var toast = document.getElementById('statusToast');
-      var badge = document.getElementById('dohLiveBadge');
-      if (badge) badge.textContent = 'ĐANG KIỂM TRA...';
-      fetch('/setdate?api=doh_probe&t=' + Date.now(), { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (badge && d) {
-            badge.textContent = (d.ok ? 'ĐANG BẬT (' : 'DỰ PHÒNG (') + (d.latencyMs || 12) + 'ms · 40 miền)';
-          }
-          if (toast && d) {
-            toast.style.display = 'block';
-            toast.textContent = d.msg || 'Đã đồng bộ máy chủ DoH UpLocket 40 miền thành công!';
-          }
-        })
-        .catch(function() { window.location.href = '/setdate?doh_test=1'; });
-    }
-
-    function autoHarvestFriendsNow() {
-      var toast = document.getElementById('statusToast');
-      if (toast) {
-        toast.style.display = 'block';
-        toast.textContent = 'Đang tự động quét & gọi API lấy UID bạn bè từ Locket...';
-      }
-      fetch('/setdate?api=auto_harvest_friends&t=' + Date.now(), { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (toast && d) {
-            toast.textContent = d.msg || ('Đã quét thành công ' + d.total + ' bạn bè!');
-          }
-          setTimeout(function() { window.location.href = '/setdate#friendsBadgeSection'; }, 900);
-        })
-        .catch(function() {
-          window.location.href = '/setdate?friend_action=harvest#friendsBadgeSection';
-        });
-    }
-
-    function toggleSingleFriendBadge(fUid, nextStateBool) {
-      var toast = document.getElementById('statusToast');
-      var pill = document.getElementById('friendBadgePill_' + fUid);
-      var sw = document.getElementById('friendSwitch_' + fUid);
-      var enableVal = nextStateBool ? '1' : '0';
-
-      fetch('/setdate?api=toggle_friend_badge&friend_uid=' + encodeURIComponent(fUid) + '&enable=' + enableVal + '&t=' + Date.now(), { cache: 'no-store' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (d && d.ok) {
-            var isNowOn = !!d.badge_enabled;
-            if (pill) {
-              pill.className = 'apple-pill ' + (isNowOn ? 'pill-gold' : 'pill-rose');
-              pill.textContent = isNowOn ? '👑 ĐANG BẬT GOLD' : 'ĐÃ TẮT GOLD';
-            }
-            if (sw) {
-              sw.checked = isNowOn;
-            }
-            if (toast) {
-              toast.style.display = 'block';
-              toast.textContent = d.msg || 'Đã cập nhật trạng thái huy hiệu bạn bè!';
-            }
-          }
-        })
-        .catch(function() {
-          window.location.href = '/setdate?friend_action=toggle&friend_uid=' + encodeURIComponent(fUid) + '&enable=' + enableVal + '#friendsBadgeSection';
-        });
-    }
-
-    function filterFriendsBadgeList() {
-      var q = ((document.getElementById('searchFriendBadgeInput') || {}).value || '').toLowerCase().trim();
-      var rows = document.querySelectorAll('#friendsBadgeDirectoryList .friend-badge-item');
-      for (var i = 0; i < rows.length; i++) {
-        var hay = rows[i].getAttribute('data-friend-search') || '';
-        rows[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
-      }
-    }
-
-    function toggleAdminDrawer() {
-      var sec = document.getElementById('adminCommandCenter');
-      if (!sec) return;
-      sec.classList.toggle('hidden');
-      if (!sec.classList.contains('hidden')) {
-        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-
-    function filterGoldUsers() {
-      var q = ((document.getElementById('searchGoldInput') || {}).value || '').toLowerCase().trim();
-      var rows = document.querySelectorAll('#goldDirectoryList .gold-user-item');
-      for (var i = 0; i < rows.length; i++) {
-        var hay = rows[i].getAttribute('data-search') || '';
-        rows[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
-      }
-    }
-
-    (function() {
-      var clamp = function(v, min, max) { return Math.max(min, Math.min(max, v)); };
-      var lerp = function(a, b, t) { return a + (b - a) * clamp(t, 0, 1); };
-      var invLerp = function(a, b, v) { return clamp((v - a) / (b - a), 0, 1); };
-      var appleEase = function(t) {
-        var c = clamp(t, 0, 1);
-        return 1 - Math.pow(1 - c, 3.2);
-      };
-      var appleEaseOut = function(t) {
-        var c = clamp(t, 0, 1);
-        return 1 - Math.pow(1 - c, 2.4);
-      };
-
-      var bgLayerLight = document.getElementById('bgLayerLight');
-      var bgLayerDark = document.getElementById('bgLayerDark');
-      var globalProgressBar = document.getElementById('globalProgressBar');
-      var appleStickyNav = document.getElementById('appleStickyNav');
-
-      var secHeroZoom = document.getElementById('secHeroZoom');
-      var elHeroKicker = document.getElementById('elHeroKicker');
-      var elHeroMegaH1 = document.getElementById('elHeroMegaH1');
-      var elHeroSubLead = document.getElementById('elHeroSubLead');
-      var elScrollCue = document.getElementById('elScrollCue');
-
-      var secTextReveal = document.getElementById('secTextReveal');
-      var wordUnits1 = document.querySelectorAll('#elWordGroup1 .apple-word-unit');
-      var wordUnits2 = document.querySelectorAll('#elWordGroup2 .apple-word-unit');
-
-      var secStickyScrub = document.getElementById('secStickyScrub');
-      var elScrubLeftCard = document.getElementById('elScrubLeftCard');
-      var elScrubRightCard = document.getElementById('elScrubRightCard');
-      var elScrubCenterWrap = document.getElementById('elScrubCenterWrap');
-      var elSequenceCanvas = document.getElementById('elSequenceCanvas');
-      var elSequenceSourceImg = document.getElementById('elSequenceSourceImg');
-
-      var secTeardown = document.getElementById('secTeardown');
-      var elTdFront = document.getElementById('elTdFront');
-      var elTdMid = document.getElementById('elTdMid');
-      var elTdBack = document.getElementById('elTdBack');
-
-      var secClipMorph = document.getElementById('secClipMorph');
-      var elClipMorphBox = document.getElementById('elClipMorphBox');
-
-      var TOTAL_FRAMES = 147;
-      var currentRenderedFrame = -1;
-      var seqCtx = elSequenceCanvas ? elSequenceCanvas.getContext('2d') : null;
-      var ticking = false;
-
-      function getSectionProgress(el) {
-        if (!el) return 0;
-        var rect = el.getBoundingClientRect();
-        var winH = window.innerHeight || document.documentElement.clientHeight || 800;
-        var dist = rect.height - winH;
-        if (dist <= 0) {
-          return clamp((winH - rect.top) / (winH + rect.height), 0, 1);
-        }
-        return clamp(-rect.top / dist, 0, 1);
-      }
-
-      function renderSequenceFrame(frameIdx) {
-        if (!seqCtx || !elSequenceCanvas) return;
-        if (frameIdx === currentRenderedFrame) return;
-        currentRenderedFrame = frameIdx;
-
-        var w = elSequenceCanvas.width;
-        var h = elSequenceCanvas.height;
-        var cx = w * 0.5;
-        var cy = h * 0.5;
-
-        seqCtx.clearRect(0, 0, w, h);
-
-        var t = frameIdx / (TOTAL_FRAMES - 1);
-        var angleRad = lerp(-0.55, 0.55, t);
-        var lidOpenOffset = Math.sin(t * Math.PI) * 65;
-        var ringExpand = 1 + Math.sin(t * Math.PI) * 0.16;
-        var glowRadius = lerp(180, 320, Math.sin(t * Math.PI));
-
-        seqCtx.save();
-        seqCtx.translate(cx, cy);
-
-        var radGrad = seqCtx.createRadialGradient(0, 0, 20, 0, 0, glowRadius);
-        radGrad.addColorStop(0, 'rgba(245, 158, 11, 0.38)');
-        radGrad.addColorStop(0.5, 'rgba(0, 113, 227, 0.16)');
-        radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        seqCtx.fillStyle = radGrad;
-        seqCtx.beginPath();
-        seqCtx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-        seqCtx.fill();
-
-        seqCtx.save();
-        seqCtx.rotate(angleRad * 1.8);
-        seqCtx.scale(ringExpand, ringExpand * 0.88);
-        seqCtx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
-        seqCtx.lineWidth = 2;
-        seqCtx.setLineDash([8, 10]);
-        seqCtx.beginPath();
-        seqCtx.arc(0, 0, 310, 0, Math.PI * 2);
-        seqCtx.stroke();
-        seqCtx.restore();
-
-        var cosA = Math.cos(angleRad * 0.65);
-        var sinA = Math.sin(angleRad * 0.65);
-        seqCtx.save();
-        seqCtx.transform(cosA, sinA * 0.18, -sinA * 0.18, 1, 0, -lidOpenOffset * 0.25);
-        if (elSequenceSourceImg && elSequenceSourceImg.complete && elSequenceSourceImg.naturalWidth > 0) {
-          seqCtx.drawImage(elSequenceSourceImg, -330, -330, 660, 660);
-        }
-        seqCtx.restore();
-
-        seqCtx.save();
-        seqCtx.translate(sinA * 42, -lidOpenOffset * 0.55);
-        seqCtx.strokeStyle = 'rgba(96, 165, 250, 0.65)';
-        seqCtx.lineWidth = 3;
-        seqCtx.beginPath();
-        seqCtx.arc(0, 20, 145 * ringExpand, 0, Math.PI * 2);
-        seqCtx.stroke();
-        seqCtx.restore();
-
-        seqCtx.restore();
-      }
-
-      function renderScrollytellingFrame() {
-        var winH = window.innerHeight || document.documentElement.clientHeight || 800;
-        var vw = window.innerWidth || document.documentElement.clientWidth || 1024;
-        var docH = document.documentElement.scrollHeight || 4000;
-        var maxScroll = Math.max(1, docH - winH);
-        var scrollY = window.scrollY || window.pageYOffset || 0;
-        var globalProg = clamp(scrollY / maxScroll, 0, 1);
-
-        if (globalProgressBar) {
-          globalProgressBar.style.transform = 'translate3d(0,0,0) scaleX(' + globalProg.toFixed(4) + ')';
-        }
-
-        var pHero = getSectionProgress(secHeroZoom);
-        var pReveal = getSectionProgress(secTextReveal);
-        var pScrub = getSectionProgress(secStickyScrub);
-        var pTd = getSectionProgress(secTeardown);
-        var pMorph = getSectionProgress(secClipMorph);
-
-        var darkWeight = 0;
-        if (pHero > 0.62 && pTd < 0.18) {
-          var fadeInDark = appleEase(invLerp(0.62, 0.96, pHero));
-          var fadeOutDark = 1 - appleEase(invLerp(0.80, 0.99, pScrub));
-          darkWeight = Math.min(fadeInDark, fadeOutDark);
-        }
-        if (bgLayerDark && bgLayerLight) {
-          bgLayerDark.style.opacity = darkWeight.toFixed(4);
-          bgLayerLight.style.opacity = (1 - darkWeight * 0.95).toFixed(4);
-        }
-        if (appleStickyNav) {
-          if (darkWeight > 0.5) appleStickyNav.classList.add('nav-dark-mode');
-          else appleStickyNav.classList.remove('nav-dark-mode');
-        }
-
-        if (elHeroMegaH1) {
-          var hScale = 1;
-          var hBlur = 0;
-          var hOp = 1;
-          var hY = 0;
-
-          if (pHero <= 0.6) {
-            var t1 = invLerp(0.0, 0.6, pHero);
-            hScale = lerp(2.4, 0.82, appleEase(t1));
-            hBlur = lerp(16, 0, appleEaseOut(t1));
-            hOp = lerp(0.15, 1, appleEaseOut(invLerp(0.0, 0.3, pHero)));
-          } else if (pHero > 0.6 && pHero < 0.75) {
-            hScale = 0.82;
-            hBlur = 0;
-            hOp = 1;
-          } else {
-            var t2 = invLerp(0.75, 1.0, pHero);
-            hScale = lerp(0.82, 0.64, appleEase(t2));
-            hOp = lerp(1, 0, appleEase(t2));
-            hY = lerp(0, -70, appleEase(t2));
-          }
-
-          elHeroMegaH1.style.transform = 'translate3d(0,' + hY.toFixed(2) + 'px,0) scale(' + hScale.toFixed(4) + ')';
-          elHeroMegaH1.style.opacity = hOp.toFixed(4);
-          elHeroMegaH1.style.filter = hBlur > 0.2 ? ('blur(' + hBlur.toFixed(2) + 'px)') : 'none';
-        }
-
-        if (elHeroSubLead) {
-          var subIn = appleEaseOut(invLerp(0.08, 0.48, pHero));
-          var subOut = 1 - appleEase(invLerp(0.75, 0.98, pHero));
-          var subY = lerp(36, 0, subIn);
-          elHeroSubLead.style.transform = 'translate3d(0,' + subY.toFixed(2) + 'px,0)';
-          elHeroSubLead.style.opacity = Math.max(0.1, subIn * subOut).toFixed(4);
-        }
-
-        if (elHeroKicker) {
-          elHeroKicker.style.opacity = (1 - appleEase(invLerp(0.68, 0.95, pHero))).toFixed(4);
-        }
-        if (elScrollCue) {
-          elScrollCue.style.opacity = (1 - invLerp(0.0, 0.28, pHero)).toFixed(4);
-        }
-
-        function animateWordGroup(nodeList, startP, endP) {
-          if (!nodeList || !nodeList.length) return;
-          var totalWords = nodeList.length;
-          var spanRange = endP - startP;
-          var wordWindow = Math.min(0.24, spanRange * 0.48);
-          var stepPerWord = totalWords > 1 ? (spanRange - wordWindow) / (totalWords - 1) : 0;
-
-          for (var w = 0; w < totalWords; w++) {
-            var wStart = startP + w * stepPerWord;
-            var wEnd = wStart + wordWindow;
-            var wProg = appleEaseOut(invLerp(wStart, wEnd, pReveal));
-
-            var wOp = lerp(0.12, 1.0, wProg);
-            var wY = lerp(32, 0, wProg);
-            var wScale = lerp(0.95, 1.0, wProg);
-            var wBlur = lerp(8, 0, wProg);
-
-            var wordEl = nodeList[w];
-            wordEl.style.opacity = wOp.toFixed(3);
-            wordEl.style.transform = 'translate3d(0,' + wY.toFixed(1) + 'px,0) scale(' + wScale.toFixed(3) + ')';
-            wordEl.style.filter = wBlur > 0.25 ? ('blur(' + wBlur.toFixed(1) + 'px)') : 'none';
-          }
-        }
-
-        animateWordGroup(wordUnits1, 0.02, 0.54);
-        animateWordGroup(wordUnits2, 0.36, 0.88);
-
-        var activeScrubT = 0;
-        if (pScrub < 0.08) {
-          activeScrubT = 0;
-        } else if (pScrub <= 0.85) {
-          activeScrubT = invLerp(0.08, 0.85, pScrub);
-        } else {
-          activeScrubT = 1;
-        }
-
-        var seqFrameIdx = Math.round(lerp(0, TOTAL_FRAMES - 1, activeScrubT));
-        renderSequenceFrame(seqFrameIdx);
-
-        if (elScrubCenterWrap) {
-          var cScale = lerp(1.22, 0.92, appleEase(activeScrubT));
-          var cRot = lerp(-8, 8, appleEase(activeScrubT));
-          var cY = lerp(50, -30, appleEase(activeScrubT));
-          elScrubCenterWrap.style.transform = 'translate3d(0,' + cY.toFixed(2) + 'px,0) scale(' + cScale.toFixed(4) + ') rotate(' + cRot.toFixed(2) + 'deg)';
-        }
-
-        if (elScrubLeftCard) {
-          var lIn = appleEaseOut(invLerp(0.12, 0.36, pScrub));
-          var lY = lerp(30, 0, lIn);
-          var isMob = vw <= 860;
-          elScrubLeftCard.style.opacity = lIn.toFixed(4);
-          elScrubLeftCard.style.transform = isMob
-            ? ('translate3d(0,' + lY.toFixed(1) + 'px,0)')
-            : ('translate3d(0, calc(-50% + ' + lY.toFixed(1) + 'px), 0)');
-        }
-
-        if (elScrubRightCard) {
-          var rIn = appleEaseOut(invLerp(0.46, 0.72, pScrub));
-          var rY = lerp(30, 0, rIn);
-          var isMobR = vw <= 860;
-          elScrubRightCard.style.opacity = rIn.toFixed(4);
-          elScrubRightCard.style.transform = isMobR
-            ? ('translate3d(0,' + rY.toFixed(1) + 'px,0)')
-            : ('translate3d(0, calc(-50% + ' + rY.toFixed(1) + 'px), 0)');
-        }
-
-        var eTd = appleEase(invLerp(0.05, 0.88, pTd));
-        if (elTdFront) {
-          var yFront = lerp(0, -120, eTd);
-          var sFront = lerp(1.0, 0.95, eTd);
-          elTdFront.style.transform = 'translate3d(-50%, calc(-50% + ' + yFront.toFixed(2) + 'px), 0) scale(' + sFront.toFixed(4) + ')';
-        }
-        if (elTdMid) {
-          var yMid = lerp(0, -80, eTd);
-          var sMid = lerp(1.0, 0.96, eTd);
-          elTdMid.style.transform = 'translate3d(-50%, calc(-50% + ' + yMid.toFixed(2) + 'px), 0) scale(' + sMid.toFixed(4) + ')';
-        }
-        if (elTdBack) {
-          var yBack = lerp(0, -40, eTd);
-          var sBack = lerp(1.0, 0.97, eTd);
-          elTdBack.style.transform = 'translate3d(-50%, calc(-50% + ' + yBack.toFixed(2) + 'px), 0) scale(' + sBack.toFixed(4) + ')';
-        }
-
-        if (elClipMorphBox) {
-          var mT = appleEase(invLerp(0.08, 0.85, pMorph));
-          var insetV = lerp(0, 5.5, mT);
-          var insetH = lerp(0, vw <= 860 ? 3.5 : 5.5, mT);
-          var pillRadius = lerp(0, 44, mT);
-          var clipStr = 'inset(' + insetV.toFixed(2) + '% ' + insetH.toFixed(2) + '% round ' + pillRadius.toFixed(1) + 'px)';
-          elClipMorphBox.style.clipPath = clipStr;
-          elClipMorphBox.style.webkitClipPath = clipStr;
-        }
-
-        ticking = false;
-      }
-
-      function onScroll() {
-        if (!ticking) {
-          ticking = true;
-          window.requestAnimationFrame(renderScrollytellingFrame);
-        }
-      }
-
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll, { passive: true });
-      if (elSequenceSourceImg) {
-        elSequenceSourceImg.addEventListener('load', function() {
-          currentRenderedFrame = -1;
-          renderSequenceFrame(0);
-        });
-      }
-      renderSequenceFrame(0);
-      renderScrollytellingFrame();
-    })();
-  </script>`;
-}
-
-function sendWebResponse(statusNum, headersObj, bodyStr) {
-    const code = Number(statusNum) || 200;
-    const statusText = code === 204 ? "HTTP/1.1 204 No Content" : "HTTP/1.1 200 OK";
-    const safeHeaders = Object.assign({
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "Access-Control-Allow-Origin": "*"
-    }, headersObj || {});
-
-    const isQuanX = typeof $prefs !== "undefined" || typeof $task !== "undefined";
-    const isReqOnly = typeof $request !== "undefined" && typeof $response === "undefined";
-
-    if (isReqOnly) {
-        if (isQuanX) {
-            Env.done({ status: statusText, headers: safeHeaders, body: String(bodyStr ?? "") });
-        } else {
-            Env.done({
-                response: {
-                    status: code,
-                    headers: safeHeaders,
-                    body: String(bodyStr ?? "")
-                }
-            });
-        }
-    } else {
-        Env.done({
-            status: isQuanX ? statusText : code,
-            headers: safeHeaders,
-            body: String(bodyStr ?? "")
-        });
-    }
-}
-
-function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowGoldModal = false) {
-    const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
-    const isAdminLogged = Env.read(ADMIN_SESSION_KEY) === "1";
-    const friendsMap = getFriendsBadgeMap();
-    const friendsList = Object.values(friendsMap).filter(f => f && f.uid && f.uid !== cachedUid);
-    const activeFriendsBadgeCount = friendsList.filter(f => f.badge_enabled !== false).length;
-
-    const shouldShowPopup = Boolean(forceShowGoldModal === true);
-
-    return `<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>${escapeHtml(THAY_PRODUCT_NAME)} — Quản Trị Locket Gold Pro V11</title>
-<style>${buildAppleScrollyCss(cfg, statusMsg)}</style>
-</head>
-<body>
-${buildAppleScrollySectionsHtml(cfg, activeFriendsBadgeCount, friendsList.length, isAdminLogged, shouldShowPopup)}
-${buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer)}
-${buildAppleFlowClientScript()}
-</body>
-</html>`;
-}
-
-function pushAdminCmdToServer(action, targetUid, targetUser, targetAiQuota, callback) {
-    const remoteEndpoint = typeof ADMIN_API_URL !== "undefined" ? ADMIN_API_URL : "";
-    if (!remoteEndpoint || remoteEndpoint.includes("your-domain.com") || !targetUid) {
-        if (callback) callback();
-        return;
-    }
-    const apiUrl = remoteEndpoint + (remoteEndpoint.includes("?") ? "&" : "?") + "api=realtime_admin_cmd";
-    Env.httpPost({
-        url: apiUrl,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            admin_user: ROOT_ADMIN_USER,
-            admin_pass: ROOT_ADMIN_PASS_1,
-            action: action,
-            target_uid: targetUid,
-            target_user: targetUser || "",
-            target_ai_quota: targetAiQuota,
-            ts: Date.now()
-        }),
-        timeout: 3
-    }, () => {
-        if (callback) callback();
-    });
-}
-
-function runCronBadgeSync() {
-    const cfg = loadConfig();
-    const uid = Env.read(USER_ID_CACHE_KEY);
-    const rcKey = Env.read(RC_API_KEY_CACHE_KEY);
-    const bearer = Env.read(AUTH_TOKEN_CACHE_KEY);
-    const nowMs = Date.now();
-
-    probeIntegratedDohEndpoint(cfg, () => {
-        syncRealtimeWithServer(uid, cfg, "sync", (rtState) => {
-            const isRevoked = !!(rtState && rtState.blocked) || !!cfg.isBlockedByAdmin;
-            const quotaStr = isRevoked ? "0" : String(sanitizeQuotaNumber(cfg.aiFilterQuota, 999999));
-
-            triggerInAppLocketBlockAlert(uid, rtState.reason || cfg.blockReason, isRevoked, false);
-
-            if (!uid && !bearer) {
-                Env.done();
-                return;
-            }
-
-            let pending = 0;
-            const finishOne = () => {
-                pending--;
-                if (pending <= 0) {
-                    Env.done();
-                }
-            };
-
-            if (uid && rcKey) {
-                pending++;
-                const attrUrl = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}/attributes`;
-                const attrBody = JSON.stringify({
-                    attributes: {
-                        locket_gold_badge: { value: isRevoked ? "false" : "true", updated_at_ms: nowMs },
-                        badge: { value: isRevoked ? "none" : "locket_gold", updated_at_ms: nowMs },
-                        is_gold: { value: isRevoked ? "false" : "true", updated_at_ms: nowMs },
-                        photobooth_unlocked: { value: isRevoked ? "false" : "true", updated_at_ms: nowMs },
-                        holiday_effects_unlocked: { value: isRevoked ? "false" : "true", updated_at_ms: nowMs },
-                        camera_effects_unlocked: { value: isRevoked ? "false" : "true", updated_at_ms: nowMs },
-                        ai_filter_quota: { value: quotaStr, updated_at_ms: nowMs },
-                        ai_filter_remaining: { value: quotaStr, updated_at_ms: nowMs },
-                        ai_looks_remaining: { value: quotaStr, updated_at_ms: nowMs },
-                        doh_dns_endpoint: { value: cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl, updated_at_ms: nowMs }
-                    }
-                });
-                Env.httpPost({
-                    url: attrUrl,
-                    headers: { "Authorization": rcKey, "Content-Type": "application/json", "X-Platform": "iOS" },
-                    body: attrBody
-                }, () => finishOne());
-            }
-
-            if (bearer) {
-                pending++;
-                Env.httpPost({
-                    url: "https://api.locketcamera.com/changeProfileInfo",
-                    headers: { "Authorization": bearer, "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        data: {
-                            badge: isRevoked ? null : "locket_gold",
-                            locket_gold_badge: !isRevoked
-                        }
-                    })
-                }, () => finishOne());
-            }
-
-            if (pending === 0) Env.done();
-        });
-    });
-}
-
-function processWebPanelRequestAndRender(url, headers, uid, currentCfg) {
-    try {
-        const q = parseQuery(url);
-
-        if (q.local_asset === "popup" || q.local_asset === "widget") {
-            const imgUri = q.local_asset === "widget"
-                ? resolveEffectiveWidgetImage(currentCfg)
-                : resolveEffectivePopupImage(currentCfg);
-            if (imgUri && imgUri.startsWith("data:image/svg+xml")) {
-                const commaIdx = imgUri.indexOf(",");
-                const rawSvg = commaIdx !== -1 ? decodeURIComponent(imgUri.slice(commaIdx + 1)) : "";
-                sendWebResponse(200, { "Content-Type": "image/svg+xml; charset=utf-8" }, rawSvg);
-            } else {
-                sendWebResponse(200, { "Content-Type": "text/html; charset=utf-8" },
-                    `<!DOCTYPE html><html><body style="margin:0;background:#141415;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(imgUri)}" style="max-width:100%;max-height:100vh;object-fit:contain;"></body></html>`
-                );
-            }
-            return;
-        }
-
-        if (q.api === "upload_chunk") {
-            const slot = (q.slot || "popup").toLowerCase();
-            const tmpKey = slot === "widget" ? "LOCKET_TMP_CHUNK_WIDGET_V11" : "LOCKET_TMP_CHUNK_POPUP_V11";
-            const headerChunk = headers["X-UpLocket-Chunk"] || headers["x-uplocket-chunk"] || "";
-            const chunkPiece = q.chunk || headerChunk || "";
-            const prevStr = q.mode === "init" ? "" : (Env.read(tmpKey) || "");
-            const nextStr = prevStr + chunkPiece;
-            Env.write(nextStr, tmpKey);
-
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                slot: slot,
-                idx: parseInt(q.idx || "0", 10),
-                length: nextStr.length
-            }));
-            return;
-        }
-
-        if (q.api === "upload_chunk_commit") {
-            const slot = (q.slot || "popup").toLowerCase();
-            const tmpKey = slot === "widget" ? "LOCKET_TMP_CHUNK_WIDGET_V11" : "LOCKET_TMP_CHUNK_POPUP_V11";
-            let finalDataUri = Env.read(tmpKey) || "";
-
-            if (!finalDataUri && typeof $request !== "undefined" && typeof $request.body === "string" && $request.body.startsWith("data:image/")) {
-                finalDataUri = $request.body.trim();
-            }
-
-            if (finalDataUri && finalDataUri.length > 32) {
-                saveDirectUploadedImage(slot, finalDataUri);
-                const latestCfg = loadConfig();
-                if (slot === "widget") {
-                    latestCfg.widgetEventUrl = finalDataUri;
-                } else {
-                    latestCfg.popupImage = finalDataUri;
-                }
-                saveConfig(latestCfg);
-                Env.write(String(Date.now()), INAPP_POPUP_CAMPAIGN_REV_KEY);
-
-                sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                    ok: true,
-                    slot: slot,
-                    sizeKb: Math.round(finalDataUri.length / 1024),
-                    msg: slot === "widget"
-                        ? "Đã lưu ảnh viền Khung Widget trực tiếp từ máy thành công 100%!"
-                        : "Đã lưu ảnh Thông báo Popup UpLocket trực tiếp từ máy thành công 100%!"
-                }));
-            } else {
-                sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                    ok: false,
-                    msg: "Gói dữ liệu ảnh bị gián đoạn, vui lòng chọn lại ảnh một lần nữa!"
-                }));
-            }
-            return;
-        }
-
-        if (q.api === "clear_uploaded_img" || q.api === "clear_direct_image") {
-            const slot = (q.slot || "popup").toLowerCase();
-            clearDirectUploadedImage(slot);
-            const latestCfg = loadConfig();
-            if (slot === "widget") {
-                latestCfg.widgetEventUrl = DEFAULT_WIDGET_FRAME_SVG;
-            } else {
-                latestCfg.popupImage = THAY_IMAGE_PATH;
-            }
-            saveConfig(latestCfg);
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                msg: "Đã khôi phục đồ hoạ gốc thành công!"
-            }));
-            return;
-        }
-
-        if (q.api === "arm_inapp_popup" || q.api === "fire_locket_popup") {
-            const updatedPopup = {
-                ...currentCfg,
-                popupBadge: (q.popupBadge || q.badge || currentCfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText).trim(),
-                popupHeader: (q.popupHeader || q.header || currentCfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText).trim(),
-                popupSubtitle: (q.popupSubtitle || q.subtitle || currentCfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText).trim(),
-                popupBtnText: (q.popupBtnText || q.btn || currentCfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText).trim()
-            };
-            saveConfig(updatedPopup);
-            const armed = armLocketInAppPopupTrigger(updatedPopup, "Web UI Button Trigger");
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                campaignId: armed.campaignId,
-                msg: `Đã bắn thông báo Popup "${updatedPopup.popupBadge} — ${updatedPopup.popupHeader}" lên App Locket thành công!`
-            }));
-            return;
-        }
-
-        if (q.download_mobileconfig === "1" || q.api === "mobileconfig") {
-            const xmlBody = generateIntegratedMobileconfigXml(currentCfg);
-            sendWebResponse(200, {
-                "Content-Type": "application/x-apple-aspen-config; charset=utf-8",
-                "Content-Disposition": "attachment; filename=\"UpLocket_ngominhduc.mobileconfig\""
-            }, xmlBody);
-            return;
-        }
-
-        if (q.api === "camera_catalog") {
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                catalog: buildCameraEffectsPayloadStruct(currentCfg),
-                in_app_bottom_sheet: buildInAppLocketModalStruct(currentCfg)
-            }));
-            return;
-        }
-
-        if (q.api === "trigger_push") {
-            fireNativeAppNotification(currentCfg, true);
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                msg: currentCfg.isBlockedByAdmin
-                    ? "Đã bắn thử thông báo iOS: \"LOCKET GOLD — Đã thu hồi LOCKET GOLD!\"!"
-                    : `Đã bắn thử thông báo iOS: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`
-            }));
-            return;
-        }
-
-        if (q.api === "toggle_friend_badge") {
-            const fUid = (q.friend_uid || "").trim();
-            const enableFlag = q.enable === "1" || q.enable === "true";
-            const updatedFriend = setSingleFriendBadgeState(fUid, enableFlag);
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: !!updatedFriend,
-                friend_uid: fUid,
-                badge_enabled: enableFlag,
-                msg: `Đã ${enableFlag ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${updatedFriend ? updatedFriend.username : fUid})!`
-            }));
-            return;
-        }
-
-        if (q.api === "auto_harvest_friends") {
-            activeFetchFriendsFromLocketApi(currentCfg, (harvestResult) => {
-                sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify(harvestResult));
-            });
-            return;
-        }
-
-        if (q.api === "doh_probe") {
-            probeIntegratedDohEndpoint(currentCfg, (probeResult) => {
-                sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                    ok: probeResult.ok,
-                    latencyMs: probeResult.latencyMs,
-                    serverUrl: probeResult.serverUrl,
-                    primaryIp: probeResult.primaryIp,
-                    secondaryIp: probeResult.secondaryIp,
-                    domainsCount: probeResult.domainsCount,
-                    domains: probeResult.domains,
-                    msg: `Kết nối DoH UpLocket (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã đồng bộ ${probeResult.domainsCount} miền Supplemental Match!`
-                }));
-            });
-            return;
-        }
-
-        if (q.api === "realtime_status") {
-            syncRealtimeWithServer(uid, currentCfg, "sync", (st) => {
-                const isRevoked = !!(st && st.blocked) || !!currentCfg.isBlockedByAdmin;
-                sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                    ok: true,
-                    uid: uid,
-                    blocked: isRevoked,
-                    status: st.status,
-                    gold_active: !isRevoked,
-                    gold_kept: !isRevoked,
-                    ai_quota: isRevoked ? 0 : sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999),
-                    doh_server: currentCfg.dohServerUrl,
-                    ca_uuid: INTEGRATED_NET_ENGINE.caUUID,
-                    profile_id: INTEGRATED_NET_ENGINE.profileIdentifier,
-                    popup_header: isRevoked ? currentCfg.revokedPopupHeader : currentCfg.popupHeader,
-                    popup_title: isRevoked ? currentCfg.revokedPopupTitle : currentCfg.popupTitle,
-                    popup_subtitle: isRevoked ? currentCfg.revokedPopupSubtitle : currentCfg.popupSubtitle,
-                    reason: st.reason || ""
-                }));
-            });
-            return;
-        }
-
-        let openDrawer = q.admin_drawer === "1";
-        let forcePopup = q.preview_modal === "1";
-        let statusMsg = "";
-        const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
-
-        if (q.save_popup_and_widget_studio === "1") {
-            const nextPopupCfg = {
-                ...loadConfig(),
-                popupBadge: (q.popupBadge || currentCfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText).trim(),
-                popupHeader: (q.popupHeader || currentCfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText).trim(),
-                popupTitle: (q.popupTitle || currentCfg.popupTitle || "Ngô Minh Đức").trim(),
-                popupSubtitle: (q.popupSubtitle || currentCfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText).trim(),
-                popupBtnText: (q.popupBtnText || currentCfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText).trim()
-            };
-            saveConfig(nextPopupCfg);
-            armLocketInAppPopupTrigger(nextPopupCfg, "Save Studio Form");
-            forcePopup = true;
-            statusMsg = `Đã lưu cấu hình Popup "${nextPopupCfg.popupBadge} — ${nextPopupCfg.popupHeader}" & bắn lên App Locket!`;
-        }
-
-        if (q.caption_action) {
-            if (q.caption_action === "upsert") {
-                const created = createOrUpdateCaptionInStudio({
-                    overlay_id: q.overlay_id || "",
-                    text: q.cap_text || "Caption VIP",
-                    emoji: q.cap_emoji || "",
-                    section: q.cap_section || "✨ Caption Tự Chế (Custom Studio)",
-                    color1: q.cap_c1 || "#FFD700",
-                    color2: q.cap_c2 || "#F59E0B",
-                    color3: q.cap_c3 || "",
-                    textColor: q.cap_text_color || q.cap_tc || "#000000E6"
-                });
-                statusMsg = `Đã lưu Caption "${created.caption.text}" (${created.overlay_id}) vào nhóm ${created.section}! Mở lại Locket để dùng ngay.`;
-            } else if (q.caption_action === "delete" && q.overlay_id) {
-                deleteCaptionFromStudio(q.overlay_id);
-                statusMsg = `Đã xoá Caption (${q.overlay_id}) khỏi danh sách hiển thị trên Locket!`;
-            } else if (q.caption_action === "restore" && q.overlay_id) {
-                restoreSingleDeletedCaption(q.overlay_id);
-                statusMsg = `Đã khôi phục Caption (${q.overlay_id})!`;
-            } else if (q.caption_action === "reset_all") {
-                resetAllStudioCaptionsToDefault();
-                statusMsg = "Đã khôi phục toàn bộ 220+ Caption gốc mặc định!";
-            }
-        }
-
-        if (q.save_engine_features === "1" || q.save_advanced_features === "1") {
-            const baseAdv = loadConfig();
-            const vDur = sanitizeFloatNumber(q.videoMaxDuration, 30.0, 5.0, 300.0);
-            const updatedAdv = {
-                ...baseAdv,
-                videoMaxDuration: vDur,
-                goldMaxDuration: vDur,
-                cameraRollMaxDuration: vDur,
-                videoQualityMbps: sanitizeFloatNumber(q.videoQualityMbps, 0.9, 0.1, 25.0),
-                uploadMainImageSize: sanitizeQuotaNumber(q.uploadMainImageSize, 1440),
-                uploadThumbnailSize: sanitizeQuotaNumber(q.uploadThumbnailSize || baseAdv.uploadThumbnailSize, 1020),
-                maxFriendsCount: sanitizeQuotaNumber(q.maxFriendsCount || baseAdv.maxFriendsCount, 999999),
-                historyCacheAgeDays: sanitizeQuotaNumber(q.historyCacheAgeDays || baseAdv.historyCacheAgeDays, 1000),
-                widgetEventUid: (q.widgetEventUid || baseAdv.widgetEventUid || "midautumn_2026").trim(),
-                widgetEventPlacement: q.widgetEventPlacement || baseAdv.widgetEventPlacement || "below",
-                widgetEventMaxImages: sanitizeQuotaNumber(q.widgetEventMaxImages || baseAdv.widgetEventMaxImages, 5),
-                cdnSourceDomain: (q.cdnSourceDomain || baseAdv.cdnSourceDomain || "firebasestorage.googleapis.com").trim(),
-                cdnTargetDomain: (q.cdnTargetDomain || baseAdv.cdnTargetDomain || "cdn.locketcamera.com").trim(),
-                streakMinRecoveryCount: sanitizeQuotaNumber(q.streakMinRecoveryCount, 0),
-                streakVisualizationStyle: q.streakVisualizationStyle || baseAdv.streakVisualizationStyle || "gradient",
-                discoveryPopupTag: (q.discoveryPopupTag || baseAdv.discoveryPopupTag || "UpLocket").trim(),
-                discoveryPopupFeatureTitle: (q.discoveryPopupFeatureTitle || baseAdv.discoveryPopupFeatureTitle || "Đã mở khoá GOLD thành công!").trim(),
-                fgAppIconPicker: q.fgAppIconPicker === "1",
-                fgCameraRoll: q.fgCameraRoll === "1",
-                fgCameraTheme: q.fgCameraTheme === "1",
-                fgLocketViews: q.fgLocketViews === "1",
-                fgLongCaptions: q.fgLongCaptions === "1",
-                fgLongerVideo: q.fgLongerVideo !== undefined ? q.fgLongerVideo === "1" : true,
-                fgUnlimitedFriends: q.fgUnlimitedFriends === "1",
-                fgCustomWidgetFrames: q.fgCustomWidgetFrames === "1",
-                fgStreakRecovery: q.fgStreakRecovery === "1",
-                ultraWideEnabled: q.ultraWideEnabled === "1",
-                telephotoEnabled: q.telephotoEnabled === "1",
-                volumeButtonShutter: q.volumeButtonShutter !== undefined ? q.volumeButtonShutter === "1" : true,
-                srgbColorSpace: q.srgbColorSpace !== undefined ? q.srgbColorSpace === "1" : true,
-                lanczosResampling: q.srgbColorSpace !== undefined ? q.srgbColorSpace === "1" : true,
-                livePhotosEnabled: q.livePhotosEnabled === "1",
-                openFilterSheetImmediately: q.openFilterSheetImmediately !== undefined ? q.openFilterSheetImmediately === "1" : true,
-                timeTravelRewindEnabled: q.timeTravelRewindEnabled === "1",
-                unsendMessageEnabled: q.unsendMessageEnabled === "1",
-                rollcallEnabled: q.rollcallEnabled === "1",
-                lunarNewYearIconEnabled: q.lunarNewYearIconEnabled !== undefined ? q.lunarNewYearIconEnabled === "1" : true,
-                enableNmsMapping: q.enableNmsMapping !== undefined ? q.enableNmsMapping === "1" : true,
-                enableHeader7StripEtag: q.enableHeader7StripEtag !== undefined ? q.enableHeader7StripEtag === "1" : true,
-                disableHistoryAds: q.disableHistoryAds === "1",
-                disableSentryTracking: q.disableSentryTracking !== undefined ? q.disableSentryTracking === "1" : true
-            };
-            saveConfig(updatedAdv);
-            statusMsg = `Đã lưu cấu hình Camera (${vDur}s · ${updatedAdv.videoQualityMbps}Mbps), Khung Widget & toàn bộ Công tắc iOS Switch!`;
-        }
-
-        if (q.clear_img_slot || q.clear_upload_slot) {
-            clearDirectUploadedImage(q.clear_img_slot || q.clear_upload_slot);
-            statusMsg = "Đã khôi phục ảnh mặc định!";
-        }
-
-        if (q.friend_action === "harvest") {
-            activeFetchFriendsFromLocketApi(currentCfg, () => {});
-            statusMsg = "Đã kích hoạt tiến trình tự động quét & lấy UID bạn bè từ Locket!";
-        } else if (q.friend_action) {
-            const fUid = (q.friend_uid || "").trim();
-            const fUser = (q.friend_user || "").trim().replace(/^@/, "");
-            if (q.friend_action === "toggle" && fUid) {
-                const en = q.enable === "1";
-                const rec = setSingleFriendBadgeState(fUid, en);
-                statusMsg = `Đã ${en ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${rec ? rec.username : fUid})!`;
-            } else if (q.friend_action === "upsert_friend" && fUid) {
-                const en = q.friend_badge !== "0";
-                const rec = setSingleFriendBadgeState(fUid, en, {
-                    username: fUser || fUid.slice(0, 10),
-                    full_name: fUser || fUid.slice(0, 10)
-                });
-                statusMsg = `Đã lưu bạn bè @${rec.username} (${fUid}) — Trạng thái huy hiệu: ${en ? "ĐANG BẬT" : "ĐÃ TẮT"}!`;
-            } else if (q.friend_action === "enable_all") {
-                setAllFriendsBadgeState(true);
-                const updatedDefault = { ...loadConfig(), friendsBadgeDefault: true };
-                saveConfig(updatedDefault);
-                statusMsg = "Đã BẬT huy hiệu Locket Gold cho toàn bộ danh sách bạn bè!";
-            } else if (q.friend_action === "disable_all") {
-                setAllFriendsBadgeState(false);
-                const updatedDefault = { ...loadConfig(), friendsBadgeDefault: false };
-                saveConfig(updatedDefault);
-                statusMsg = "Đã TẮT huy hiệu Locket Gold của toàn bộ bạn bè (Chỉ giữ huy hiệu cho riêng bạn)!";
-            } else if (q.friend_action === "toggle_default") {
-                const newDef = q.default_val === "1";
-                const updatedDefault = { ...loadConfig(), friendsBadgeDefault: newDef };
-                saveConfig(updatedDefault);
-                statusMsg = `Đã đặt mặc định cho bạn bè mới phát hiện: ${newDef ? "TỰ ĐỘNG BẬT GOLD" : "TỰ ĐỘNG TẮT GOLD"}!`;
-            } else if (q.friend_action === "delete" && fUid) {
-                const map = getFriendsBadgeMap();
-                delete map[fUid];
-                saveFriendsBadgeMap(map);
-                statusMsg = `Đã xoá bạn bè (${fUid}) khỏi danh sách tuỳ chỉnh.`;
-            }
-        }
-
-        if (q.push_test === "1") {
-            armLocketInAppPopupTrigger(loadConfig(), "Push Test");
-            statusMsg = currentCfg.isBlockedByAdmin
-                ? "Đã bắn thử thông báo thu hồi Gold iOS!"
-                : `Đã bắn thông báo Popup: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`;
-        }
-
-        if (q.doh_test === "1") {
-            probeIntegratedDohEndpoint(currentCfg, () => {});
-            statusMsg = `Đã kiểm tra và đồng bộ tuyến DoH UpLocket (${currentCfg.dohServerUrl}) cùng 40 miền mục tiêu!`;
-        }
-
-        if (q.admin_login === "1") {
-            openDrawer = true;
-            if (q.user === ROOT_ADMIN_USER && (q.pass === ROOT_ADMIN_PASS_1 || q.pass === ROOT_ADMIN_PASS_2)) {
-                Env.write("1", ADMIN_SESSION_KEY);
-                statusMsg = "Đã đăng nhập quyền Root Admin tối cao (ngominhduc).";
-            } else {
-                statusMsg = "Sai tài khoản hoặc mật khẩu Quản trị viên.";
-            }
-        } else if (q.admin_logout === "1") {
-            openDrawer = false;
-            Env.write("0", ADMIN_SESSION_KEY);
-            statusMsg = "";
-        }
-
-        if (q.request_activate === "1") {
-            const targetUid = (uid && !uid.includes("RCAnonymousID")) ? uid : (Env.read(USER_ID_CACHE_KEY) || "UID_LOCKET_GOLD");
-            upsertUserRecord(targetUid, {
-                username: q.username || Env.read(USERNAME_CACHE_KEY) || targetUid.slice(0, 10),
-                lockDate: currentCfg.lockDate,
-                productId: currentCfg.productId,
-                aiQuota: currentCfg.aiFilterQuota,
-                touch: true
-            });
-            armLocketInAppPopupTrigger(loadConfig(), "Activate Button");
-            forcePopup = true;
-            statusMsg = `Đã kích hoạt & đồng bộ Locket Gold cho (${targetUid})!`;
-        }
-
-        if (q.admin_action && Env.read(ADMIN_SESSION_KEY) === "1") {
-            openDrawer = true;
-            const db = getLocalStore();
-            const tUid = (q.target_uid || "").trim();
-            const tUser = (q.target_user || "").trim().replace(/^@/, "");
-            const tAiQuota = q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota;
-
-            if (q.admin_action === "push_user_gold" && tUid) {
-                armLocketInAppPopupTrigger(currentCfg, "Admin Push UID " + tUid);
-                statusMsg = `Đã bắn thông báo Popup Locket Gold cho UID: ${tUid}!`;
-            } else if (q.admin_action === "unblock_all") {
-                for (const k of Object.keys(db.users)) {
-                    db.users[k].status = "approved";
-                    db.users[k].gold_active = true;
-                    db.users[k].blocked = false;
-                    db.users[k].ai_quota = DEFAULT_CONFIG.aiFilterQuota;
-                    db.users[k].note = "Đã mở khoá GOLD thành công (Full Photobooth & AI Looks)";
-                    db.users[k].reason = "";
-                    db.users[k].updated_at = nowStr;
-                }
-                saveLocalStore(db);
-                triggerInAppLocketBlockAlert("", "", false, true);
-                statusMsg = "Đã gỡ chặn & cấp lại Locket Gold cho toàn bộ người dùng theo thời gian thực!";
-            } else if (tUid) {
-                if (q.admin_action === "add_gold" || q.admin_action === "unblock" || q.admin_action === "set_ai_quota") {
-                    db.users[tUid] = {
-                        ...(db.users[tUid] || {}),
-                        uid: tUid,
-                        username: tUser || (db.users[tUid] && db.users[tUid].username) || tUid.slice(0, 10),
-                        full_name: tUser || (db.users[tUid] && db.users[tUid].full_name) || tUid.slice(0, 10),
-                        status: "approved",
-                        gold_active: true,
-                        blocked: false,
-                        ai_quota: tAiQuota,
-                        note: "Đã mở khoá GOLD thành công (Full Photobooth & AI Looks)",
-                        reason: "",
-                        updated_at: nowStr
-                    };
-                    saveLocalStore(db);
-                    setSingleFriendBadgeState(tUid, true, {
-                        username: db.users[tUid].username,
-                        full_name: db.users[tUid].full_name
-                    });
-                    if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
-                        const updatedSelfCfg = {
-                            ...loadConfig(),
-                            isBlockedByAdmin: false,
-                            alwaysForceBadge: true,
-                            unlockAllCameraEffects: true,
-                            aiFilterEnabled: true,
-                            aiFilterQuota: tAiQuota,
-                            aiFilterDailyLimit: tAiQuota
-                        };
-                        saveConfig(updatedSelfCfg);
-                    }
-                    triggerInAppLocketBlockAlert(tUid, "", false, true);
-                    fireNativeAppNotification(loadConfig(), true);
-                    statusMsg = `Đã mở khoá Gold & cấp ${tAiQuota.toLocaleString("vi-VN")} lượt Filter AI cho UID: ${tUid}!`;
-                } else if (q.admin_action === "block") {
-                    const blkMsg = "Tài khoản đã bị Admin chặn — Đã thu hồi Locket Gold, xóa huy hiệu và khoá toàn bộ Photobooth/AI Looks.";
-                    db.users[tUid] = {
-                        ...(db.users[tUid] || {}),
-                        uid: tUid,
-                        status: "blocked",
-                        gold_active: false,
-                        blocked: true,
-                        ai_quota: 0,
-                        note: "Đã bị Admin chặn & thu hồi Locket Gold",
-                        reason: blkMsg,
-                        updated_at: nowStr
-                    };
-                    saveLocalStore(db);
-                    setSingleFriendBadgeState(tUid, false, {
-                        username: db.users[tUid].username,
-                        full_name: db.users[tUid].full_name
-                    });
-                    if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
-                        const revokedSelfCfg = {
-                            ...loadConfig(),
-                            isBlockedByAdmin: true,
-                            alwaysForceBadge: false,
-                            unlockAllCameraEffects: false,
-                            aiFilterEnabled: false,
-                            aiFilterQuota: 0,
-                            aiFilterDailyLimit: 0
-                        };
-                        saveConfig(revokedSelfCfg);
-                    }
-                    triggerInAppLocketBlockAlert(tUid, blkMsg, true, true);
-                    statusMsg = `Đã chặn & THU HỒI SẠCH LOCKET GOLD của UID: ${tUid}!`;
-                } else if (q.admin_action === "delete") {
-                    delete db.users[tUid];
-                    saveLocalStore(db);
-                    statusMsg = `Đã xoá UID ${tUid} khỏi danh sách.`;
-                }
-            }
-        }
-
-        const finishWebRender = () => {
-            const latestBeforeSync = loadConfig();
-            syncRealtimeWithServer(uid, latestBeforeSync, "sync", () => {
-                let current = loadConfig();
-                if (q.reset === "1") {
-                    const resetCfg = { ...DEFAULT_CONFIG, preferWebOverArg: true };
-                    saveConfig(resetCfg);
-                    current = loadConfig();
-                    statusMsg = `Đã khôi phục mặc định (25/05/2026, DoH UpLocket 40 miền & 999.999 lượt AI)!`;
-                } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined || q.dohServerUrl !== undefined) {
-                    const rawLock = q.lockDate || q.d || current.lockDate;
-                    const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
-                    const rawExp = q.expireDate || current.expireDate;
-                    const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T10:10:14Z");
-                    const newAiQuota = q.aiFilterQuota !== undefined
-                        ? sanitizeQuotaNumber(q.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota)
-                        : sanitizeQuotaNumber(current.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
-                    const newAiUsed = q.aiFilterUsed !== undefined
-                        ? sanitizeQuotaNumber(q.aiFilterUsed, 0)
-                        : 0;
-
-                    if (q.username) {
-                        Env.write(q.username.trim().replace(/^@/, ""), USERNAME_CACHE_KEY);
-                    }
-                    const updated = {
-                        ...current,
-                        lockDate: isoLock.slice(0, 10),
-                        expireDate: isoExp.slice(0, 10),
-                        productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
-                        ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
-                        dohServerUrl: (q.dohServerUrl || current.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl).trim(),
-                        dohPrimaryIp: (q.dohPrimaryIp || current.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0]).trim(),
-                        dohSecondaryIp: (q.dohSecondaryIp || current.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1]).trim(),
-                        unlockAllCameraEffects: !current.isBlockedByAdmin,
-                        aiFilterEnabled: !current.isBlockedByAdmin,
-                        aiFilterQuota: current.isBlockedByAdmin ? 0 : newAiQuota,
-                        aiFilterDailyLimit: current.isBlockedByAdmin ? 0 : newAiQuota,
-                        aiFilterUsed: newAiUsed,
-                        aiFilterUnlimited: !current.isBlockedByAdmin,
-                        preferWebOverArg: true
-                    };
-                    saveConfig(updated);
-                    if (uid && !uid.includes("RCAnonymousID")) {
-                        upsertUserRecord(uid, {
-                            username: q.username ? q.username.trim().replace(/^@/, "") : undefined,
-                            lockDate: updated.lockDate,
-                            productId: updated.productId,
-                            aiQuota: updated.aiFilterQuota,
-                            touch: true
-                        });
-                    }
-                    current = loadConfig();
-                    statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, tuyến DoH UpLocket 40 miền & mở khoá ${current.aiFilterQuota.toLocaleString("vi-VN")} lượt AI!`;
-                }
-
-                sendWebResponse(200, { "Content-Type": "text/html; charset=utf-8" }, renderBentoWebPanel(current, statusMsg, openDrawer, forcePopup));
-            });
-        };
-
-        if (q.admin_action && q.target_uid && Env.read(ADMIN_SESSION_KEY) === "1") {
-            pushAdminCmdToServer(
-                q.admin_action,
-                q.target_uid.trim(),
-                q.target_user || "",
-                q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota,
-                finishWebRender
-            );
-        } else {
-            finishWebRender();
-        }
-    } catch (err) {
-        sendWebResponse(200, { "Content-Type": "text/html; charset=utf-8" }, renderBentoWebPanel(loadConfig(), "Đã tự động khôi phục giao diện: " + String(err && err.message ? err.message : err), false, false));
-    }
-}
-
-// ============================================================================
-// BỘ ĐỊNH TUYẾN CHÍNH (CRON / REQUEST / RESPONSE)
-// ============================================================================
-const isCronMode = typeof $request === "undefined" && typeof $response === "undefined";
-const isRequestMode = typeof $request !== "undefined" && typeof $response === "undefined";
-const isResponseMode = typeof $response !== "undefined";
-
-if (isCronMode) {
-    runCronBadgeSync();
-} else if (isRequestMode) {
-    const url = $request.url || "";
-    const headers = $request.headers || {};
-    const uid = extractAndCacheCredentials(url, headers, $request.body);
-    const currentCfg = loadConfig();
-
-    if (currentCfg.blockAdsAndTelemetry !== false && isBlockedAdOrTelemetryDomain(url)) {
-        sendWebResponse(204, { "Content-Type": "text/plain; charset=utf-8" }, "");
-    } else {
-        if (typeof $request.body === "string" && $request.body.length > 10) {
-            let parsedReq = null;
-            try { parsedReq = JSON.parse($request.body); } catch (e) {}
-            autoHarvestFriendsFromRawPayload($request.body, parsedReq, currentCfg);
-        }
-
-        const isRootRevenueCatWeb = /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(url) && !url.includes("/v1/") && !url.includes("/subscribers");
-        const isWebPanelUrl = url.includes("/setdate") || url.includes("locket.gold") || isRootRevenueCatWeb;
-
-        if (isWebPanelUrl) {
-            processWebPanelRequestAndRender(url, headers, uid, currentCfg);
-        } else {
-            if (isActualLocketAppTraffic(url, headers)) {
-                if (currentCfg.isBlockedByAdmin) {
-                    triggerInAppLocketBlockAlert(uid, currentCfg.blockReason, true, false);
-                } else {
-                    fireNativeAppNotification(currentCfg, false);
-                }
-            }
-
-            applyIntegratedNetworkHeaders(url, headers, currentCfg);
-
-            let modifiedBody = $request.body;
-            if (
-                typeof modifiedBody === "string" &&
-                modifiedBody.trim().startsWith("{") &&
-                (
-                    url.includes("revenuecat.com") ||
-                    url.includes("changeProfileInfo") ||
-                    url.includes("us-central1-locket-4252a.cloudfunctions.net")
-                )
-            ) {
-                try {
-                    const reqJson = JSON.parse(modifiedBody);
-                    let touched = false;
-                    const nowMs = Date.now();
-                    const isRevoked = !!currentCfg.isBlockedByAdmin;
-                    const quotaStr = isRevoked ? "0" : String(sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999));
-
-                    if (reqJson.attributes && typeof reqJson.attributes === "object") {
-                        reqJson.attributes.locket_gold_badge = { value: isRevoked ? "false" : "true", updated_at_ms: nowMs };
-                        reqJson.attributes.badge = { value: isRevoked ? "none" : "locket_gold", updated_at_ms: nowMs };
-                        reqJson.attributes.is_gold = { value: isRevoked ? "false" : "true", updated_at_ms: nowMs };
-                        reqJson.attributes.photobooth_unlocked = { value: isRevoked ? "false" : "true", updated_at_ms: nowMs };
-                        reqJson.attributes.holiday_effects_unlocked = { value: isRevoked ? "false" : "true", updated_at_ms: nowMs };
-                        reqJson.attributes.camera_effects_unlocked = { value: isRevoked ? "false" : "true", updated_at_ms: nowMs };
-                        reqJson.attributes.ai_filter_quota = { value: quotaStr, updated_at_ms: nowMs };
-                        reqJson.attributes.ai_filter_remaining = { value: quotaStr, updated_at_ms: nowMs };
-                        reqJson.attributes.doh_dns_endpoint = { value: currentCfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl, updated_at_ms: nowMs };
-                        touched = true;
-                    }
-                    if ((url.includes("changeProfileInfo") || url.includes("us-central1-locket-4252a.cloudfunctions.net")) && reqJson.data && typeof reqJson.data === "object") {
-                        reqJson.data.badge = isRevoked ? null : "locket_gold";
-                        reqJson.data.locket_gold_badge = !isRevoked;
-                        reqJson.data.is_gold = !isRevoked;
-                        touched = true;
-                    }
-
-                    if (touched) {
-                        modifiedBody = JSON.stringify(reqJson);
-                    }
-                } catch (e) {}
-            }
-
-            if (modifiedBody !== undefined && modifiedBody !== $request.body) {
-                Env.done({ headers, body: modifiedBody });
-            } else {
-                Env.done({ headers });
-            }
-        }
-    }
-} else if (isResponseMode) {
-    const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
-    const reqHeaders = (typeof $request !== "undefined" && $request.headers) ? $request.headers : {};
-    const requestedUrlUserId = extractRequestedRcUserId(reqUrl);
-    const resolvedUserId = extractAndCacheCredentials(reqUrl, reqHeaders, $response.body);
-    const cfg = loadConfig();
-
-    const isRootRcFallback = /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(reqUrl) && !reqUrl.includes("/v1/") && !reqUrl.includes("/subscribers");
-    const is7117Error = (($response.body || "").includes("7117") || ($response.body || "").includes("Page not found")) && !reqUrl.includes("/v1/subscribers");
-
-    if (reqUrl.includes("/setdate") || reqUrl.includes("locket.gold") || isRootRcFallback || is7117Error) {
-        processWebPanelRequestAndRender(reqUrl, reqHeaders, resolvedUserId, cfg);
-    } else {
-        if (isActualLocketAppTraffic(reqUrl, reqHeaders)) {
-            if (cfg.isBlockedByAdmin) {
-                triggerInAppLocketBlockAlert(resolvedUserId, cfg.blockReason, true, false);
-            } else {
-                fireNativeAppNotification(cfg, false);
-            }
-        }
-
-        const rawBody = $response.body || "";
-        if (typeof rawBody !== "string" || (!rawBody.trim().startsWith("{") && !rawBody.trim().startsWith("["))) {
-            Env.done({});
-        } else {
-            let obj;
-            try {
-                obj = JSON.parse(rawBody);
-            } catch (e) {
-                Env.done({});
-                obj = null;
-            }
-
-            if (obj && typeof obj === "object") {
-                autoHarvestFriendsFromRawPayload(rawBody, obj, cfg);
-
-                const isRevenueCat = (
-                    reqUrl.includes("revenuecat.com") ||
-                    reqUrl.includes("rc-backup.com") ||
-                    reqUrl.includes("/subscribers") ||
-                    reqUrl.includes("/receipts") ||
-                    obj.subscriber !== undefined
-                );
-
-                const isOfferings = reqUrl.includes("/offerings") || obj.offerings !== undefined;
-
-                const isFirebaseRemoteConfig = (
-                    reqUrl.includes("firebaseremoteconfig.googleapis.com") ||
-                    reqUrl.includes("firebaseremoteconfigrealtime.googleapis.com") ||
-                    (obj.entries !== undefined && typeof obj.entries === "object")
-                );
-
-                const isLocketCloudFunctions = (
-                    reqUrl.includes("us-central1-locket-4252a.cloudfunctions.net") ||
-                    reqUrl.includes("cloudfunctions.net")
-                );
-
-                if (isFirebaseRemoteConfig) {
-                    obj = injectFirebaseRemoteConfig(obj, cfg);
-                } else if (isOfferings) {
-                    obj = patchRevenueCatOfferings(obj, cfg);
-                } else if (isRevenueCat) {
-                    obj = buildSubscriberPayload(obj, cfg, resolvedUserId, requestedUrlUserId, reqHeaders);
-                } else if (isLocketCloudFunctions) {
-                    obj = patchCloudFunctionResponsePayload(obj, cfg, reqUrl, resolvedUserId);
-                } else {
-                    if (!cfg.isBlockedByAdmin && obj.error && typeof obj.error === "object") {
-                        const errMsg = String(obj.error.message || obj.error.status || "").toLowerCase();
-                        if (errMsg.includes("quota") || errMsg.includes("limit") || errMsg.includes("gold") || errMsg.includes("permission")) {
-                            delete obj.error;
-                            obj.result = obj.result || { ok: true, can_use: true, remaining: sanitizeQuotaNumber(cfg.aiFilterQuota, 999999) };
-                        }
-                    }
-                    obj = deepForceBadgeAndAiQuotaInObject(obj, cfg);
-                    if (obj.subscriber && typeof obj.subscriber === "object") {
-                        obj = buildSubscriberPayload(obj, cfg, resolvedUserId, requestedUrlUserId, reqHeaders);
-                    }
-                    if (obj.entries && typeof obj.entries === "object") {
-                        obj = injectFirebaseRemoteConfig(obj, cfg);
-                    }
-                }
-
-                const resHeaders = { ...($response.headers || {}) };
-                for (const k of Object.keys(resHeaders)) {
-                    const low = k.toLowerCase();
-                    if (
-                        low === "x-revenuecat-etag" ||
-                        low === "etag" ||
-                        low === "x-signature" ||
-                        low === "x-revenuecat-request-id" ||
-                        low === "content-length" ||
-                        low === "public-key-pins" ||
-                        low === "expect-ct"
-                    ) {
-                        delete resHeaders[k];
-                    }
-                }
-                resHeaders["Content-Type"] = "application/json; charset=utf-8";
-                resHeaders["Cache-Control"] = "no-store, no-cache, must-revalidate";
-                resHeaders["X-LocketGold-DoH-Active"] = "true";
-                resHeaders["X-UpLocket-Gold-Status"] = cfg.isBlockedByAdmin ? "revoked" : "active";
-
-                const origStatus = ($response && $response.status) ? $response.status : 200;
-                const finalStatus = (isRevenueCat || isOfferings || isFirebaseRemoteConfig || isLocketCloudFunctions || origStatus === 304) ? 200 : origStatus;
-
-                Env.done({
-                    status: finalStatus,
-                    headers: resHeaders,
-                    body: JSON.stringify(obj)
-                });
-            }
-        }
-    }
-}
-
 // === KẾT THÚC PHẦN 1 / 2 — GÕ "2" ĐỂ LẤY NỐT PHẦN 2 / 2 (ĐÓNG FILE HOÀN CHỈNH) ===
 function buildAppleFlowClientScript() {
     return `
@@ -12236,7 +9885,6 @@ function buildAppleFlowClientScript() {
       if (el) el.value = v;
     }
     function openGoldModal() {
-      syncLivePopupModalPreview();
       var m = document.getElementById('locketGoldModal');
       if (m) {
         m.classList.remove('hidden');
@@ -12268,52 +9916,43 @@ function buildAppleFlowClientScript() {
       if (btnIn && btnEl) btnEl.textContent = btnIn.value || 'Đã hiểu';
     }
 
-    // Đồng bộ cả 2 bộ ID của Caption Studio để không bao giờ lệch
-    function updateCapStudioPreview() {
-      var txtEl = document.getElementById('capEditorText') || document.getElementById('capTextInput');
-      var emoEl = document.getElementById('capEditorEmoji') || document.getElementById('capEmojiInput');
-      var c1El = document.getElementById('capEditorC1') || document.getElementById('capColor1Input');
-      var c2El = document.getElementById('capEditorC2') || document.getElementById('capColor2Input');
-      var c3El = document.getElementById('capEditorC3') || document.getElementById('capColor3Input');
-      var tcEl = document.getElementById('capEditorTextColor') || document.getElementById('capTextColorInput');
+    function updateLiveCaptionPreview() {
+      var txt = (document.getElementById('capTextInput') || {}).value || 'Caption VIP';
+      var emj = (document.getElementById('capEmojiInput') || {}).value || '';
+      var c1 = (document.getElementById('capColor1Input') || {}).value || '#FFD700';
+      var c2 = (document.getElementById('capColor2Input') || {}).value || '#F59E0B';
+      var c3 = (document.getElementById('capColor3Input') || {}).value || '';
+      var tc = (document.getElementById('capTextColorInput') || {}).value || '#000000E6';
 
-      var chip = document.getElementById('liveCapStudioPreview') || document.getElementById('liveCaptionPreviewChip');
-      var emoSpan = document.getElementById('liveCapEmojiSpan') || document.getElementById('liveCapEmoji');
-      var txtSpan = document.getElementById('liveCapTextSpan') || document.getElementById('liveCapText');
+      var chip = document.getElementById('liveCaptionPreviewChip');
+      var emjSpan = document.getElementById('liveCapEmoji');
+      var txtSpan = document.getElementById('liveCapText');
 
-      var txt = (txtEl && txtEl.value) ? txtEl.value : 'Caption VIP';
-      var emo = (emoEl && emoEl.value) ? emoEl.value.trim() : '';
-      var c1 = (c1El && c1El.value) ? c1El.value.trim() : '#FFD700';
-      var c2 = (c2El && c2El.value) ? c2El.value.trim() : '#F59E0B';
-      var c3 = (c3El && c3El.value) ? c3El.value.trim() : '';
-      var tc = (tcEl && tcEl.value) ? tcEl.value.trim() : '#000000E6';
-
-      if (emoSpan) {
-        emoSpan.textContent = emo;
-        emoSpan.style.display = emo ? 'inline' : 'none';
+      if (emjSpan) {
+        emjSpan.textContent = emj.trim();
+        emjSpan.style.display = emj.trim() ? 'inline' : 'none';
       }
       if (txtSpan) {
         txtSpan.textContent = txt;
       }
       if (chip) {
-        var grad = c3
+        var grad = c3.trim()
           ? ('linear-gradient(135deg, ' + c1 + ', ' + c2 + ', ' + c3 + ')')
           : ('linear-gradient(135deg, ' + c1 + ', ' + c2 + ')');
         chip.style.background = grad;
         chip.style.color = tc;
       }
     }
-    var updateLiveCaptionPreview = updateCapStudioPreview;
 
     function loadCaptionIntoEditor(id, text, emoji, section, c1, c2, c3, tc) {
-      var idEl = document.getElementById('capEditorId') || document.getElementById('capIdInput');
-      var txtEl = document.getElementById('capEditorText') || document.getElementById('capTextInput');
-      var emjEl = document.getElementById('capEditorEmoji') || document.getElementById('capEmojiInput');
-      var secEl = document.getElementById('capEditorSection') || document.getElementById('capSectionInput');
-      var c1El = document.getElementById('capEditorC1') || document.getElementById('capColor1Input');
-      var c2El = document.getElementById('capEditorC2') || document.getElementById('capColor2Input');
-      var c3El = document.getElementById('capEditorC3') || document.getElementById('capColor3Input');
-      var tcEl = document.getElementById('capEditorTextColor') || document.getElementById('capTextColorInput');
+      var idEl = document.getElementById('capIdInput');
+      var txtEl = document.getElementById('capTextInput');
+      var emjEl = document.getElementById('capEmojiInput');
+      var secEl = document.getElementById('capSectionInput');
+      var c1El = document.getElementById('capColor1Input');
+      var c2El = document.getElementById('capColor2Input');
+      var c3El = document.getElementById('capColor3Input');
+      var tcEl = document.getElementById('capTextColorInput');
 
       if (idEl) idEl.value = id || '';
       if (txtEl) txtEl.value = text || '';
@@ -12324,7 +9963,7 @@ function buildAppleFlowClientScript() {
       if (c3El) c3El.value = c3 || '';
       if (tcEl) tcEl.value = tc || '#FFFFFF';
 
-      updateCapStudioPreview();
+      updateLiveCaptionPreview();
       var studioSec = document.getElementById('captionStudioSection');
       if (studioSec) {
         studioSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -12333,7 +9972,7 @@ function buildAppleFlowClientScript() {
 
     function filterCaptionStudioCards() {
       var q = ((document.getElementById('searchCaptionStudioInput') || {}).value || '').toLowerCase().trim();
-      var cards = document.querySelectorAll('#captionStudioCardsGrid .cap-card-item, #captionStudioGridList .cap-card-item');
+      var cards = document.querySelectorAll('#captionStudioGridList .cap-card-item');
       for (var i = 0; i < cards.length; i++) {
         var hay = cards[i].getAttribute('data-cap-search') || '';
         cards[i].style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
@@ -12927,40 +10566,6 @@ function buildAppleFlowClientScript() {
   </script>`;
 }
 
-// Hàm phản hồi Web tương thích 100% với cả Shadowrocket / Surge / Loon / Quantumult X ở cả 2 pha
-function sendWebResponse(statusNum, headersObj, bodyStr) {
-    const code = Number(statusNum) || 200;
-    const statusText = code === 204 ? "HTTP/1.1 204 No Content" : "HTTP/1.1 200 OK";
-    const safeHeaders = Object.assign({
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "Access-Control-Allow-Origin": "*"
-    }, headersObj || {});
-
-    const isQuanX = typeof $prefs !== "undefined" || typeof $task !== "undefined";
-    const isReqOnly = typeof $request !== "undefined" && typeof $response === "undefined";
-
-    if (isReqOnly) {
-        if (isQuanX) {
-            Env.done({ status: statusText, headers: safeHeaders, body: String(bodyStr ?? "") });
-        } else {
-            Env.done({
-                response: {
-                    status: code,
-                    headers: safeHeaders,
-                    body: String(bodyStr ?? "")
-                }
-            });
-        }
-    } else {
-        Env.done({
-            status: isQuanX ? statusText : code,
-            headers: safeHeaders,
-            body: String(bodyStr ?? "")
-        });
-    }
-}
-
 function renderBentoWebPanel(cfg, statusMsg, openAdminDrawer = false, forceShowGoldModal = false) {
     const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
     const isAdminLogged = Env.read(ADMIN_SESSION_KEY) === "1";
@@ -13082,565 +10687,7 @@ function runCronBadgeSync() {
 }
 
 // ============================================================================
-// HÀM XỬ LÝ TOÀN BỘ GIAO DIỆN WEB & API (/setdate & api.revenuecat.com)
-// Chạy được ở cả pha $request lẫn pha $response (khi bị lỗi 7117)
-// ============================================================================
-function processWebPanelRequestAndRender(url, headers, uid, currentCfg) {
-    const q = parseQuery(url);
-
-    // 1. Phục vụ ảnh nội bộ (Local Asset) cho App Locket
-    if (q.local_asset === "popup" || q.local_asset === "widget") {
-        const imgUri = q.local_asset === "widget"
-            ? resolveEffectiveWidgetImage(currentCfg)
-            : resolveEffectivePopupImage(currentCfg);
-        if (imgUri && imgUri.startsWith("data:image/svg+xml")) {
-            const commaIdx = imgUri.indexOf(",");
-            const rawSvg = commaIdx !== -1 ? decodeURIComponent(imgUri.slice(commaIdx + 1)) : "";
-            sendWebResponse(200, { "Content-Type": "image/svg+xml; charset=utf-8" }, rawSvg);
-        } else {
-            sendWebResponse(200, { "Content-Type": "text/html; charset=utf-8" },
-                `<!DOCTYPE html><html><body style="margin:0;background:#141415;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(imgUri)}" style="max-width:100%;max-height:100vh;object-fit:contain;"></body></html>`
-            );
-        }
-        return;
-    }
-
-    // 2. Nhận từng gói ảnh Multi-Chunk qua URL Query / Header
-    if (q.api === "upload_chunk") {
-        const slot = (q.slot || "popup").toLowerCase();
-        const tmpKey = slot === "widget" ? "LOCKET_TMP_CHUNK_WIDGET_V11" : "LOCKET_TMP_CHUNK_POPUP_V11";
-        const headerChunk = headers["X-UpLocket-Chunk"] || headers["x-uplocket-chunk"] || "";
-        const chunkPiece = q.chunk || headerChunk || "";
-        const prevStr = q.mode === "init" ? "" : (Env.read(tmpKey) || "");
-        const nextStr = prevStr + chunkPiece;
-        Env.write(nextStr, tmpKey);
-
-        sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-            ok: true,
-            slot: slot,
-            idx: parseInt(q.idx || "0", 10),
-            length: nextStr.length
-        }));
-        return;
-    }
-
-    // 3. Chốt lưu ảnh hoàn chỉnh sau khi nhận đủ các gói Chunk
-    if (q.api === "upload_chunk_commit") {
-        const slot = (q.slot || "popup").toLowerCase();
-        const tmpKey = slot === "widget" ? "LOCKET_TMP_CHUNK_WIDGET_V11" : "LOCKET_TMP_CHUNK_POPUP_V11";
-        let finalDataUri = Env.read(tmpKey) || "";
-
-        if (!finalDataUri && typeof $request !== "undefined" && typeof $request.body === "string" && $request.body.startsWith("data:image/")) {
-            finalDataUri = $request.body.trim();
-        }
-
-        if (finalDataUri && finalDataUri.length > 32) {
-            saveDirectUploadedImage(slot, finalDataUri);
-            const latestCfg = loadConfig();
-            if (slot === "widget") {
-                latestCfg.widgetEventUrl = finalDataUri;
-            } else {
-                latestCfg.popupImage = finalDataUri;
-            }
-            saveConfig(latestCfg);
-            Env.write(String(Date.now()), INAPP_POPUP_CAMPAIGN_REV_KEY);
-
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                slot: slot,
-                sizeKb: Math.round(finalDataUri.length / 1024),
-                msg: slot === "widget"
-                    ? "Đã lưu ảnh viền Khung Widget trực tiếp từ máy thành công 100%!"
-                    : "Đã lưu ảnh Thông báo Popup UpLocket trực tiếp từ máy thành công 100%!"
-            }));
-        } else {
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: false,
-                msg: "Gói dữ liệu ảnh bị gián đoạn, vui lòng chọn lại ảnh một lần nữa!"
-            }));
-        }
-        return;
-    }
-
-    // 4. Xoá ảnh đã tải lên để về mặc định
-    if (q.api === "clear_uploaded_img" || q.api === "clear_direct_image") {
-        const slot = (q.slot || "popup").toLowerCase();
-        clearDirectUploadedImage(slot);
-        const latestCfg = loadConfig();
-        if (slot === "widget") {
-            latestCfg.widgetEventUrl = DEFAULT_WIDGET_FRAME_SVG;
-        } else {
-            latestCfg.popupImage = THAY_IMAGE_PATH;
-        }
-        saveConfig(latestCfg);
-        sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-            ok: true,
-            msg: "Đã khôi phục đồ hoạ gốc thành công!"
-        }));
-        return;
-    }
-
-    // 5. Kích hoạt & Bắn Popup UpLocket lên App Locket ngay lập tức
-    if (q.api === "arm_inapp_popup" || q.api === "fire_locket_popup") {
-        const updatedPopup = {
-            ...currentCfg,
-            popupBadge: (q.popupBadge || q.badge || currentCfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText).trim(),
-            popupHeader: (q.popupHeader || q.header || currentCfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText).trim(),
-            popupSubtitle: (q.popupSubtitle || q.subtitle || currentCfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText).trim(),
-            popupBtnText: (q.popupBtnText || q.btn || currentCfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText).trim()
-        };
-        saveConfig(updatedPopup);
-        const armed = armLocketInAppPopupTrigger(updatedPopup, "Web UI Button Trigger");
-        sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-            ok: true,
-            campaignId: armed.campaignId,
-            msg: `Đã bắn thông báo Popup "${updatedPopup.popupBadge} — ${updatedPopup.popupHeader}" lên App Locket thành công!`
-        }));
-        return;
-    }
-
-    if (q.download_mobileconfig === "1" || q.api === "mobileconfig") {
-        const xmlBody = generateIntegratedMobileconfigXml(currentCfg);
-        sendWebResponse(200, {
-            "Content-Type": "application/x-apple-aspen-config; charset=utf-8",
-            "Content-Disposition": "attachment; filename=\"UpLocket_ngominhduc.mobileconfig\""
-        }, xmlBody);
-        return;
-    }
-
-    if (q.api === "camera_catalog") {
-        sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-            ok: true,
-            catalog: buildCameraEffectsPayloadStruct(currentCfg),
-            in_app_bottom_sheet: buildInAppLocketModalStruct(currentCfg)
-        }));
-        return;
-    }
-
-    if (q.api === "trigger_push") {
-        fireNativeAppNotification(currentCfg, true);
-        sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-            ok: true,
-            msg: currentCfg.isBlockedByAdmin
-                ? "Đã bắn thử thông báo iOS: \"LOCKET GOLD — Đã thu hồi LOCKET GOLD!\"!"
-                : `Đã bắn thử thông báo iOS: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`
-        }));
-        return;
-    }
-
-    if (q.api === "toggle_friend_badge") {
-        const fUid = (q.friend_uid || "").trim();
-        const enableFlag = q.enable === "1" || q.enable === "true";
-        const updatedFriend = setSingleFriendBadgeState(fUid, enableFlag);
-        sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-            ok: !!updatedFriend,
-            friend_uid: fUid,
-            badge_enabled: enableFlag,
-            msg: `Đã ${enableFlag ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${updatedFriend ? updatedFriend.username : fUid})!`
-        }));
-        return;
-    }
-
-    if (q.api === "auto_harvest_friends") {
-        activeFetchFriendsFromLocketApi(currentCfg, (harvestResult) => {
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify(harvestResult));
-        });
-        return;
-    }
-
-    if (q.api === "doh_probe") {
-        probeIntegratedDohEndpoint(currentCfg, (probeResult) => {
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: probeResult.ok,
-                latencyMs: probeResult.latencyMs,
-                serverUrl: probeResult.serverUrl,
-                primaryIp: probeResult.primaryIp,
-                secondaryIp: probeResult.secondaryIp,
-                domainsCount: probeResult.domainsCount,
-                domains: probeResult.domains,
-                msg: `Kết nối DoH UpLocket (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã đồng bộ ${probeResult.domainsCount} miền Supplemental Match!`
-            }));
-        });
-        return;
-    }
-
-    if (q.api === "realtime_status") {
-        syncRealtimeWithServer(uid, currentCfg, "sync", (st) => {
-            const isRevoked = !!(st && st.blocked) || !!currentCfg.isBlockedByAdmin;
-            sendWebResponse(200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({
-                ok: true,
-                uid: uid,
-                blocked: isRevoked,
-                status: st.status,
-                gold_active: !isRevoked,
-                gold_kept: !isRevoked,
-                ai_quota: isRevoked ? 0 : sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999),
-                doh_server: currentCfg.dohServerUrl,
-                ca_uuid: INTEGRATED_NET_ENGINE.caUUID,
-                profile_id: INTEGRATED_NET_ENGINE.profileIdentifier,
-                popup_header: isRevoked ? currentCfg.revokedPopupHeader : currentCfg.popupHeader,
-                popup_title: isRevoked ? currentCfg.revokedPopupTitle : currentCfg.popupTitle,
-                popup_subtitle: isRevoked ? currentCfg.revokedPopupSubtitle : currentCfg.popupSubtitle,
-                reason: st.reason || ""
-            }));
-        });
-        return;
-    }
-
-    let openDrawer = q.admin_drawer === "1";
-    let forcePopup = q.preview_modal === "1";
-    let statusMsg = "";
-    const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
-
-    if (q.save_popup_and_widget_studio === "1") {
-        const nextPopupCfg = {
-            ...loadConfig(),
-            popupBadge: (q.popupBadge || currentCfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText).trim(),
-            popupHeader: (q.popupHeader || currentCfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText).trim(),
-            popupTitle: (q.popupTitle || currentCfg.popupTitle || "Ngô Minh Đức").trim(),
-            popupSubtitle: (q.popupSubtitle || currentCfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText).trim(),
-            popupBtnText: (q.popupBtnText || currentCfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText).trim()
-        };
-        saveConfig(nextPopupCfg);
-        armLocketInAppPopupTrigger(nextPopupCfg, "Save Studio Form");
-        forcePopup = true;
-        statusMsg = `Đã lưu cấu hình Popup "${nextPopupCfg.popupBadge} — ${nextPopupCfg.popupHeader}" & bắn lên App Locket!`;
-    }
-
-    if (q.caption_action) {
-        if (q.caption_action === "upsert") {
-            const created = createOrUpdateCaptionInStudio({
-                overlay_id: q.overlay_id || "",
-                text: q.cap_text || "Caption VIP",
-                emoji: q.cap_emoji || "",
-                section: q.cap_section || "✨ Caption Tự Chế (Custom Studio)",
-                color1: q.cap_c1 || "#FFD700",
-                color2: q.cap_c2 || "#F59E0B",
-                color3: q.cap_c3 || "",
-                textColor: q.cap_text_color || q.cap_tc || "#000000E6"
-            });
-            statusMsg = `Đã lưu Caption "${created.caption.text}" (${created.overlay_id}) vào nhóm ${created.section}! Mở lại Locket để dùng ngay.`;
-        } else if (q.caption_action === "delete" && q.overlay_id) {
-            deleteCaptionFromStudio(q.overlay_id);
-            statusMsg = `Đã xoá Caption (${q.overlay_id}) khỏi danh sách hiển thị trên Locket!`;
-        } else if (q.caption_action === "restore" && q.overlay_id) {
-            restoreSingleDeletedCaption(q.overlay_id);
-            statusMsg = `Đã khôi phục Caption (${q.overlay_id})!`;
-        } else if (q.caption_action === "reset_all") {
-            resetAllStudioCaptionsToDefault();
-            statusMsg = "Đã khôi phục toàn bộ 220+ Caption gốc mặc định!";
-        }
-    }
-
-    // Hỗ trợ cả save_engine_features (Phần 5) và save_advanced_features
-    if (q.save_engine_features === "1" || q.save_advanced_features === "1") {
-        const baseAdv = loadConfig();
-        const vDur = sanitizeFloatNumber(q.videoMaxDuration, 30.0, 5.0, 300.0);
-        const updatedAdv = {
-            ...baseAdv,
-            videoMaxDuration: vDur,
-            goldMaxDuration: vDur,
-            cameraRollMaxDuration: vDur,
-            videoQualityMbps: sanitizeFloatNumber(q.videoQualityMbps, 0.9, 0.1, 25.0),
-            uploadMainImageSize: sanitizeQuotaNumber(q.uploadMainImageSize, 1440),
-            uploadThumbnailSize: sanitizeQuotaNumber(q.uploadThumbnailSize || baseAdv.uploadThumbnailSize, 1020),
-            maxFriendsCount: sanitizeQuotaNumber(q.maxFriendsCount || baseAdv.maxFriendsCount, 999999),
-            historyCacheAgeDays: sanitizeQuotaNumber(q.historyCacheAgeDays || baseAdv.historyCacheAgeDays, 1000),
-            widgetEventUid: (q.widgetEventUid || baseAdv.widgetEventUid || "midautumn_2026").trim(),
-            widgetEventPlacement: q.widgetEventPlacement || baseAdv.widgetEventPlacement || "below",
-            widgetEventMaxImages: sanitizeQuotaNumber(q.widgetEventMaxImages || baseAdv.widgetEventMaxImages, 5),
-            cdnSourceDomain: (q.cdnSourceDomain || baseAdv.cdnSourceDomain || "firebasestorage.googleapis.com").trim(),
-            cdnTargetDomain: (q.cdnTargetDomain || baseAdv.cdnTargetDomain || "cdn.locketcamera.com").trim(),
-            streakMinRecoveryCount: sanitizeQuotaNumber(q.streakMinRecoveryCount, 0),
-            streakVisualizationStyle: q.streakVisualizationStyle || baseAdv.streakVisualizationStyle || "gradient",
-            discoveryPopupTag: (q.discoveryPopupTag || baseAdv.discoveryPopupTag || "UpLocket").trim(),
-            discoveryPopupFeatureTitle: (q.discoveryPopupFeatureTitle || baseAdv.discoveryPopupFeatureTitle || "Đã mở khoá GOLD thành công!").trim(),
-            fgAppIconPicker: q.fgAppIconPicker === "1",
-            fgCameraRoll: q.fgCameraRoll === "1",
-            fgCameraTheme: q.fgCameraTheme === "1",
-            fgLocketViews: q.fgLocketViews === "1",
-            fgLongCaptions: q.fgLongCaptions === "1",
-            fgLongerVideo: q.fgLongerVideo !== undefined ? q.fgLongerVideo === "1" : true,
-            fgUnlimitedFriends: q.fgUnlimitedFriends === "1",
-            fgCustomWidgetFrames: q.fgCustomWidgetFrames === "1",
-            fgStreakRecovery: q.fgStreakRecovery === "1",
-            ultraWideEnabled: q.ultraWideEnabled === "1",
-            telephotoEnabled: q.telephotoEnabled === "1",
-            volumeButtonShutter: q.volumeButtonShutter !== undefined ? q.volumeButtonShutter === "1" : true,
-            srgbColorSpace: q.srgbColorSpace !== undefined ? q.srgbColorSpace === "1" : true,
-            lanczosResampling: q.srgbColorSpace !== undefined ? q.srgbColorSpace === "1" : true,
-            livePhotosEnabled: q.livePhotosEnabled === "1",
-            openFilterSheetImmediately: q.openFilterSheetImmediately !== undefined ? q.openFilterSheetImmediately === "1" : true,
-            timeTravelRewindEnabled: q.timeTravelRewindEnabled === "1",
-            unsendMessageEnabled: q.unsendMessageEnabled === "1",
-            rollcallEnabled: q.rollcallEnabled === "1",
-            lunarNewYearIconEnabled: q.lunarNewYearIconEnabled !== undefined ? q.lunarNewYearIconEnabled === "1" : true,
-            enableNmsMapping: q.enableNmsMapping !== undefined ? q.enableNmsMapping === "1" : true,
-            enableHeader7StripEtag: q.enableHeader7StripEtag !== undefined ? q.enableHeader7StripEtag === "1" : true,
-            disableHistoryAds: q.disableHistoryAds === "1",
-            disableSentryTracking: q.disableSentryTracking !== undefined ? q.disableSentryTracking === "1" : true
-        };
-        saveConfig(updatedAdv);
-        statusMsg = `Đã lưu cấu hình Camera (${vDur}s · ${updatedAdv.videoQualityMbps}Mbps), Khung Widget & toàn bộ Công tắc iOS Switch!`;
-    }
-
-    if (q.clear_img_slot || q.clear_upload_slot) {
-        clearDirectUploadedImage(q.clear_img_slot || q.clear_upload_slot);
-        statusMsg = "Đã khôi phục ảnh mặc định!";
-    }
-
-    if (q.friend_action === "harvest") {
-        activeFetchFriendsFromLocketApi(currentCfg, () => {});
-        statusMsg = "Đã kích hoạt tiến trình tự động quét & lấy UID bạn bè từ Locket!";
-    } else if (q.friend_action) {
-        const fUid = (q.friend_uid || "").trim();
-        const fUser = (q.friend_user || "").trim().replace(/^@/, "");
-        if (q.friend_action === "toggle" && fUid) {
-            const en = q.enable === "1";
-            const rec = setSingleFriendBadgeState(fUid, en);
-            statusMsg = `Đã ${en ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${rec ? rec.username : fUid})!`;
-        } else if (q.friend_action === "upsert_friend" && fUid) {
-            const en = q.friend_badge !== "0";
-            const rec = setSingleFriendBadgeState(fUid, en, {
-                username: fUser || fUid.slice(0, 10),
-                full_name: fUser || fUid.slice(0, 10)
-            });
-            statusMsg = `Đã lưu bạn bè @${rec.username} (${fUid}) — Trạng thái huy hiệu: ${en ? "ĐANG BẬT" : "ĐÃ TẮT"}!`;
-        } else if (q.friend_action === "enable_all") {
-            setAllFriendsBadgeState(true);
-            const updatedDefault = { ...loadConfig(), friendsBadgeDefault: true };
-            saveConfig(updatedDefault);
-            statusMsg = "Đã BẬT huy hiệu Locket Gold cho toàn bộ danh sách bạn bè!";
-        } else if (q.friend_action === "disable_all") {
-            setAllFriendsBadgeState(false);
-            const updatedDefault = { ...loadConfig(), friendsBadgeDefault: false };
-            saveConfig(updatedDefault);
-            statusMsg = "Đã TẮT huy hiệu Locket Gold của toàn bộ bạn bè (Chỉ giữ huy hiệu cho riêng bạn)!";
-        } else if (q.friend_action === "toggle_default") {
-            const newDef = q.default_val === "1";
-            const updatedDefault = { ...loadConfig(), friendsBadgeDefault: newDef };
-            saveConfig(updatedDefault);
-            statusMsg = `Đã đặt mặc định cho bạn bè mới phát hiện: ${newDef ? "TỰ ĐỘNG BẬT GOLD" : "TỰ ĐỘNG TẮT GOLD"}!`;
-        } else if (q.friend_action === "delete" && fUid) {
-            const map = getFriendsBadgeMap();
-            delete map[fUid];
-            saveFriendsBadgeMap(map);
-            statusMsg = `Đã xoá bạn bè (${fUid}) khỏi danh sách tuỳ chỉnh.`;
-        }
-    }
-
-    if (q.push_test === "1") {
-        armLocketInAppPopupTrigger(loadConfig(), "Push Test");
-        statusMsg = currentCfg.isBlockedByAdmin
-            ? "Đã bắn thử thông báo thu hồi Gold iOS!"
-            : `Đã bắn thông báo Popup: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`;
-    }
-
-    if (q.doh_test === "1") {
-        probeIntegratedDohEndpoint(currentCfg, () => {});
-        statusMsg = `Đã kiểm tra và đồng bộ tuyến DoH UpLocket (${currentCfg.dohServerUrl}) cùng 40 miền mục tiêu!`;
-    }
-
-    if (q.admin_login === "1") {
-        openDrawer = true;
-        if (q.user === ROOT_ADMIN_USER && (q.pass === ROOT_ADMIN_PASS_1 || q.pass === ROOT_ADMIN_PASS_2)) {
-            Env.write("1", ADMIN_SESSION_KEY);
-            statusMsg = "Đã đăng nhập quyền Root Admin tối cao (ngominhduc).";
-        } else {
-            statusMsg = "Sai tài khoản hoặc mật khẩu Quản trị viên.";
-        }
-    } else if (q.admin_logout === "1") {
-        openDrawer = false;
-        Env.write("0", ADMIN_SESSION_KEY);
-        statusMsg = "";
-    }
-
-    if (q.request_activate === "1") {
-        const targetUid = (uid && !uid.includes("RCAnonymousID")) ? uid : (Env.read(USER_ID_CACHE_KEY) || "UID_LOCKET_GOLD");
-        upsertUserRecord(targetUid, {
-            username: q.username || Env.read(USERNAME_CACHE_KEY) || targetUid.slice(0, 10),
-            lockDate: currentCfg.lockDate,
-            productId: currentCfg.productId,
-            aiQuota: currentCfg.aiFilterQuota,
-            touch: true
-        });
-        armLocketInAppPopupTrigger(loadConfig(), "Activate Button");
-        forcePopup = true;
-        statusMsg = `Đã kích hoạt & đồng bộ Locket Gold cho (${targetUid})!`;
-    }
-
-    if (q.admin_action && Env.read(ADMIN_SESSION_KEY) === "1") {
-        openDrawer = true;
-        const db = getLocalStore();
-        const tUid = (q.target_uid || "").trim();
-        const tUser = (q.target_user || "").trim().replace(/^@/, "");
-        const tAiQuota = q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota;
-
-        if (q.admin_action === "push_user_gold" && tUid) {
-            armLocketInAppPopupTrigger(currentCfg, "Admin Push UID " + tUid);
-            statusMsg = `Đã bắn thông báo Popup Locket Gold cho UID: ${tUid}!`;
-        } else if (q.admin_action === "unblock_all") {
-            for (const k of Object.keys(db.users)) {
-                db.users[k].status = "approved";
-                db.users[k].gold_active = true;
-                db.users[k].blocked = false;
-                db.users[k].ai_quota = DEFAULT_CONFIG.aiFilterQuota;
-                db.users[k].note = "Đã mở khoá GOLD thành công (Full Photobooth & AI Looks)";
-                db.users[k].reason = "";
-                db.users[k].updated_at = nowStr;
-            }
-            saveLocalStore(db);
-            triggerInAppLocketBlockAlert("", "", false, true);
-            statusMsg = "Đã gỡ chặn & cấp lại Locket Gold cho toàn bộ người dùng theo thời gian thực!";
-        } else if (tUid) {
-            if (q.admin_action === "add_gold" || q.admin_action === "unblock" || q.admin_action === "set_ai_quota") {
-                db.users[tUid] = {
-                    ...(db.users[tUid] || {}),
-                    uid: tUid,
-                    username: tUser || (db.users[tUid] && db.users[tUid].username) || tUid.slice(0, 10),
-                    full_name: tUser || (db.users[tUid] && db.users[tUid].full_name) || tUid.slice(0, 10),
-                    status: "approved",
-                    gold_active: true,
-                    blocked: false,
-                    ai_quota: tAiQuota,
-                    note: "Đã mở khoá GOLD thành công (Full Photobooth & AI Looks)",
-                    reason: "",
-                    updated_at: nowStr
-                };
-                saveLocalStore(db);
-                setSingleFriendBadgeState(tUid, true, {
-                    username: db.users[tUid].username,
-                    full_name: db.users[tUid].full_name
-                });
-                if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
-                    const updatedSelfCfg = {
-                        ...loadConfig(),
-                        isBlockedByAdmin: false,
-                        alwaysForceBadge: true,
-                        unlockAllCameraEffects: true,
-                        aiFilterEnabled: true,
-                        aiFilterQuota: tAiQuota,
-                        aiFilterDailyLimit: tAiQuota
-                    };
-                    saveConfig(updatedSelfCfg);
-                }
-                triggerInAppLocketBlockAlert(tUid, "", false, true);
-                fireNativeAppNotification(loadConfig(), true);
-                statusMsg = `Đã mở khoá Gold & cấp ${tAiQuota.toLocaleString("vi-VN")} lượt Filter AI cho UID: ${tUid}!`;
-            } else if (q.admin_action === "block") {
-                const blkMsg = "Tài khoản đã bị Admin chặn — Đã thu hồi Locket Gold, xóa huy hiệu và khoá toàn bộ Photobooth/AI Looks.";
-                db.users[tUid] = {
-                    ...(db.users[tUid] || {}),
-                    uid: tUid,
-                    status: "blocked",
-                    gold_active: false,
-                    blocked: true,
-                    ai_quota: 0,
-                    note: "Đã bị Admin chặn & thu hồi Locket Gold",
-                    reason: blkMsg,
-                    updated_at: nowStr
-                };
-                saveLocalStore(db);
-                setSingleFriendBadgeState(tUid, false, {
-                    username: db.users[tUid].username,
-                    full_name: db.users[tUid].full_name
-                });
-                if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
-                    const revokedSelfCfg = {
-                        ...loadConfig(),
-                        isBlockedByAdmin: true,
-                        alwaysForceBadge: false,
-                        unlockAllCameraEffects: false,
-                        aiFilterEnabled: false,
-                        aiFilterQuota: 0,
-                        aiFilterDailyLimit: 0
-                    };
-                    saveConfig(revokedSelfCfg);
-                }
-                triggerInAppLocketBlockAlert(tUid, blkMsg, true, true);
-                statusMsg = `Đã chặn & THU HỒI SẠCH LOCKET GOLD của UID: ${tUid}!`;
-            } else if (q.admin_action === "delete") {
-                delete db.users[tUid];
-                saveLocalStore(db);
-                statusMsg = `Đã xoá UID ${tUid} khỏi danh sách.`;
-            }
-        }
-    }
-
-    const finishWebRender = () => {
-        const latestBeforeSync = loadConfig();
-        syncRealtimeWithServer(uid, latestBeforeSync, "sync", () => {
-            let current = loadConfig();
-            if (q.reset === "1") {
-                const resetCfg = { ...DEFAULT_CONFIG, preferWebOverArg: true };
-                saveConfig(resetCfg);
-                current = loadConfig();
-                statusMsg = `Đã khôi phục mặc định (25/05/2026, DoH UpLocket 40 miền & 999.999 lượt AI)!`;
-            } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined || q.dohServerUrl !== undefined) {
-                const rawLock = q.lockDate || q.d || current.lockDate;
-                const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
-                const rawExp = q.expireDate || current.expireDate;
-                const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T10:10:14Z");
-                const newAiQuota = q.aiFilterQuota !== undefined
-                    ? sanitizeQuotaNumber(q.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota)
-                    : sanitizeQuotaNumber(current.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
-                const newAiUsed = q.aiFilterUsed !== undefined
-                    ? sanitizeQuotaNumber(q.aiFilterUsed, 0)
-                    : 0;
-
-                if (q.username) {
-                    Env.write(q.username.trim().replace(/^@/, ""), USERNAME_CACHE_KEY);
-                }
-                const updated = {
-                    ...current,
-                    lockDate: isoLock.slice(0, 10),
-                    expireDate: isoExp.slice(0, 10),
-                    productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
-                    ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
-                    dohServerUrl: (q.dohServerUrl || current.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl).trim(),
-                    dohPrimaryIp: (q.dohPrimaryIp || current.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0]).trim(),
-                    dohSecondaryIp: (q.dohSecondaryIp || current.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1]).trim(),
-                    unlockAllCameraEffects: !current.isBlockedByAdmin,
-                    aiFilterEnabled: !current.isBlockedByAdmin,
-                    aiFilterQuota: current.isBlockedByAdmin ? 0 : newAiQuota,
-                    aiFilterDailyLimit: current.isBlockedByAdmin ? 0 : newAiQuota,
-                    aiFilterUsed: newAiUsed,
-                    aiFilterUnlimited: !current.isBlockedByAdmin,
-                    preferWebOverArg: true
-                };
-                saveConfig(updated);
-                if (uid && !uid.includes("RCAnonymousID")) {
-                    upsertUserRecord(uid, {
-                        username: q.username ? q.username.trim().replace(/^@/, "") : undefined,
-                        lockDate: updated.lockDate,
-                        productId: updated.productId,
-                        aiQuota: updated.aiFilterQuota,
-                        touch: true
-                    });
-                }
-                current = loadConfig();
-                statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, tuyến DoH UpLocket 40 miền & mở khoá ${current.aiFilterQuota.toLocaleString("vi-VN")} lượt AI!`;
-            }
-
-            sendWebResponse(200, { "Content-Type": "text/html; charset=utf-8" }, renderBentoWebPanel(current, statusMsg, openDrawer, forcePopup));
-        });
-    };
-
-    if (q.admin_action && q.target_uid && Env.read(ADMIN_SESSION_KEY) === "1") {
-        pushAdminCmdToServer(
-            q.admin_action,
-            q.target_uid.trim(),
-            q.target_user || "",
-            q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota,
-            finishWebRender
-        );
-    } else {
-        finishWebRender();
-    }
-}
-
-// ============================================================================
-// BỘ ĐỊNH TUYẾN CHÍNH (CRON / REQUEST / RESPONSE)
+// BỘ ĐỊNH TUYẾN CHÍNH (CRON / REQUEST / RESPONSE) — ĐỒNG BỘ MULTI-CHUNK UPLOAD
 // ============================================================================
 const isCronMode = typeof $request === "undefined" && typeof $response === "undefined";
 const isRequestMode = typeof $request !== "undefined" && typeof $response === "undefined";
@@ -13655,7 +10702,17 @@ if (isCronMode) {
     const currentCfg = loadConfig();
 
     if (currentCfg.blockAdsAndTelemetry !== false && isBlockedAdOrTelemetryDomain(url)) {
-        sendWebResponse(204, { "Content-Type": "text/plain; charset=utf-8" }, "");
+        Env.done({
+            response: {
+                status: 204,
+                headers: {
+                    "Content-Type": "text/plain; charset=utf-8",
+                    "Cache-Control": "no-store, no-cache",
+                    "X-UpLocket-AdBlock": "blocked_by_40_domain_doh"
+                },
+                body: ""
+            }
+        });
     } else {
         if (typeof $request.body === "string" && $request.body.length > 10) {
             let parsedReq = null;
@@ -13667,7 +10724,649 @@ if (isCronMode) {
         const isWebPanelUrl = url.includes("/setdate") || url.includes("locket.gold") || isRootRevenueCatWeb;
 
         if (isWebPanelUrl) {
-            processWebPanelRequestAndRender(url, headers, uid, currentCfg);
+            const q = parseQuery(url);
+
+            // 1. Phục vụ ảnh nội bộ (Local Asset) cho App Locket
+            if (q.local_asset === "popup" || q.local_asset === "widget") {
+                const imgUri = q.local_asset === "widget"
+                    ? resolveEffectiveWidgetImage(currentCfg)
+                    : resolveEffectivePopupImage(currentCfg);
+                if (imgUri && imgUri.startsWith("data:image/svg+xml")) {
+                    const commaIdx = imgUri.indexOf(",");
+                    const rawSvg = commaIdx !== -1 ? decodeURIComponent(imgUri.slice(commaIdx + 1)) : "";
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "image/svg+xml; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache"
+                            },
+                            body: rawSvg
+                        }
+                    });
+                } else {
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "text/html; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache"
+                            },
+                            body: `<!DOCTYPE html><html><body style="margin:0;background:#141415;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(imgUri)}" style="max-width:100%;max-height:100vh;object-fit:contain;"></body></html>`
+                        }
+                    });
+                }
+            }
+            // 2. Nhận từng gói ảnh Multi-Chunk qua URL Query / Header (Không cần requires-body=1)
+            else if (q.api === "upload_chunk") {
+                const slot = (q.slot || "popup").toLowerCase();
+                const tmpKey = slot === "widget" ? "LOCKET_TMP_CHUNK_WIDGET_V11" : "LOCKET_TMP_CHUNK_POPUP_V11";
+                const headerChunk = headers["X-UpLocket-Chunk"] || headers["x-uplocket-chunk"] || "";
+                const chunkPiece = q.chunk || headerChunk || "";
+                const prevStr = q.mode === "init" ? "" : (Env.read(tmpKey) || "");
+                const nextStr = prevStr + chunkPiece;
+                Env.write(nextStr, tmpKey);
+
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: JSON.stringify({
+                            ok: true,
+                            slot: slot,
+                            idx: parseInt(q.idx || "0", 10),
+                            length: nextStr.length
+                        })
+                    }
+                });
+            }
+            // 3. Chốt lưu ảnh hoàn chỉnh sau khi nhận đủ các gói Chunk
+            else if (q.api === "upload_chunk_commit") {
+                const slot = (q.slot || "popup").toLowerCase();
+                const tmpKey = slot === "widget" ? "LOCKET_TMP_CHUNK_WIDGET_V11" : "LOCKET_TMP_CHUNK_POPUP_V11";
+                let finalDataUri = Env.read(tmpKey) || "";
+
+                if (!finalDataUri && typeof $request.body === "string" && $request.body.startsWith("data:image/")) {
+                    finalDataUri = $request.body.trim();
+                }
+
+                if (finalDataUri && finalDataUri.length > 32) {
+                    saveDirectUploadedImage(slot, finalDataUri);
+                    const latestCfg = loadConfig();
+                    if (slot === "widget") {
+                        latestCfg.widgetEventUrl = finalDataUri;
+                    } else {
+                        latestCfg.popupImage = finalDataUri;
+                    }
+                    saveConfig(latestCfg);
+                    Env.write(String(Date.now()), INAPP_POPUP_CAMPAIGN_REV_KEY);
+
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache, must-revalidate"
+                            },
+                            body: JSON.stringify({
+                                ok: true,
+                                slot: slot,
+                                sizeKb: Math.round(finalDataUri.length / 1024),
+                                msg: slot === "widget"
+                                    ? "Đã lưu ảnh viền Khung Widget trực tiếp từ máy thành công 100%!"
+                                    : "Đã lưu ảnh Thông báo Popup UpLocket trực tiếp từ máy thành công 100%!"
+                            })
+                        }
+                    });
+                } else {
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache"
+                            },
+                            body: JSON.stringify({
+                                ok: false,
+                                msg: "Gói dữ liệu ảnh bị gián đoạn, vui lòng chọn lại ảnh một lần nữa!"
+                            })
+                        }
+                    });
+                }
+            }
+            // 4. Xoá ảnh đã tải lên để về mặc định
+            else if (q.api === "clear_uploaded_img") {
+                const slot = (q.slot || "popup").toLowerCase();
+                clearDirectUploadedImage(slot);
+                const latestCfg = loadConfig();
+                if (slot === "widget") {
+                    latestCfg.widgetEventUrl = DEFAULT_WIDGET_FRAME_SVG;
+                } else {
+                    latestCfg.popupImage = THAY_IMAGE_PATH;
+                }
+                saveConfig(latestCfg);
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache"
+                        },
+                        body: JSON.stringify({
+                            ok: true,
+                            msg: "Đã khôi phục đồ hoạ gốc thành công!"
+                        })
+                    }
+                });
+            }
+            // 5. Kích hoạt & Bắn Popup UpLocket lên App Locket ngay lập tức
+            else if (q.api === "arm_inapp_popup") {
+                const updatedPopup = {
+                    ...currentCfg,
+                    popupBadge: (q.popupBadge || currentCfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText).trim(),
+                    popupHeader: (q.popupHeader || currentCfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText).trim(),
+                    popupSubtitle: (q.popupSubtitle || currentCfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText).trim(),
+                    popupBtnText: (q.popupBtnText || currentCfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText).trim()
+                };
+                saveConfig(updatedPopup);
+                const armed = armLocketInAppPopupTrigger(updatedPopup, "Web UI Button Trigger");
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: JSON.stringify({
+                            ok: true,
+                            campaignId: armed.campaignId,
+                            msg: `Đã bắn thông báo Popup "${updatedPopup.popupBadge} — ${updatedPopup.popupHeader}" lên App Locket thành công!`
+                        })
+                    }
+                });
+            } else if (q.download_mobileconfig === "1" || q.api === "mobileconfig") {
+                const xmlBody = generateIntegratedMobileconfigXml(currentCfg);
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/x-apple-aspen-config; charset=utf-8",
+                            "Content-Disposition": "attachment; filename=\"UpLocket_ngominhduc.mobileconfig\"",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: xmlBody
+                    }
+                });
+            } else if (q.api === "camera_catalog") {
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: JSON.stringify({
+                            ok: true,
+                            catalog: buildCameraEffectsPayloadStruct(currentCfg),
+                            in_app_bottom_sheet: buildInAppLocketModalStruct(currentCfg)
+                        })
+                    }
+                });
+            } else if (q.api === "trigger_push") {
+                fireNativeAppNotification(currentCfg, true);
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: JSON.stringify({
+                            ok: true,
+                            msg: currentCfg.isBlockedByAdmin
+                                ? "Đã bắn thử thông báo iOS: \"LOCKET GOLD — Đã thu hồi LOCKET GOLD!\"!"
+                                : `Đã bắn thử thông báo iOS: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`
+                        })
+                    }
+                });
+            } else if (q.api === "toggle_friend_badge") {
+                const fUid = (q.friend_uid || "").trim();
+                const enableFlag = q.enable === "1" || q.enable === "true";
+                const updatedFriend = setSingleFriendBadgeState(fUid, enableFlag);
+                Env.done({
+                    response: {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cache-Control": "no-store, no-cache, must-revalidate"
+                        },
+                        body: JSON.stringify({
+                            ok: !!updatedFriend,
+                            friend_uid: fUid,
+                            badge_enabled: enableFlag,
+                            msg: `Đã ${enableFlag ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${updatedFriend ? updatedFriend.username : fUid})!`
+                        })
+                    }
+                });
+            } else if (q.api === "auto_harvest_friends") {
+                activeFetchFriendsFromLocketApi(currentCfg, (harvestResult) => {
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache, must-revalidate"
+                            },
+                            body: JSON.stringify(harvestResult)
+                        }
+                    });
+                });
+            } else if (q.api === "doh_probe") {
+                probeIntegratedDohEndpoint(currentCfg, (probeResult) => {
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache, must-revalidate"
+                            },
+                            body: JSON.stringify({
+                                ok: probeResult.ok,
+                                latencyMs: probeResult.latencyMs,
+                                serverUrl: probeResult.serverUrl,
+                                primaryIp: probeResult.primaryIp,
+                                secondaryIp: probeResult.secondaryIp,
+                                domainsCount: probeResult.domainsCount,
+                                domains: probeResult.domains,
+                                msg: `Kết nối DoH UpLocket (${probeResult.serverUrl}) phản hồi trong ${probeResult.latencyMs}ms · Đã đồng bộ ${probeResult.domainsCount} miền Supplemental Match!`
+                            })
+                        }
+                    });
+                });
+            } else if (q.api === "realtime_status") {
+                syncRealtimeWithServer(uid, currentCfg, "sync", (st) => {
+                    const isRevoked = !!(st && st.blocked) || !!currentCfg.isBlockedByAdmin;
+                    Env.done({
+                        response: {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8",
+                                "Cache-Control": "no-store, no-cache, must-revalidate"
+                            },
+                            body: JSON.stringify({
+                                ok: true,
+                                uid: uid,
+                                blocked: isRevoked,
+                                status: st.status,
+                                gold_active: !isRevoked,
+                                gold_kept: !isRevoked,
+                                ai_quota: isRevoked ? 0 : sanitizeQuotaNumber(currentCfg.aiFilterQuota, 999999),
+                                doh_server: currentCfg.dohServerUrl,
+                                ca_uuid: INTEGRATED_NET_ENGINE.caUUID,
+                                profile_id: INTEGRATED_NET_ENGINE.profileIdentifier,
+                                popup_header: isRevoked ? currentCfg.revokedPopupHeader : currentCfg.popupHeader,
+                                popup_title: isRevoked ? currentCfg.revokedPopupTitle : currentCfg.popupTitle,
+                                popup_subtitle: isRevoked ? currentCfg.revokedPopupSubtitle : currentCfg.popupSubtitle,
+                                reason: st.reason || ""
+                            })
+                        }
+                    });
+                });
+            } else {
+                let openDrawer = q.admin_drawer === "1";
+                let forcePopup = q.preview_modal === "1";
+                let statusMsg = "";
+                const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
+
+                // Xử lý lưu cấu hình Popup UpLocket & Ảnh Widget
+                if (q.save_popup_and_widget_studio === "1") {
+                    const nextPopupCfg = {
+                        ...loadConfig(),
+                        popupBadge: (q.popupBadge || currentCfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText).trim(),
+                        popupHeader: (q.popupHeader || currentCfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText).trim(),
+                        popupTitle: (q.popupTitle || currentCfg.popupTitle || "Ngô Minh Đức").trim(),
+                        popupSubtitle: (q.popupSubtitle || currentCfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText).trim(),
+                        popupBtnText: (q.popupBtnText || currentCfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText).trim()
+                    };
+                    saveConfig(nextPopupCfg);
+                    armLocketInAppPopupTrigger(nextPopupCfg, "Save Studio Form");
+                    forcePopup = true;
+                    statusMsg = `Đã lưu cấu hình Popup "${nextPopupCfg.popupBadge} — ${nextPopupCfg.popupHeader}" & bắn lên App Locket!`;
+                }
+
+                // Xử lý Thêm / Sửa / Xoá Caption trong Caption Studio
+                if (q.caption_action) {
+                    if (q.caption_action === "upsert") {
+                        const created = createOrUpdateCaptionInStudio({
+                            overlay_id: q.overlay_id || "",
+                            text: q.cap_text || "Caption VIP",
+                            emoji: q.cap_emoji || "",
+                            section: q.cap_section || "✨ Caption Tự Chế (Custom Studio)",
+                            color1: q.cap_c1 || "#FFD700",
+                            color2: q.cap_c2 || "#F59E0B",
+                            color3: q.cap_c3 || "",
+                            textColor: q.cap_tc || "#000000E6"
+                        });
+                        statusMsg = `Đã lưu Caption "${created.caption.text}" (${created.overlay_id}) vào nhóm ${created.section}! Mở lại Locket để dùng ngay.`;
+                    } else if (q.caption_action === "delete" && q.overlay_id) {
+                        deleteCaptionFromStudio(q.overlay_id);
+                        statusMsg = `Đã xoá Caption (${q.overlay_id}) khỏi danh sách hiển thị trên Locket!`;
+                    } else if (q.caption_action === "restore" && q.overlay_id) {
+                        restoreSingleDeletedCaption(q.overlay_id);
+                        statusMsg = `Đã khôi phục Caption (${q.overlay_id})!`;
+                    } else if (q.caption_action === "reset_all") {
+                        resetAllStudioCaptionsToDefault();
+                        statusMsg = "Đã khôi phục toàn bộ 220+ Caption gốc mặc định!";
+                    }
+                }
+
+                // Xử lý Lưu Cấu hình Camera 30s/60s, Khung Widget & Công tắc iOS
+                if (q.save_advanced_features === "1") {
+                    const baseAdv = loadConfig();
+                    const vDur = sanitizeFloatNumber(q.videoMaxDuration, 30.0, 5.0, 300.0);
+                    const updatedAdv = {
+                        ...baseAdv,
+                        videoMaxDuration: vDur,
+                        goldMaxDuration: vDur,
+                        cameraRollMaxDuration: vDur,
+                        videoQualityMbps: sanitizeFloatNumber(q.videoQualityMbps, 0.9, 0.1, 25.0),
+                        uploadMainImageSize: sanitizeQuotaNumber(q.uploadMainImageSize, 1440),
+                        maxFriendsCount: sanitizeQuotaNumber(q.maxFriendsCount, 999999),
+                        historyCacheAgeDays: sanitizeQuotaNumber(q.historyCacheAgeDays, 1000),
+                        widgetEventUid: (q.widgetEventUid || baseAdv.widgetEventUid || "midautumn_2026").trim(),
+                        widgetEventPlacement: q.widgetEventPlacement || "below",
+                        widgetEventMaxImages: sanitizeQuotaNumber(q.widgetEventMaxImages, 5),
+                        cdnSourceDomain: (q.cdnSourceDomain || "firebasestorage.googleapis.com").trim(),
+                        cdnTargetDomain: (q.cdnTargetDomain || "cdn.locketcamera.com").trim(),
+                        streakMinRecoveryCount: sanitizeQuotaNumber(q.streakMinRecoveryCount, 0),
+                        streakVisualizationStyle: q.streakVisualizationStyle || "gradient",
+                        fgAppIconPicker: q.fgAppIconPicker === "1",
+                        fgCameraRoll: q.fgCameraRoll === "1",
+                        fgCameraTheme: q.fgCameraTheme === "1",
+                        fgLocketViews: q.fgLocketViews === "1",
+                        fgLongCaptions: q.fgLongCaptions === "1",
+                        fgLongerVideo: q.fgLongerVideo === "1",
+                        fgUnlimitedFriends: q.fgUnlimitedFriends === "1",
+                        fgCustomWidgetFrames: q.fgCustomWidgetFrames === "1",
+                        fgStreakRecovery: q.fgStreakRecovery === "1",
+                        ultraWideEnabled: q.ultraWideEnabled === "1",
+                        telephotoEnabled: q.telephotoEnabled === "1",
+                        livePhotosEnabled: q.livePhotosEnabled === "1",
+                        timeTravelRewindEnabled: q.timeTravelRewindEnabled === "1",
+                        unsendMessageEnabled: q.unsendMessageEnabled === "1",
+                        rollcallEnabled: q.rollcallEnabled === "1",
+                        disableHistoryAds: q.disableHistoryAds === "1"
+                    };
+                    saveConfig(updatedAdv);
+                    statusMsg = `Đã lưu cấu hình Camera (${vDur}s · ${updatedAdv.videoQualityMbps}Mbps), Khung Widget & 16 Công tắc Tính năng!`;
+                }
+
+                if (q.clear_img_slot) {
+                    clearDirectUploadedImage(q.clear_img_slot);
+                    statusMsg = "Đã khôi phục ảnh mặc định!";
+                }
+
+                if (q.friend_action === "harvest") {
+                    activeFetchFriendsFromLocketApi(currentCfg, () => {});
+                    statusMsg = "Đã kích hoạt tiến trình tự động quét & lấy UID bạn bè từ Locket!";
+                } else if (q.friend_action) {
+                    const fUid = (q.friend_uid || "").trim();
+                    const fUser = (q.friend_user || "").trim().replace(/^@/, "");
+                    if (q.friend_action === "toggle" && fUid) {
+                        const en = q.enable === "1";
+                        const rec = setSingleFriendBadgeState(fUid, en);
+                        statusMsg = `Đã ${en ? "BẬT" : "TẮT"} huy hiệu Locket Gold cho bạn bè (${rec ? rec.username : fUid})!`;
+                    } else if (q.friend_action === "upsert_friend" && fUid) {
+                        const en = q.friend_badge !== "0";
+                        const rec = setSingleFriendBadgeState(fUid, en, {
+                            username: fUser || fUid.slice(0, 10),
+                            full_name: fUser || fUid.slice(0, 10)
+                        });
+                        statusMsg = `Đã lưu bạn bè @${rec.username} (${fUid}) — Trạng thái huy hiệu: ${en ? "ĐANG BẬT" : "ĐÃ TẮT"}!`;
+                    } else if (q.friend_action === "enable_all") {
+                        setAllFriendsBadgeState(true);
+                        const updatedDefault = { ...loadConfig(), friendsBadgeDefault: true };
+                        saveConfig(updatedDefault);
+                        statusMsg = "Đã BẬT huy hiệu Locket Gold cho toàn bộ danh sách bạn bè!";
+                    } else if (q.friend_action === "disable_all") {
+                        setAllFriendsBadgeState(false);
+                        const updatedDefault = { ...loadConfig(), friendsBadgeDefault: false };
+                        saveConfig(updatedDefault);
+                        statusMsg = "Đã TẮT huy hiệu Locket Gold của toàn bộ bạn bè (Chỉ giữ huy hiệu cho riêng bạn)!";
+                    } else if (q.friend_action === "toggle_default") {
+                        const newDef = q.default_val === "1";
+                        const updatedDefault = { ...loadConfig(), friendsBadgeDefault: newDef };
+                        saveConfig(updatedDefault);
+                        statusMsg = `Đã đặt mặc định cho bạn bè mới phát hiện: ${newDef ? "TỰ ĐỘNG BẬT GOLD" : "TỰ ĐỘNG TẮT GOLD"}!`;
+                    } else if (q.friend_action === "delete" && fUid) {
+                        const map = getFriendsBadgeMap();
+                        delete map[fUid];
+                        saveFriendsBadgeMap(map);
+                        statusMsg = `Đã xoá bạn bè (${fUid}) khỏi danh sách tuỳ chỉnh.`;
+                    }
+                }
+
+                if (q.push_test === "1") {
+                    armLocketInAppPopupTrigger(loadConfig(), "Push Test");
+                    statusMsg = currentCfg.isBlockedByAdmin
+                        ? "Đã bắn thử thông báo thu hồi Gold iOS!"
+                        : `Đã bắn thông báo Popup: "${currentCfg.popupBadge} — ${currentCfg.popupHeader}"!`;
+                }
+
+                if (q.doh_test === "1") {
+                    probeIntegratedDohEndpoint(currentCfg, () => {});
+                    statusMsg = `Đã kiểm tra và đồng bộ tuyến DoH UpLocket (${currentCfg.dohServerUrl}) cùng 40 miền mục tiêu!`;
+                }
+
+                if (q.admin_login === "1") {
+                    openDrawer = true;
+                    if (q.user === ROOT_ADMIN_USER && (q.pass === ROOT_ADMIN_PASS_1 || q.pass === ROOT_ADMIN_PASS_2)) {
+                        Env.write("1", ADMIN_SESSION_KEY);
+                        statusMsg = "Đã đăng nhập quyền Root Admin tối cao (ngominhduc).";
+                    } else {
+                        statusMsg = "Sai tài khoản hoặc mật khẩu Quản trị viên.";
+                    }
+                } else if (q.admin_logout === "1") {
+                    openDrawer = false;
+                    Env.write("0", ADMIN_SESSION_KEY);
+                    statusMsg = "";
+                }
+
+                if (q.request_activate === "1") {
+                    const targetUid = (uid && !uid.includes("RCAnonymousID")) ? uid : (Env.read(USER_ID_CACHE_KEY) || "UID_LOCKET_GOLD");
+                    upsertUserRecord(targetUid, {
+                        username: q.username || Env.read(USERNAME_CACHE_KEY) || targetUid.slice(0, 10),
+                        lockDate: currentCfg.lockDate,
+                        productId: currentCfg.productId,
+                        aiQuota: currentCfg.aiFilterQuota,
+                        touch: true
+                    });
+                    armLocketInAppPopupTrigger(loadConfig(), "Activate Button");
+                    forcePopup = true;
+                    statusMsg = `Đã kích hoạt & đồng bộ Locket Gold cho (${targetUid})!`;
+                }
+
+                if (q.admin_action && Env.read(ADMIN_SESSION_KEY) === "1") {
+                    openDrawer = true;
+                    const db = getLocalStore();
+                    const tUid = (q.target_uid || "").trim();
+                    const tUser = (q.target_user || "").trim().replace(/^@/, "");
+                    const tAiQuota = q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota;
+
+                    if (q.admin_action === "push_user_gold" && tUid) {
+                        armLocketInAppPopupTrigger(currentCfg, "Admin Push UID " + tUid);
+                        statusMsg = `Đã bắn thông báo Popup Locket Gold cho UID: ${tUid}!`;
+                    } else if (q.admin_action === "unblock_all") {
+                        for (const k of Object.keys(db.users)) {
+                            db.users[k].status = "approved";
+                            db.users[k].gold_active = true;
+                            db.users[k].blocked = false;
+                            db.users[k].ai_quota = DEFAULT_CONFIG.aiFilterQuota;
+                            db.users[k].note = "Đã mở khoá GOLD thành công (Full Photobooth & AI Looks)";
+                            db.users[k].reason = "";
+                            db.users[k].updated_at = nowStr;
+                        }
+                        saveLocalStore(db);
+                        triggerInAppLocketBlockAlert("", "", false, true);
+                        statusMsg = "Đã gỡ chặn & cấp lại Locket Gold cho toàn bộ người dùng theo thời gian thực!";
+                    } else if (tUid) {
+                        if (q.admin_action === "add_gold" || q.admin_action === "unblock" || q.admin_action === "set_ai_quota") {
+                            db.users[tUid] = {
+                                ...(db.users[tUid] || {}),
+                                uid: tUid,
+                                username: tUser || (db.users[tUid] && db.users[tUid].username) || tUid.slice(0, 10),
+                                full_name: tUser || (db.users[tUid] && db.users[tUid].full_name) || tUid.slice(0, 10),
+                                status: "approved",
+                                gold_active: true,
+                                blocked: false,
+                                ai_quota: tAiQuota,
+                                note: "Đã mở khoá GOLD thành công (Full Photobooth & AI Looks)",
+                                reason: "",
+                                updated_at: nowStr
+                            };
+                            saveLocalStore(db);
+                            setSingleFriendBadgeState(tUid, true, {
+                                username: db.users[tUid].username,
+                                full_name: db.users[tUid].full_name
+                            });
+                            if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
+                                const updatedSelfCfg = {
+                                    ...loadConfig(),
+                                    isBlockedByAdmin: false,
+                                    alwaysForceBadge: true,
+                                    unlockAllCameraEffects: true,
+                                    aiFilterEnabled: true,
+                                    aiFilterQuota: tAiQuota,
+                                    aiFilterDailyLimit: tAiQuota
+                                };
+                                saveConfig(updatedSelfCfg);
+                            }
+                            triggerInAppLocketBlockAlert(tUid, "", false, true);
+                            fireNativeAppNotification(loadConfig(), true);
+                            statusMsg = `Đã mở khoá Gold & cấp ${tAiQuota.toLocaleString("vi-VN")} lượt Filter AI cho UID: ${tUid}!`;
+                        } else if (q.admin_action === "block") {
+                            const blkMsg = "Tài khoản đã bị Admin chặn — Đã thu hồi Locket Gold, xóa huy hiệu và khoá toàn bộ Photobooth/AI Looks.";
+                            db.users[tUid] = {
+                                ...(db.users[tUid] || {}),
+                                uid: tUid,
+                                status: "blocked",
+                                gold_active: false,
+                                blocked: true,
+                                ai_quota: 0,
+                                note: "Đã bị Admin chặn & thu hồi Locket Gold",
+                                reason: blkMsg,
+                                updated_at: nowStr
+                            };
+                            saveLocalStore(db);
+                            setSingleFriendBadgeState(tUid, false, {
+                                username: db.users[tUid].username,
+                                full_name: db.users[tUid].full_name
+                            });
+                            if (tUid === uid || !uid || uid.includes("RCAnonymousID")) {
+                                const revokedSelfCfg = {
+                                    ...loadConfig(),
+                                    isBlockedByAdmin: true,
+                                    alwaysForceBadge: false,
+                                    unlockAllCameraEffects: false,
+                                    aiFilterEnabled: false,
+                                    aiFilterQuota: 0,
+                                    aiFilterDailyLimit: 0
+                                };
+                                saveConfig(revokedSelfCfg);
+                            }
+                            triggerInAppLocketBlockAlert(tUid, blkMsg, true, true);
+                            statusMsg = `Đã chặn & THU HỒI SẠCH LOCKET GOLD của UID: ${tUid}!`;
+                        } else if (q.admin_action === "delete") {
+                            delete db.users[tUid];
+                            saveLocalStore(db);
+                            statusMsg = `Đã xoá UID ${tUid} khỏi danh sách.`;
+                        }
+                    }
+                }
+
+                const finishWebRender = () => {
+                    const latestBeforeSync = loadConfig();
+                    syncRealtimeWithServer(uid, latestBeforeSync, "sync", () => {
+                        let current = loadConfig();
+                        if (q.reset === "1") {
+                            const resetCfg = { ...DEFAULT_CONFIG, preferWebOverArg: true };
+                            saveConfig(resetCfg);
+                            current = loadConfig();
+                            statusMsg = `Đã khôi phục mặc định (25/05/2026, DoH UpLocket 40 miền & 999.999 lượt AI)!`;
+                        } else if (q.save === "1" || q.d || q.lockDate || q.aiFilterQuota !== undefined || q.dohServerUrl !== undefined) {
+                            const rawLock = q.lockDate || q.d || current.lockDate;
+                            const isoLock = toIsoDate(rawLock, DEFAULT_CONFIG.lockDate, "T08:30:00Z");
+                            const rawExp = q.expireDate || current.expireDate;
+                            const isoExp = toIsoDate(rawExp, DEFAULT_CONFIG.expireDate, "T10:10:14Z");
+                            const newAiQuota = q.aiFilterQuota !== undefined
+                                ? sanitizeQuotaNumber(q.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota)
+                                : sanitizeQuotaNumber(current.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
+                            const newAiUsed = q.aiFilterUsed !== undefined
+                                ? sanitizeQuotaNumber(q.aiFilterUsed, 0)
+                                : 0;
+
+                            if (q.username) {
+                                Env.write(q.username.trim().replace(/^@/, ""), USERNAME_CACHE_KEY);
+                            }
+                            const updated = {
+                                ...current,
+                                lockDate: isoLock.slice(0, 10),
+                                expireDate: isoExp.slice(0, 10),
+                                productId: q.productId || current.productId || DEFAULT_CONFIG.productId,
+                                ownershipType: q.ownershipType || current.ownershipType || "PURCHASED",
+                                dohServerUrl: (q.dohServerUrl || current.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl).trim(),
+                                dohPrimaryIp: (q.dohPrimaryIp || current.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0]).trim(),
+                                dohSecondaryIp: (q.dohSecondaryIp || current.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1]).trim(),
+                                unlockAllCameraEffects: !current.isBlockedByAdmin,
+                                aiFilterEnabled: !current.isBlockedByAdmin,
+                                aiFilterQuota: current.isBlockedByAdmin ? 0 : newAiQuota,
+                                aiFilterDailyLimit: current.isBlockedByAdmin ? 0 : newAiQuota,
+                                aiFilterUsed: newAiUsed,
+                                aiFilterUnlimited: !current.isBlockedByAdmin,
+                                preferWebOverArg: true
+                            };
+                            saveConfig(updated);
+                            if (uid && !uid.includes("RCAnonymousID")) {
+                                upsertUserRecord(uid, {
+                                    username: q.username ? q.username.trim().replace(/^@/, "") : undefined,
+                                    lockDate: updated.lockDate,
+                                    productId: updated.productId,
+                                    aiQuota: updated.aiFilterQuota,
+                                    touch: true
+                                });
+                            }
+                            current = loadConfig();
+                            statusMsg = `Đã lưu mốc đăng ký ${current.lockIso}, tuyến DoH UpLocket 40 miền & mở khoá ${current.aiFilterQuota.toLocaleString("vi-VN")} lượt AI!`;
+                        }
+
+                        Env.done({
+                            response: {
+                                status: 200,
+                                headers: {
+                                    "Content-Type": "text/html; charset=utf-8",
+                                    "Cache-Control": "no-store, no-cache, must-revalidate"
+                                },
+                                body: renderBentoWebPanel(current, statusMsg, openDrawer, forcePopup)
+                            }
+                        });
+                    });
+                };
+
+                if (q.admin_action && q.target_uid && Env.read(ADMIN_SESSION_KEY) === "1") {
+                    pushAdminCmdToServer(
+                        q.admin_action,
+                        q.target_uid.trim(),
+                        q.target_user || "",
+                        q.target_ai_quota !== undefined ? sanitizeQuotaNumber(q.target_ai_quota, currentCfg.aiFilterQuota) : currentCfg.aiFilterQuota,
+                        finishWebRender
+                    );
+                } else {
+                    finishWebRender();
+                }
+            }
         } else {
             if (isActualLocketAppTraffic(url, headers)) {
                 if (currentCfg.isBlockedByAdmin) {
@@ -13736,10 +11435,15 @@ if (isCronMode) {
     const cfg = loadConfig();
 
     const isRootRcFallback = /^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?(\?.*)?$/i.test(reqUrl) && !reqUrl.includes("/v1/") && !reqUrl.includes("/subscribers");
-    const is7117Error = (($response.body || "").includes("7117") || ($response.body || "").includes("Page not found")) && !reqUrl.includes("/v1/subscribers");
-
-    if (reqUrl.includes("/setdate") || reqUrl.includes("locket.gold") || isRootRcFallback || is7117Error) {
-        processWebPanelRequestAndRender(reqUrl, reqHeaders, resolvedUserId, cfg);
+    if (reqUrl.includes("/setdate") || reqUrl.includes("locket.gold") || isRootRcFallback || (($response.body || "").includes("7117") && ($response.body || "").includes("Page not found"))) {
+        Env.done({
+            status: 200,
+            headers: {
+                "Content-Type": "text/html; charset=utf-8",
+                "Cache-Control": "no-store, no-cache, must-revalidate"
+            },
+            body: renderBentoWebPanel(cfg, "", false, false)
+        });
     } else {
         if (isActualLocketAppTraffic(reqUrl, reqHeaders)) {
             if (cfg.isBlockedByAdmin) {
