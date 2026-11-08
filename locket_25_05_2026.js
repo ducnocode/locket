@@ -8885,19 +8885,42 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
         } else if (isRevoked) {
             shouldShowBadge = false;
         }
-
         if (shouldShowBadge) {
             node.badge = "locket_gold";
+            node.profile_badge = "locket_gold";
+            node.profileBadge = "locket_gold";
+            node.membership_badge = "locket_gold";
+            node.membership_tier = "gold";
+            node.membership_status = "active";
+            node.celebrity_badge = "locket_gold";
             node.locket_gold_badge = true;
             node.has_gold_badge = true;
             node.gold_badge = true;
+            node.goldBadge = true;
+            node.show_gold_badge = true;
+            node.showGoldBadge = true;
+            node.gold_badge_enabled = true;
+            node.goldBadgeEnabled = true;
+            node.profile_badge_visible = true;
             node.is_gold = true;
             node.isGold = true;
             node.has_gold = true;
             node.hasGold = true;
+            node.is_gold_user = true;
+            node.isGoldUser = true;
+            node.is_vip = true;
+            node.is_pro = true;
             node.gold_subscription = true;
+            node.goldSubscription = true;
             node.subscription_status = "active";
+            node.subscriptionStatus = "active";
+            node.entitlement_status = "active";
+            node.tier = "gold";
+            node.plan = "locket_gold";
             node.original_purchase_date = cfg.lockIso;
+            node.purchase_date = cfg.lockIso;
+            node.gold_subscription_since = cfg.lockIso;
+            node.member_since = cfg.lockIso;
             node.expires_date = cfg.expireIso;
             node.photobooth_unlocked = true;
             node.ai_filter_quota = quotaNum;
@@ -8907,6 +8930,16 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
             node.can_use_ai_filter = true;
             node.can_use_holiday_effects = true;
             node.can_use_photobooth = true;
+            if (!Array.isArray(node.badges)) {
+                node.badges = ["locket_gold"];
+            } else if (!node.badges.includes("locket_gold")) {
+                node.badges.unshift("locket_gold");
+            }
+            if (node.custom_claims && typeof node.custom_claims === "object") {
+                node.custom_claims.badge = "locket_gold";
+                node.custom_claims.locket_gold_badge = true;
+                node.custom_claims.is_gold = true;
+            }
         } else {
             isFriendWithBadgeOff = true;
             node.badge = null;
