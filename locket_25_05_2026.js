@@ -9872,6 +9872,804 @@ function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
     </div>
   </main>`;
 }
+function buildAppleBentoConsoleHtml(cfg, statusMsg, openAdminDrawer) {
+    const cachedUid = Env.read(USER_ID_CACHE_KEY) || "";
+    const cachedUser = Env.read(USERNAME_CACHE_KEY) || "";
+    const hasValidUid = cachedUid && !cachedUid.includes("RCAnonymousID");
+    const displayUid = hasValidUid ? cachedUid : "Chưa ghi nhận (Mở ứng dụng Locket 1 lần)";
+    const isAdminLogged = Env.read(ADMIN_SESSION_KEY) === "1";
+    const currentAiQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, 999999);
+    const dohStatus = getCachedDohStatus(cfg);
+
+    const popupBadge = cfg.popupBadge || UPLOCKET_INAPP_POPUP_PRESET.pillBadgeText;
+    const popupHeader = cfg.popupHeader || UPLOCKET_INAPP_POPUP_PRESET.headlineText;
+    const popupTitle = cfg.popupTitle || "Ngô Minh Đức";
+    const popupSubtitle = cfg.popupSubtitle || UPLOCKET_INAPP_POPUP_PRESET.bodyText;
+    const popupImage = resolveEffectivePopupImage(cfg);
+    const widgetImage = resolveEffectiveWidgetImage(cfg);
+    const popupBtnText = cfg.popupBtnText || UPLOCKET_INAPP_POPUP_PRESET.primaryButtonText;
+
+    const db = getLocalStore();
+    const usersList = Object.values(db.users || {});
+    const goldUsersList = usersList.filter(u => u.gold_active !== false && u.status !== "blocked" && !u.blocked);
+
+    const friendsMap = getFriendsBadgeMap();
+    const friendsList = Object.values(friendsMap).filter(f => f && f.uid && f.uid !== cachedUid);
+    const activeFriendsBadgeCount = friendsList.filter(f => f.badge_enabled !== false).length;
+
+    let cameraCatalogTilesHtml = "";
+    for (const sec of LOCKET_CAMERA_EFFECTS_CATALOG.sections) {
+        const itemNames = sec.items.map(i => i.title).join(" · ");
+        cameraCatalogTilesHtml += `
+        <div class="spec-tile">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <span class="bento-eyebrow" style="margin:0;">${escapeHtml(sec.title)}</span>
+                <span class="apple-pill ${cfg.isBlockedByAdmin ? "pill-rose" : "pill-emerald"}">
+                    ${cfg.isBlockedByAdmin ? "ĐÃ THU HỒI (KHOÁ)" : `ĐÃ MỞ KHOÁ (${sec.items.length})`}
+                </span>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#1d1d1f;margin-top:8px;">${escapeHtml(itemNames)}</div>
+        </div>`;
+    }
+
+    const mergedCaptionSections = buildMergedOverlaySections();
+    const customCapDb = getCustomCaptionsDb();
+    const deletedCapIds = Object.keys(customCapDb.deletedIds || {});
+    let totalActiveCaptionsCount = 0;
+    let captionCardsHtml = "";
+
+    for (const sec of mergedCaptionSections) {
+        const secName = sec.section || "🎨 Captions";
+        const itemsArr = Array.isArray(sec.items) ? sec.items : [];
+        for (const it of itemsArr) {
+            if (!it || !it.overlay_id) continue;
+            const capObj = it.caption || {};
+            if (capObj.type !== "static_content" && !capObj.text) continue;
+            totalActiveCaptionsCount++;
+
+            const cId = it.overlay_id;
+            const cText = capObj.text || cId;
+            const cEmoji = (capObj.icon && capObj.icon.data) ? capObj.icon.data : "";
+            const colors = (capObj.background && Array.isArray(capObj.background.colors) && capObj.background.colors.length > 0)
+                ? capObj.background.colors
+                : ["#1d1d1f", "#434343"];
+            const c1 = colors[0] || "#FFD700";
+            const c2 = colors[1] || c1;
+            const c3 = colors[2] || "";
+            const gradCss = colors.length >= 3
+                ? `linear-gradient(135deg, ${c1}, ${c2}, ${c3})`
+                : `linear-gradient(135deg, ${c1}, ${c2})`;
+            const txtColor = capObj.text_color || "#FFFFFF";
+
+            captionCardsHtml += `
+            <div class="cap-card-item" data-cap-search="${escapeHtml((cId + " " + cText + " " + secName).toLowerCase())}">
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px;">
+                        <span style="font-size:10.5px;font-weight:700;color:#6e6e73;">${escapeHtml(secName)}</span>
+                        <code style="font-size:10px;color:#86868b;">${escapeHtml(cId)}</code>
+                    </div>
+                    <div class="cap-preview-chip" style="background:${escapeHtml(gradCss)};color:${escapeHtml(txtColor)};">
+                        ${cEmoji ? `<span>${escapeHtml(cEmoji)}</span>` : ""}
+                        <span>${escapeHtml(cText)}</span>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px;">
+                    <button type="button"
+                            onclick="loadCaptionIntoEditor('${escapeHtml(cId)}', '${escapeHtml(cText)}', '${escapeHtml(cEmoji)}', '${escapeHtml(secName)}', '${escapeHtml(c1)}', '${escapeHtml(c2)}', '${escapeHtml(c3)}', '${escapeHtml(txtColor)}')"
+                            class="apple-pill-btn btn-blue-soft" style="flex:1;">
+                        Sửa Cap này
+                    </button>
+                    <a href="/setdate?caption_action=delete&overlay_id=${encodeURIComponent(cId)}#captionStudioSection"
+                       class="apple-pill-btn btn-rose-soft">
+                        Xoá
+                    </a>
+                </div>
+            </div>`;
+        }
+    }
+
+    let friendsBadgeListHtml = "";
+    if (friendsList.length === 0) {
+        friendsBadgeListHtml = `
+        <div class="empty-state-box">
+            Đang chờ tự động quét UID bạn bè... Hãy nhấn nút <strong>"Tự Động Quét & Lấy UID Bạn Bè Ngay"</strong> phía trên hoặc mở ứng dụng Locket 1 lần, toàn bộ danh sách bạn bè sẽ tự động hiện gọn trong ô cuộn này.
+        </div>`;
+    } else {
+        for (const f of friendsList) {
+            const isBadgeOn = f.badge_enabled !== false;
+            const fUser = f.username || (f.uid ? f.uid.slice(0, 10) : "friend");
+            const fFull = f.full_name || fUser;
+            const fAvatar = f.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fFull)}&background=1d1d1f&color=fff`;
+
+            friendsBadgeListHtml += `
+            <div class="scroll-user-card friend-badge-item" data-friend-search="${escapeHtml((fUser + " " + fFull + " " + f.uid).toLowerCase())}">
+                <div class="user-card-top">
+                    <img src="${escapeHtml(fAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(fFull)}&background=1d1d1f&color=fff'" class="user-card-avatar" alt="avatar" loading="lazy">
+                    <div class="user-card-meta">
+                        <div class="user-card-name-row">
+                            <span class="user-card-fullname">${escapeHtml(fFull)}</span>
+                            <span class="user-card-handle">@${escapeHtml(fUser)}</span>
+                        </div>
+                        <div class="user-card-uid">UID: ${escapeHtml(f.uid)}</div>
+                    </div>
+                </div>
+                <div class="user-card-bottom">
+                    <span id="friendBadgePill_${escapeHtml(f.uid)}" class="apple-pill ${isBadgeOn ? "pill-gold" : "pill-rose"}">
+                        ${isBadgeOn ? "👑 ĐANG BẬT GOLD" : "ĐÃ TẮT GOLD"}
+                    </span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <label class="ios-switch-control gold-switch" title="Bật/Tắt huy hiệu Gold cho bạn bè này">
+                            <input type="checkbox" id="friendSwitch_${escapeHtml(f.uid)}" ${isBadgeOn ? "checked" : ""} onchange="toggleSingleFriendBadge('${escapeHtml(f.uid)}', this.checked)">
+                            <span class="ios-switch-slider"></span>
+                        </label>
+                        <a href="/setdate?friend_action=delete&friend_uid=${encodeURIComponent(f.uid)}#friendsBadgeSection" class="apple-pill-btn btn-rose-soft">Xoá</a>
+                    </div>
+                </div>
+            </div>`;
+        }
+    }
+
+    let goldDirectoryHtml = "";
+    if (usersList.length === 0) {
+        goldDirectoryHtml = `
+        <div class="empty-state-box">
+            Chưa có tài khoản nào trong danh sách. Mở Locket hoặc nhấn nút Kích hoạt để ghi nhận tự động vào ô cuộn này.
+        </div>`;
+    } else {
+        for (const u of usersList) {
+            const isBlk = u.status === "blocked" || u.blocked === true || u.gold_active === false;
+            const uName = u.username || (u.uid ? u.uid.slice(0, 10) : "user");
+            const fName = u.full_name || uName;
+            const uAvatar = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uName)}&background=1d1d1f&color=fff`;
+            const lockD = u.force_lock_date || u.lock_date || cfg.lockDate;
+            const userAiQuota = isBlk ? 0 : sanitizeQuotaNumber(u.ai_quota !== undefined ? u.ai_quota : currentAiQuota, currentAiQuota);
+
+            goldDirectoryHtml += `
+            <div class="scroll-user-card gold-user-item" data-search="${escapeHtml((uName + " " + fName + " " + u.uid).toLowerCase())}">
+                <div class="user-card-top">
+                    <img src="${escapeHtml(uAvatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(uName)}&background=1d1d1f&color=fff'" class="user-card-avatar" alt="avatar" loading="lazy">
+                    <div class="user-card-meta">
+                        <div class="user-card-name-row">
+                            <span class="user-card-fullname">${escapeHtml(fName)}</span>
+                            <span class="user-card-handle">@${escapeHtml(uName)}</span>
+                        </div>
+                        <div class="user-card-uid">UID: ${escapeHtml(u.uid)} · Mốc: ${escapeHtml(lockD)}</div>
+                    </div>
+                </div>
+                <div class="user-card-bottom">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        ${isBlk ? `<span class="apple-pill pill-rose">ĐÃ THU HỒI GOLD</span>` : `<span class="apple-pill pill-gold">👑 LOCKET GOLD</span>`}
+                        <span class="apple-pill ${isBlk ? "pill-rose" : "pill-blue"}">AI: ${escapeHtml(userAiQuota.toLocaleString("vi-VN"))}</span>
+                        ${isBlk ? `<span class="apple-pill pill-rose">BỊ CHẶN</span>` : `<span class="apple-pill pill-emerald">ONLINE 24/7</span>`}
+                    </div>
+                    <code style="font-size:10.5px;color:#6e6e73;background:#f5f5f7;padding:4px 8px;border-radius:8px;">${escapeHtml(isBlk ? "REVOKED" : (u.product_id || cfg.productId || "locket_1600_1y"))}</code>
+                </div>
+            </div>`;
+        }
+    }
+
+    let adminTableHtml = "";
+    if (usersList.length === 0) {
+        adminTableHtml = `<div class="empty-state-box">Chưa có người dùng nào được ghi nhận trong hệ thống.</div>`;
+    } else {
+        for (const u of usersList) {
+            const isBlk = u.status === "blocked" || u.blocked === true || u.gold_active === false;
+            const uName = u.username || (u.uid ? u.uid.slice(0, 10) : "user");
+            const uAiQuota = isBlk ? 0 : sanitizeQuotaNumber(u.ai_quota !== undefined ? u.ai_quota : currentAiQuota, currentAiQuota);
+            adminTableHtml += `
+            <div class="scroll-user-card">
+                <div>
+                    <div class="user-card-name-row">
+                        <span class="user-card-fullname">@${escapeHtml(uName)}</span>
+                        <span class="apple-pill ${isBlk ? "pill-rose" : "pill-gold"}">${isBlk ? "ĐÃ MẤT GOLD" : "GOLD 24/7"}</span>
+                        <span class="apple-pill ${isBlk ? "pill-rose" : "pill-blue"}">AI: ${escapeHtml(String(uAiQuota))}</span>
+                    </div>
+                    <div class="user-card-uid" style="margin-top:6px;">
+                        UID: ${escapeHtml(u.uid)} · Mốc: ${escapeHtml(u.force_lock_date || u.lock_date || "2026-05-25")}
+                    </div>
+                </div>
+                <div class="user-card-bottom">
+                    <a href="/setdate?admin_drawer=1&admin_action=push_user_gold&target_uid=${encodeURIComponent(u.uid)}" class="apple-pill-btn btn-dark-soft">Bắn Popup</a>
+                    ${isBlk ? `
+                        <a href="/setdate?admin_drawer=1&admin_action=unblock&target_uid=${encodeURIComponent(u.uid)}" class="apple-pill-btn btn-emerald-soft">Cấp lại Gold</a>
+                    ` : `
+                        <a href="/setdate?admin_drawer=1&admin_action=block&target_uid=${encodeURIComponent(u.uid)}" class="apple-pill-btn btn-rose-soft">Chặn Gold</a>
+                    `}
+                    <a href="/setdate?admin_drawer=1&admin_action=delete&target_uid=${encodeURIComponent(u.uid)}" class="apple-pill-btn btn-amber-soft">Xoá</a>
+                </div>
+            </div>`;
+        }
+    }
+
+    return `
+    <div id="consoleSection" class="bento-console-main">
+
+      <div id="realtimeBlockBanner" class="admin-block-alert">
+        <span class="bento-eyebrow" style="color:#9f1239;margin:0;">THÔNG BÁO THU HỒI QUYỀN LOCKET GOLD TỪ QUẢN TRỊ VIÊN</span>
+        <div style="font-size:18px;font-weight:700;">Đã thu hồi LOCKET GOLD — Tài khoản của bạn đã bị chặn & mất Gold!</div>
+        <div style="font-size:14px;">${escapeHtml(cfg.blockReason)}</div>
+      </div>
+
+      <div id="statusToast" class="toast-alert-bar">${escapeHtml(statusMsg || "")}</div>
+
+      <!-- 1. TRUNG TÂM BẮN THÔNG BÁO POPUP LÊN APP LOCKET & TẢI FILE ẢNH TRỰC TIẾP (ĐÃ SỬA LỖI LƯU 100%) -->
+      <section id="uplocketPopupStudioSection" class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">UPLOCKET IN-APP POPUP & DIRECT IMAGE UPLOAD STUDIO</span>
+            <h2 class="bento-heading">Bắn Thông Báo Popup Lên App Locket & Tải File Ảnh Trực Tiếp Từ Máy</h2>
+            <p style="font-size:13.5px;color:var(--apple-text-secondary);margin-top:4px;">
+              Thiết kế chuẩn giao diện <strong>UpLocket</strong>: Chỉnh chữ, chọn file ảnh trực tiếp từ thư viện điện thoại (tự động chia gói lưu thẳng vào bộ nhớ Locket không bao giờ lỗi) cho cả <strong>Thông báo Popup</strong> lẫn <strong>Khung Widget</strong>.
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" onclick="openGoldModal()" class="apple-pill-btn btn-amber-soft" style="padding:10px 16px;">Xem Trước Popup Như Ảnh</button>
+            <button type="button" onclick="firePopupToLocketAppNow()" class="apple-pill-btn btn-dark-soft" style="padding:10px 18px;background:linear-gradient(135deg,#fbbf24,#d97706);color:#111;font-weight:800;">
+              🚀 Bắn Thông Báo Popup Lên App Locket Ngay
+            </button>
+          </div>
+        </div>
+
+        <form method="GET" action="/setdate#uplocketPopupStudioSection" style="display:flex;flex-direction:column;gap:18px;">
+          <input type="hidden" name="save_popup_and_widget_studio" value="1">
+
+          <div class="grid-2">
+            <!-- CỘT 1: UPLOAD TRỰC TIẾP ẢNH TRONG THÔNG BÁO POPUP -->
+            <div class="spec-tile">
+              <span class="bento-eyebrow">1. ẢNH TRONG THÔNG BÁO POPUP LOCKET (UP FILE TRỰC TIẾP)</span>
+              <div class="direct-upload-zone">
+                <img id="popupUploadPreviewThumb" src="${escapeHtml(popupImage)}" onerror="this.src='${THAY_IMAGE_PATH}'" class="direct-upload-thumb" alt="Popup Preview">
+                <div class="direct-upload-controls">
+                  <div style="font-size:13px;font-weight:700;color:#1d1d1f;">Chọn ảnh từ máy cho Popup Locket</div>
+                  <div id="popupUploadStatusText" style="font-size:11.5px;color:#10b981;font-weight:600;">Sẵn sàng tải ảnh trực tiếp (Cơ chế Multi-Chunk chống lỗi 100%)</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;">
+                    <label class="file-upload-btn-label">
+                      📁 Chọn File Ảnh Từ Máy
+                      <input type="file" accept="image/*" onchange="handleDirectFileUpload(this, 'popup')">
+                    </label>
+                    <button type="button" onclick="resetUploadedImageSlot('popup')" class="preset-pill">Khôi phục ảnh gốc</button>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:14px;">
+                <label class="field-label">Nhãn Pill Vàng trên cùng (Mặc định: UpLocket)</label>
+                <input type="text" id="studioPopupBadgeInput" name="popupBadge" value="${escapeHtml(popupBadge)}" oninput="syncLivePopupModalPreview()" class="apple-field">
+              </div>
+              <div style="margin-top:12px;">
+                <label class="field-label">Tiêu đề lớn trong Popup (Mặc định: Đã mở khoá GOLD thành công!)</label>
+                <input type="text" id="studioPopupHeaderInput" name="popupHeader" value="${escapeHtml(popupHeader)}" oninput="syncLivePopupModalPreview()" class="apple-field">
+              </div>
+            </div>
+
+            <!-- CỘT 2: UPLOAD TRỰC TIẾP ẢNH KHUNG WIDGET LOCKET -->
+            <div class="spec-tile">
+              <span class="bento-eyebrow">2. ẢNH VIỀN KHUNG WIDGET LOCKET (UP FILE TRỰC TIẾP)</span>
+              <div class="direct-upload-zone">
+                <img id="widgetUploadPreviewThumb" src="${escapeHtml(widgetImage)}" onerror="this.src='${DEFAULT_WIDGET_FRAME_SVG}'" class="direct-upload-thumb" alt="Widget Preview">
+                <div class="direct-upload-controls">
+                  <div style="font-size:13px;font-weight:700;color:#1d1d1f;">Chọn ảnh viền cho Widget trực tiếp từ máy</div>
+                  <div id="widgetUploadStatusText" style="font-size:11.5px;color:#10b981;font-weight:600;">Hỗ trợ ảnh PNG viền trong suốt / JPG nạp thẳng vào Widget</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;">
+                    <label class="file-upload-btn-label">
+                      🖼️ Tải Ảnh Widget Từ Máy
+                      <input type="file" accept="image/*" onchange="handleDirectFileUpload(this, 'widget')">
+                    </label>
+                    <button type="button" onclick="resetUploadedImageSlot('widget')" class="preset-pill">Khôi phục viền gốc</button>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:14px;">
+                <label class="field-label">Nội dung mô tả dưới tiêu đề Popup</label>
+                <input type="text" id="studioPopupSubInput" name="popupSubtitle" value="${escapeHtml(popupSubtitle)}" oninput="syncLivePopupModalPreview()" class="apple-field">
+              </div>
+              <div style="margin-top:12px;">
+                <label class="field-label">Chữ trên nút bấm vàng (Mặc định: Đã hiểu) & Tên chủ sở hữu</label>
+                <div class="grid-2">
+                  <input type="text" id="studioPopupBtnInput" name="popupBtnText" value="${escapeHtml(popupBtnText)}" oninput="syncLivePopupModalPreview()" class="apple-field" placeholder="Đã hiểu">
+                  <input type="text" name="popupTitle" value="${escapeHtml(popupTitle)}" class="apple-field" placeholder="Ngô Minh Đức">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <button type="submit" class="btn-action-primary">Lưu Nội Dung Popup & Cấu Hình Ảnh Widget</button>
+            <button type="button" onclick="firePopupToLocketAppNow()" class="btn-action-gold">🔥 Bắn Thông Báo Popup Này Lên App Locket Ngay</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 2. BẢNG QUẢN TRỊ ROOT ADMIN -->
+      <section id="adminCommandCenter" class="apple-bento-card ${openAdminDrawer ? "" : "hidden"}">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">ROOT ADMIN CONSOLE</span>
+            <h2 class="bento-heading">Quản trị Thu hồi/Cấp Gold & Điều khiển Hệ thống</h2>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" onclick="openGoldModal()" class="preset-pill">Xem trước Popup UpLocket</button>
+            <button type="button" onclick="firePopupToLocketAppNow()" class="preset-pill">Bắn Popup lên App Locket</button>
+            ${isAdminLogged ? `<a href="/setdate?admin_logout=1" class="preset-pill" style="text-decoration:none;">Đăng xuất</a>` : ""}
+            <button type="button" onclick="toggleAdminDrawer()" class="apple-pill-btn btn-dark-soft">Đóng</button>
+          </div>
+        </div>
+
+        ${!isAdminLogged ? `
+          <form method="GET" action="/setdate" autocomplete="off" style="max-width:420px;margin:12px auto 0;">
+            <input type="hidden" name="admin_drawer" value="1">
+            <input type="hidden" name="admin_login" value="1">
+            <div style="margin-bottom:14px;">
+              <label class="field-label">Tài khoản Quản trị viên</label>
+              <input type="text" name="user" class="apple-field" placeholder="Nhập username admin..." required>
+            </div>
+            <div style="margin-bottom:18px;">
+              <label class="field-label">Mật khẩu bảo mật</label>
+              <input type="password" name="pass" class="apple-field" placeholder="Nhập mật khẩu..." required>
+            </div>
+            <button type="submit" class="btn-action-primary">Đăng nhập quyền Root Admin</button>
+          </form>
+        ` : `
+          <div style="display:flex;flex-direction:column;gap:24px;">
+            <form method="GET" action="/setdate" class="spec-tile">
+              <input type="hidden" name="admin_drawer" value="1">
+              <input type="hidden" name="admin_action" value="add_gold">
+              <span class="bento-eyebrow">CẤP NHANH LOCKET GOLD & HẠN MỨC AI CHO UID</span>
+              <div class="grid-4" style="margin-top:10px;">
+                <input type="text" name="target_uid" value="${escapeHtml(hasValidUid ? cachedUid : "")}" class="apple-field" placeholder="Nhập UID Locket..." required>
+                <input type="text" name="target_user" value="${escapeHtml(cachedUser)}" class="apple-field" placeholder="Nhập @username...">
+                <input type="number" name="target_ai_quota" value="${escapeHtml(String(currentAiQuota))}" class="apple-field" placeholder="Số lượt AI...">
+                <button type="submit" class="btn-action-primary">Cấp quyền ngay</button>
+              </div>
+            </form>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span class="bento-eyebrow" style="margin:0;">DANH SÁCH QUẢN TRỊ TÀI KHOẢN (${usersList.length})</span>
+                <a href="/setdate?admin_drawer=1&admin_action=unblock_all" style="font-size:12px;font-weight:600;color:#0071e3;text-decoration:none;">Gỡ chặn & Cấp lại Gold toàn bộ</a>
+              </div>
+              <div class="scroll-box-grid">
+                ${adminTableHtml}
+              </div>
+            </div>
+          </div>
+        `}
+      </section>
+
+      <!-- 3. TRÌNH QUẢN LÝ, THÊM MỚI & XOÁ CAPTION LOCKET (CAPTION STUDIO) -->
+      <section id="captionStudioSection" class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">LOCKET CAPTION STUDIO (ADD / EDIT / DELETE CAPTIONS)</span>
+            <h2 class="bento-heading">Trình Quản Lý, Thêm Mới & Xoá Caption Locket (${totalActiveCaptionsCount} đang bật / ${deletedCapIds.length} đã xoá)</h2>
+            <p style="font-size:13.5px;color:var(--apple-text-secondary);margin-top:4px;">
+              Tự tạo Caption mang tên riêng của bạn với dải màu Gradient tuỳ chọn, sửa lại bất kỳ Caption nào có sẵn hoặc bấm <strong>Xoá</strong> những Caption không dùng tới.
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="/setdate?caption_action=reset_all#captionStudioSection" class="apple-pill-btn btn-amber-soft">Khôi phục toàn bộ 220+ Caption gốc</a>
+          </div>
+        </div>
+
+        <form method="GET" action="/setdate#captionStudioSection" class="spec-tile" style="margin-bottom:22px;">
+          <input type="hidden" name="caption_action" value="upsert">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+            <span class="bento-eyebrow" style="margin:0;">TẠO CAPTION MỚI HOẶC CHỈNH SỬA CAPTION ĐANG CHỌN</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:12px;color:#6e6e73;">Xem trước trực tiếp:</span>
+              <div id="liveCaptionPreviewChip" class="cap-preview-chip" style="background:linear-gradient(135deg,#FFD700,#F59E0B);color:#000000E6;">
+                <span id="liveCapEmoji">👑</span>
+                <span id="liveCapText">Ngô Minh Đức VIP</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div>
+              <label class="field-label">Nội dung chữ hiển thị trên Caption</label>
+              <input type="text" id="capTextInput" name="cap_text" value="Ngô Minh Đức VIP" oninput="updateLiveCaptionPreview()" class="apple-field" placeholder="Nhập chữ hiển thị..." required>
+            </div>
+            <div>
+              <label class="field-label">Icon / Emoji đi kèm (Để trống nếu không dùng)</label>
+              <input type="text" id="capEmojiInput" name="cap_emoji" value="👑" oninput="updateLiveCaptionPreview()" class="apple-field" placeholder="VD: 👑, 🔥, 💗, 🎀">
+            </div>
+            <div>
+              <label class="field-label">Mã định danh (Overlay ID — Tự tạo nếu để trống)</label>
+              <input type="text" id="capIdInput" name="overlay_id" value="" class="apple-field" placeholder="VD: caption:my_vip_cap">
+            </div>
+          </div>
+
+          <div class="grid-4" style="margin-top:14px;">
+            <div>
+              <label class="field-label">Màu nền Gradient 1 (Hex)</label>
+              <input type="text" id="capColor1Input" name="cap_c1" value="#FFD700" oninput="updateLiveCaptionPreview()" class="apple-field" placeholder="#FFD700">
+            </div>
+            <div>
+              <label class="field-label">Màu nền Gradient 2 (Hex)</label>
+              <input type="text" id="capColor2Input" name="cap_c2" value="#F59E0B" oninput="updateLiveCaptionPreview()" class="apple-field" placeholder="#F59E0B">
+            </div>
+            <div>
+              <label class="field-label">Màu nền Gradient 3 (Tuỳ chọn)</label>
+              <input type="text" id="capColor3Input" name="cap_c3" value="" oninput="updateLiveCaptionPreview()" class="apple-field" placeholder="#B45309">
+            </div>
+            <div>
+              <label class="field-label">Màu chữ (Text Hex)</label>
+              <input type="text" id="capTextColorInput" name="cap_tc" value="#000000E6" oninput="updateLiveCaptionPreview()" class="apple-field" placeholder="#FFFFFF">
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top:14px;align-items:end;">
+            <div>
+              <label class="field-label">Nhóm danh mục hiển thị trên Locket</label>
+              <select id="capSectionInput" name="cap_section" class="apple-field">
+                <option value="✨ Caption Tự Chế (Custom Studio)">✨ Caption Tự Chế (Custom Studio)</option>
+                <option value="🎨 Decorative by Duy Vinh & Minh Đức">🎨 Decorative by Duy Vinh & Minh Đức</option>
+                <option value="🎨 Holiday Caption">🎨 Holiday Caption</option>
+                <option value="🎨 Tình yêu & Cơm chó 💕">🎨 Tình yêu & Cơm chó 💕</option>
+                <option value="🎨 Gen Z & Xéo xắt 💅">🎨 Gen Z & Xéo xắt 💅</option>
+                <option value="🎨 Meme & Hài hước 🤡">🎨 Meme & Hài hước 🤡</option>
+                <option value="🎨 Bất ổn & Hết cứu 🫠">🎨 Bất ổn & Hết cứu 🫠</option>
+                <option value="🎨 Deadline & Tiền bạc 💸">🎨 Deadline & Tiền bạc 💸</option>
+                <option value="🎨 Daily & Đời sống ☕">🎨 Daily & Đời sống ☕</option>
+                <option value="🎨 Gaming, Công Nghệ & Tốc Độ 🔥">🎨 Gaming, Công Nghệ & Tốc Độ 🔥</option>
+                <option value="🎨 Học Tập, Trường Lớp & Thi Cử 📚">🎨 Học Tập, Trường Lớp & Thi Cử 📚</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-action-blue">+ Lưu / Thêm Caption Vào Locket Ngay</button>
+          </div>
+        </form>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+          <span class="bento-eyebrow" style="margin:0;">DANH SÁCH TOÀN BỘ CAPTION ĐANG HOẠT ĐỘNG (${totalActiveCaptionsCount})</span>
+          <div style="width:100%;max-width:300px;">
+            <input type="text" id="searchCaptionStudioInput" oninput="filterCaptionStudioCards()" class="apple-field" style="padding:9px 14px;font-size:13px;" placeholder="Tìm nội dung Caption, mã ID hoặc nhóm...">
+          </div>
+        </div>
+
+        <div id="captionStudioGridList" class="cap-studio-grid">
+          ${captionCardsHtml}
+        </div>
+      </section>
+
+      <!-- 4. DANH MỤC KHUNG PHOTOBOOTH, SỰ KIỆN & AI LOOKS -->
+      <section id="cameraCatalogSection" class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">LOCKET CAMERA EFFECTS & 45 AI LOOKS STUDIO</span>
+            <h2 class="bento-heading">Trọn bộ Khung & Photobooth, Sự kiện, Tinh nghịch, Ngoại hình & Tạo diện mạo AI</h2>
+            <p style="font-size:13.5px;color:var(--apple-text-secondary);margin-top:4px;">
+              Đồng bộ trực tiếp vào Camera Locket: Mở khóa toàn bộ 6 nhóm hiệu ứng (45 Filter IDs) và nút vàng <strong>"+ Tạo diện mạo"</strong> với ${escapeHtml(currentAiQuota.toLocaleString("vi-VN"))} lượt.
+            </p>
+          </div>
+          <span class="apple-pill ${cfg.isBlockedByAdmin ? "pill-rose" : "pill-gold"}" style="padding:8px 14px;font-size:12px;">
+            ${cfg.isBlockedByAdmin ? "ĐANG BỊ CHẶN — ĐÃ THU HỒI TOÀN BỘ HIỆU ỨNG" : "+ TẠO DIỆN MẠO & 45 FILTER: ĐÃ MỞ KHOÁ 100%"}
+          </span>
+        </div>
+        <div class="grid-3">
+          ${cameraCatalogTilesHtml}
+        </div>
+      </section>
+
+      <!-- 5. TRUNG TÂM TUỲ CHỈNH CAMERA 30S/60S, WIDGET FRAME & FEATURE GATES (CÔNG TẮC GẠT iOS HIỆN ĐẠI) -->
+      <section id="featureEngineSection" class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">FORCEGOLD 4.3 CAMERA, WIDGET & FEATURE GATES ENGINE</span>
+            <h2 class="bento-heading">Tuỳ chỉnh Thời lượng Video, Chất lượng Ảnh, Khung Tiện ích & Công tắc Tính năng</h2>
+            <p style="font-size:13.5px;color:var(--apple-text-secondary);margin-top:4px;">
+              Điều khiển bằng công tắc trượt iOS trực quan: Thời lượng quay Video (30s/60s/90s), Bitrate Mbps, Khung sự kiện Widget và 22 cổng tính năng cao cấp.
+            </p>
+          </div>
+        </div>
+
+        <form method="GET" action="/setdate#featureEngineSection" style="display:flex;flex-direction:column;gap:20px;">
+          <input type="hidden" name="save_advanced_features" value="1">
+
+          <div class="grid-3">
+            <div class="spec-tile">
+              <label class="field-label">Thời lượng quay & đăng Video tối đa (Giây)</label>
+              <input type="number" step="1" id="videoMaxDurInput" name="videoMaxDuration" value="${escapeHtml(String(cfg.videoMaxDuration || 30))}" class="apple-field">
+              <div class="chip-row">
+                <button type="button" class="preset-pill" onclick="document.getElementById('videoMaxDurInput').value='15'">15 giây</button>
+                <button type="button" class="preset-pill" onclick="document.getElementById('videoMaxDurInput').value='30'">30 giây (Chuẩn Gold)</button>
+                <button type="button" class="preset-pill" onclick="document.getElementById('videoMaxDurInput').value='60'">60 giây</button>
+                <button type="button" class="preset-pill" onclick="document.getElementById('videoMaxDurInput').value='90'">90 giây</button>
+              </div>
+            </div>
+
+            <div class="spec-tile">
+              <label class="field-label">Bitrate Video (Mbps) & Kích thước Ảnh chính (px)</label>
+              <div class="grid-2">
+                <input type="number" step="0.1" name="videoQualityMbps" value="${escapeHtml(String(cfg.videoQualityMbps || 0.9))}" class="apple-field" placeholder="0.9 Mbps">
+                <input type="number" step="10" name="uploadMainImageSize" value="${escapeHtml(String(cfg.uploadMainImageSize || 1440))}" class="apple-field" placeholder="1440 px">
+              </div>
+              <div style="font-size:11.5px;color:#6e6e73;margin-top:8px;">
+                Chuẩn ForceGold 4.3: 0.9 Mbps & 1440px giúp gửi ảnh/video siêu nét không bị lỗi nén.
+              </div>
+            </div>
+
+            <div class="spec-tile">
+              <label class="field-label">Giới hạn Bạn bè tối đa & Số ngày lưu Lịch sử</label>
+              <div class="grid-2">
+                <input type="number" name="maxFriendsCount" value="${escapeHtml(String(cfg.maxFriendsCount || 999999))}" class="apple-field" placeholder="999999">
+                <input type="number" name="historyCacheAgeDays" value="${escapeHtml(String(cfg.historyCacheAgeDays || 1000))}" class="apple-field" placeholder="1000 ngày">
+              </div>
+              <div style="font-size:11.5px;color:#6e6e73;margin-top:8px;">
+                Mở khóa kết bạn không giới hạn (999.999) & lưu đệm lịch sử 1.000 ngày.
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="spec-tile">
+              <span class="bento-eyebrow">CẤU HÌNH KHUNG TIỆN ÍCH SỰ KIỆN (WIDGET FRAME EVENT)</span>
+              <div class="grid-2" style="margin-top:10px;">
+                <div>
+                  <label class="field-label">Mã sự kiện Widget (UID)</label>
+                  <input type="text" name="widgetEventUid" value="${escapeHtml(cfg.widgetEventUid || "midautumn_2026")}" class="apple-field">
+                </div>
+                <div>
+                  <label class="field-label">Vị trí hiển thị & Số ảnh tối đa</label>
+                  <div class="grid-2">
+                    <select name="widgetEventPlacement" class="apple-field">
+                      <option value="below" ${cfg.widgetEventPlacement === "below" ? "selected" : ""}>below (Dưới)</option>
+                      <option value="above" ${cfg.widgetEventPlacement === "above" ? "selected" : ""}>above (Trên)</option>
+                      <option value="overlay" ${cfg.widgetEventPlacement === "overlay" ? "selected" : ""}>overlay (Đè viền)</option>
+                    </select>
+                    <input type="number" name="widgetEventMaxImages" value="${escapeHtml(String(cfg.widgetEventMaxImages || 5))}" class="apple-field">
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:#059669;font-weight:600;">
+                💡 Để đổi ảnh viền Widget trực tiếp từ máy mà không cần link, hãy dùng ô <strong>"2. Ảnh Viền Khung Widget Locket"</strong> ở đầu trang!
+              </div>
+            </div>
+
+            <div class="spec-tile">
+              <span class="bento-eyebrow">CẤU HÌNH TĂNG TỐC CDN & KHÔI PHỤC CHUỖI STREAK</span>
+              <div class="grid-2" style="margin-top:10px;">
+                <div>
+                  <label class="field-label">Miền Storage gốc</label>
+                  <input type="text" name="cdnSourceDomain" value="${escapeHtml(cfg.cdnSourceDomain || "firebasestorage.googleapis.com")}" class="apple-field">
+                </div>
+                <div>
+                  <label class="field-label">Miền CDN thay thế tốc độ cao</label>
+                  <input type="text" name="cdnTargetDomain" value="${escapeHtml(cfg.cdnTargetDomain || "cdn.locketcamera.com")}" class="apple-field">
+                </div>
+              </div>
+              <div class="grid-2" style="margin-top:12px;">
+                <div>
+                  <label class="field-label">Mốc tối thiểu khôi phục Streak</label>
+                  <input type="number" name="streakMinRecoveryCount" value="${escapeHtml(String(cfg.streakMinRecoveryCount ?? 0))}" class="apple-field">
+                </div>
+                <div>
+                  <label class="field-label">Kiểu hiệu ứng hiển thị Streak</label>
+                  <select name="streakVisualizationStyle" class="apple-field">
+                    <option value="gradient" ${cfg.streakVisualizationStyle === "gradient" ? "selected" : ""}>gradient (Dải màu Gold)</option>
+                    <option value="solid" ${cfg.streakVisualizationStyle === "solid" ? "selected" : ""}>solid (Đơn sắc)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="spec-tile">
+            <span class="bento-eyebrow" style="margin-bottom:12px;">BẢNG CÔNG TẮC GẠT TÍNH NĂNG CAO CẤP (iOS TOGGLE SWITCHES — BẬT/TẮT TRỰC TIẾP)</span>
+            <div class="ios-switch-grid">
+              ${renderIosSwitchCard("fgAppIconPicker", cfg.fgAppIconPicker !== false, "Đổi Icon Ứng Dụng", "App Icon Picker + Icon Tết", true)}
+              ${renderIosSwitchCard("fgCameraRoll", cfg.fgCameraRoll !== false, "Đăng Ảnh/Video Thư Viện", "Camera Roll Upload 30s", true)}
+              ${renderIosSwitchCard("fgCameraTheme", cfg.fgCameraTheme !== false, "Giao Diện Camera Gold", "Camera Theme Customizer", true)}
+              ${renderIosSwitchCard("fgLocketViews", cfg.fgLocketViews !== false, "Xem Ai Đã Xem Ảnh", "Locket Views V2 Realtime", true)}
+              ${renderIosSwitchCard("fgLongCaptions", cfg.fgLongCaptions !== false, "Viết Caption Dài", "Long Captions Unlimited", false)}
+              ${renderIosSwitchCard("fgLongerVideo", cfg.fgLongerVideo !== false, "Quay Video Dài 30s+", "Longer Video Recording", false)}
+              ${renderIosSwitchCard("fgUnlimitedFriends", cfg.fgUnlimitedFriends !== false, "Kết Bạn Không Giới Hạn", "Unlimited Friends 999.999", false)}
+              ${renderIosSwitchCard("fgCustomWidgetFrames", cfg.fgCustomWidgetFrames !== false, "Khung Viền Widget", "Custom Widget Frames", true)}
+              ${renderIosSwitchCard("fgStreakRecovery", cfg.fgStreakRecovery !== false, "Khôi Phục Chuỗi Streak", "Streak Recovery Miễn Phí", true)}
+              ${renderIosSwitchCard("ultraWideEnabled", cfg.ultraWideEnabled !== false, "Ống Kính Góc Siêu Rộng", "Camera 0.5x Ultra-Wide", false)}
+              ${renderIosSwitchCard("telephotoEnabled", cfg.telephotoEnabled !== false, "Ống Kính Telephoto", "Zoom Quang Học Sắc Nét", false)}
+              ${renderIosSwitchCard("livePhotosEnabled", cfg.livePhotosEnabled !== false, "Chụp & Xem Live Photos", "Live Photos Capture", false)}
+              ${renderIosSwitchCard("timeTravelRewindEnabled", cfg.timeTravelRewindEnabled !== false, "Tua Ngược Thời Gian", "Time Travel Rewind V2", false)}
+              ${renderIosSwitchCard("unsendMessageEnabled", cfg.unsendMessageEnabled !== false, "Thu Hồi Tin Nhắn Chat", "Unsend Message Enabled", false)}
+              ${renderIosSwitchCard("rollcallEnabled", cfg.rollcallEnabled !== false, "Tính Năng Rollcall Mới", "Rollcall & Tagging", false)}
+              ${renderIosSwitchCard("disableHistoryAds", cfg.disableHistoryAds !== false, "Chặn Sạch Quảng Cáo", "History Ads & Telemetry Off", true)}
+            </div>
+          </div>
+
+          <button type="submit" class="btn-action-primary">Lưu Toàn Bộ Cấu Hình Camera, Khung Widget & Công Tắc Tính Năng</button>
+        </form>
+      </section>
+
+      <!-- 6. Ô CUỘN DANH SÁCH BẠN BÈ TỰ ĐỘNG BẮT UID (GỌN GÀNG NHƯ Ô CAPTION) -->
+      <section id="friendsBadgeSection" class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">AUTO-DISCOVERY & SCROLLABLE FRIEND BADGE BOX</span>
+            <h2 class="bento-heading">Ô Cuộn Tự Động Get UID & Công Tắc Huy Hiệu Bạn Bè (${activeFriendsBadgeCount}/${friendsList.length})</h2>
+            <p style="font-size:13.5px;color:var(--apple-text-secondary);margin-top:4px;">
+              Toàn bộ bạn bè được gom gọn vào <strong>khung cuộn thông minh</strong> bên dưới. Bạn có thể lướt tìm và gạt công tắc Bật/Tắt huy hiệu Gold cho từng người.
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" onclick="autoHarvestFriendsNow()" class="apple-pill-btn btn-blue-soft" style="padding:9px 16px;">Tự Động Quét & Lấy UID Bạn Bè Ngay</button>
+            <a href="/setdate?friend_action=enable_all#friendsBadgeSection" class="apple-pill-btn btn-emerald-soft">Bật tất cả bạn bè</a>
+            <a href="/setdate?friend_action=disable_all#friendsBadgeSection" class="apple-pill-btn btn-amber-soft">Tắt tất cả bạn bè</a>
+            <a href="/setdate?friend_action=toggle_default&default_val=${cfg.friendsBadgeDefault !== false ? "0" : "1"}#friendsBadgeSection" class="apple-pill-btn btn-dark-soft">
+              Mặc định bạn mới: ${cfg.friendsBadgeDefault !== false ? "TỰ BẬT GOLD" : "TỰ TẮT GOLD"}
+            </a>
+          </div>
+        </div>
+
+        <form method="GET" action="/setdate#friendsBadgeSection" class="spec-tile" style="margin-bottom:20px;">
+          <input type="hidden" name="friend_action" value="upsert_friend">
+          <span class="bento-eyebrow">THÊM THỦ CÔNG HOẶC GHI ĐÈ TRẠNG THÁI HUY HIỆU BẠN BÈ THEO UID</span>
+          <div class="grid-4" style="margin-top:10px;">
+            <input type="text" name="friend_uid" class="apple-field" placeholder="Nhập UID bạn bè..." required>
+            <input type="text" name="friend_user" class="apple-field" placeholder="Tên hoặc @username...">
+            <select name="friend_badge" class="apple-field">
+              <option value="1">Bật huy hiệu Locket Gold</option>
+              <option value="0">Tắt huy hiệu Locket Gold</option>
+            </select>
+            <button type="submit" class="btn-action-primary">Lưu vào ô cuộn</button>
+          </div>
+        </form>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+          <span class="bento-eyebrow" style="margin:0;">KHUNG CUỘN DANH SÁCH BẠN BÈ ĐÃ GHI NHẬN (${friendsList.length})</span>
+          <div style="width:100%;max-width:280px;">
+            <input type="text" id="searchFriendBadgeInput" oninput="filterFriendsBadgeList()" class="apple-field" style="padding:9px 14px;font-size:13px;" placeholder="Tìm tên bạn bè hoặc UID...">
+          </div>
+        </div>
+
+        <div id="friendsBadgeDirectoryList" class="scroll-box-grid">
+          ${friendsBadgeListHtml}
+        </div>
+      </section>
+
+      <!-- 7. LÕI ĐỊNH TUYẾN DOH 40 MIỀN & CHỨNG CHỈ ROOT CA -->
+      <section id="dohEngineSection" class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">INTEGRATED UPLOCKET MOBILECONFIG ENGINE (40 MIỀN + ROOT CA)</span>
+            <h2 class="bento-heading">Lõi Định tuyến UpLocket DNS-over-HTTPS (DoH) & Chứng chỉ Root CA</h2>
+            <p style="font-size:13px;color:var(--apple-text-secondary);margin-top:4px;">
+              Định danh: <code style="font-family:monospace;background:#f5f5f7;padding:3px 8px;border-radius:8px;color:#1d1d1f;font-weight:600;">${escapeHtml(INTEGRATED_NET_ENGINE.profileIdentifier)}</code>
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" onclick="probeDohNow()" class="apple-pill-btn btn-blue-soft" style="padding:10px 18px;">Kiểm tra DoH & Đồng bộ 40 miền</button>
+            <a href="/setdate?download_mobileconfig=1" class="apple-pill-btn btn-dark-soft" style="padding:10px 18px;">Tải cấu hình .mobileconfig</a>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="spec-tile">
+            <span class="bento-eyebrow">MÁY CHỦ DOH UPLOCKET</span>
+            <div class="spec-mono-val">${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}</div>
+            <div style="font-size:12px;color:var(--apple-text-secondary);margin-top:8px;">
+              Giao thức: <strong>${escapeHtml(INTEGRATED_NET_ENGINE.dnsProtocol)}</strong> · <span id="dohLiveBadge" class="apple-pill pill-emerald">ĐANG BẬT (${escapeHtml(String(dohStatus.latencyMs || 12))}ms · 40 miền)</span>
+            </div>
+          </div>
+
+          <div class="spec-tile">
+            <span class="bento-eyebrow">ĐỊA CHỈ IP & UUID CẤU HÌNH</span>
+            <div class="spec-mono-val">${escapeHtml(cfg.dohPrimaryIp)} · ${escapeHtml(cfg.dohSecondaryIp)}</div>
+            <div style="font-size:12px;color:var(--apple-text-secondary);margin-top:8px;">
+              UUID DNS: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.dnsUUID)}</code>
+            </div>
+          </div>
+
+          <div class="spec-tile">
+            <span class="bento-eyebrow">CHỨNG CHỈ UPLOCKET CUSTOM ROOT CA</span>
+            <div class="spec-mono-val">${escapeHtml(INTEGRATED_NET_ENGINE.caDisplayName)} (2026 — 2036)</div>
+            <div style="font-size:12px;color:var(--apple-text-secondary);margin-top:8px;">
+              UUID CA: <code style="font-family:monospace;">${escapeHtml(INTEGRATED_NET_ENGINE.caUUID)}</code>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. THIẾT LẬP MỐC ĐĂNG KÝ, LƯỢT AI & HẠN GÓI -->
+      <section class="apple-bento-card">
+        <div class="bento-card-head">
+          <div>
+            <span class="bento-eyebrow">CONFIGURATION STUDIO</span>
+            <h2 class="bento-heading">Thiết lập Mốc đăng ký Locket Gold, DoH & Hạn mức AI</h2>
+            <p style="font-size:13px;color:var(--apple-text-secondary);margin-top:4px;">
+              UID hiện tại: <code style="font-family:monospace;background:#f5f5f7;padding:3px 8px;border-radius:8px;color:#1d1d1f;font-weight:600;">${escapeHtml(displayUid)}</code>
+            </p>
+          </div>
+          <a href="/setdate?request_activate=1" class="apple-pill-btn btn-blue-soft" style="padding:10px 18px;">Kích hoạt & Đồng bộ ngay</a>
+        </div>
+
+        <form method="GET" action="/setdate" style="display:flex;flex-direction:column;gap:20px;">
+          <input type="hidden" name="save" value="1">
+          <div class="grid-2">
+            <div>
+              <label class="field-label">Số lượt sử dụng Filter AI / Tạo diện mạo</label>
+              <input type="number" id="aiQuotaInput" name="aiFilterQuota" value="${escapeHtml(String(currentAiQuota))}" class="apple-field">
+              <div class="chip-row">
+                <button type="button" class="preset-pill" onclick="setAiQuota('999999')">Vô hạn (999.999)</button>
+                <button type="button" class="preset-pill" onclick="setAiQuota('10000')">10.000 lượt</button>
+                <button type="button" class="preset-pill" onclick="setAiQuota('1000')">1.000 lượt</button>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Số lượt đã dùng hôm nay (Ép về 0)</label>
+              <input type="number" name="aiFilterUsed" value="${escapeHtml(String(cfg.aiFilterUsed || 0))}" class="apple-field">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label class="field-label">Ngày đăng ký hiển thị (DD/MM/YYYY hoặc YYYY-MM-DD)</label>
+              <input type="text" id="lockDateInput" name="lockDate" value="${escapeHtml(cfg.lockDate)}" class="apple-field">
+              <div class="chip-row">
+                <button type="button" class="preset-pill" onclick="setD('25/05/2026')">25/05/2026</button>
+                <button type="button" class="preset-pill" onclick="setD('25/11/2027')">25/11/2027 (NMS)</button>
+                <button type="button" class="preset-pill" onclick="setD('25/05/2010')">25/05/2010</button>
+                <button type="button" class="preset-pill" onclick="setD('01/01/2022')">01/01/2022</button>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Tên hiển thị (@username)</label>
+              <input type="text" name="username" value="${escapeHtml(cachedUser)}" class="apple-field" placeholder="Nhập @username...">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label class="field-label">Máy chủ DoH tích hợp (ServerURL)</label>
+              <input type="text" id="dohUrlInput" name="dohServerUrl" value="${escapeHtml(cfg.dohServerUrl || INTEGRATED_NET_ENGINE.dohServerUrl)}" class="apple-field">
+            </div>
+            <div>
+              <label class="field-label">Cặp IP máy chủ DoH (Primary / Secondary)</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input type="text" name="dohPrimaryIp" value="${escapeHtml(cfg.dohPrimaryIp || INTEGRATED_NET_ENGINE.serverAddresses[0])}" class="apple-field">
+                <input type="text" name="dohSecondaryIp" value="${escapeHtml(cfg.dohSecondaryIp || INTEGRATED_NET_ENGINE.serverAddresses[1])}" class="apple-field">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label class="field-label">Mã gói đăng ký (Product Identifier)</label>
+              <select name="productId" class="apple-field">
+                <option value="locket_1600_1y" ${cfg.productId === "locket_1600_1y" ? "selected" : ""}>locket_1600_1y (Gold Yearly - 399.000đ)</option>
+                <option value="locket_399_1m" ${cfg.productId === "locket_399_1m" ? "selected" : ""}>locket_399_1m (Gold Monthly)</option>
+                <option value="locket_199_1m" ${cfg.productId === "locket_199_1m" ? "selected" : ""}>locket_199_1m (Gold Promo)</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Ngày hết hạn gói (Mặc định 9999-01-09)</label>
+              <input type="text" name="expireDate" value="${escapeHtml(cfg.expireDate)}" class="apple-field">
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top:6px;">
+            <button type="submit" class="btn-action-primary">Lưu cấu hình, DoH & Đồng bộ Locket Gold</button>
+            <a href="/setdate?reset=1" class="btn-action-soft">Khôi phục mặc định (25/05/2026 · DoH UpLocket · 999.999 AI)</a>
+          </div>
+        </form>
+      </section>
+
+      <!-- 9. Ô CUỘN DANH SÁCH TÀI KHOẢN LOCKET GOLD (GỌN GÀNG NHƯ Ô CAPTION) -->
+      <section class="apple-bento-card">
+        <div class="bento-card-head" style="margin-bottom:14px;">
+          <div>
+            <span class="bento-eyebrow">SCROLLABLE GOLD ACCOUNTS DIRECTORY</span>
+            <h3 class="bento-heading">Ô Cuộn Danh Sách Tài Khoản Locket Gold (${goldUsersList.length} đang hoạt động / ${usersList.length} tổng)</h3>
+          </div>
+          <div style="width:100%;max-width:280px;">
+            <input type="text" id="searchGoldInput" oninput="filterGoldUsers()" class="apple-field" style="padding:10px 14px;font-size:13px;" placeholder="Tìm @username hoặc UID...">
+          </div>
+        </div>
+        <div id="goldDirectoryList" class="scroll-box-grid">
+          ${goldDirectoryHtml}
+        </div>
+      </section>
+
+    </div>
+  </main>`;
+}
 // === KẾT THÚC PHẦN 1 / 2 — GÕ "2" ĐỂ LẤY NỐT PHẦN 2 / 2 (ĐÓNG FILE HOÀN CHỈNH) ===
 function buildAppleFlowClientScript() {
     return `
