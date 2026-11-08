@@ -7815,9 +7815,17 @@ function loadConfig() {
             Env.read("LOCKET_GOLD_MAX_CONFIG_V8");
         if (raw) {
             const parsed = JSON.parse(raw);
-            cfg = { ...cfg, ...parsed };
+            if (parsed && typeof parsed === "object") {
+                cfg = { ...cfg, ...parsed };
+            }
         }
     } catch (e) {}
+
+    // Chuẩn hóa ngay định dạng ngày (hỗ trợ cả DD/MM/YYYY lẫn YYYY-MM-DD người dùng vừa nhập)
+    const cleanLockIso = toIsoDate(String(cfg.lockDate || DEFAULT_CONFIG.lockDate), DEFAULT_CONFIG.lockDate, cfg.lockTime || "T08:30:00Z");
+    const cleanExpireIso = toIsoDate(String(cfg.expireDate || DEFAULT_CONFIG.expireDate), DEFAULT_CONFIG.expireDate, cfg.expireTime || "T10:10:14Z");
+    cfg.lockDate = cleanLockIso.slice(0, 10);
+    cfg.expireDate = cleanExpireIso.slice(0, 10);
 
     cfg.aiFilterQuota = sanitizeQuotaNumber(cfg.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
     cfg.aiFilterDailyLimit = sanitizeQuotaNumber(cfg.aiFilterDailyLimit || cfg.aiFilterQuota, cfg.aiFilterQuota);
@@ -7852,13 +7860,10 @@ function loadConfig() {
 
     const uid = Env.read(USER_ID_CACHE_KEY) || "";
     const rt = evaluateRealtimeState(uid);
-    if (rt && rt.force_lock_date) {
-        cfg.lockDate = rt.force_lock_date.slice(0, 10);
-    }
 
-    cfg.isBlockedByAdmin = !!rt.blocked;
-    cfg.approvalStatus = rt.status || (cfg.isBlockedByAdmin ? "blocked" : "approved");
-    cfg.blockReason = rt.reason || "Tài khoản đã bị Admin chặn — Đã thu hồi Locket Gold, huy hiệu và khoá toàn bộ Photobooth/AI Looks.";
+    cfg.isBlockedByAdmin = !!(rt && rt.blocked);
+    cfg.approvalStatus = (rt && rt.status) || (cfg.isBlockedByAdmin ? "blocked" : "approved");
+    cfg.blockReason = (rt && rt.reason) || "Tài khoản đã bị Admin chặn — Đã thu hồi Locket Gold, huy hiệu và khoá toàn bộ Photobooth/AI Looks.";
 
     if (cfg.isBlockedByAdmin) {
         cfg.alwaysForceBadge = false;
@@ -7870,10 +7875,8 @@ function loadConfig() {
         cfg.alwaysForceBadge = true;
         cfg.unlockAllCameraEffects = true;
         cfg.aiFilterEnabled = true;
-        if (rt && rt.ai_quota !== null && rt.ai_quota !== undefined) {
-            cfg.aiFilterQuota = sanitizeQuotaNumber(rt.ai_quota, cfg.aiFilterQuota);
-            cfg.aiFilterDailyLimit = cfg.aiFilterQuota;
-        }
+        // Giữ nguyên cfg.lockDate và cfg.aiFilterQuota mà người dùng đã chỉnh trong STORE_KEY,
+        // tuyệt đối không để bản ghi cũ trong rt ghi đè ngược về 2026-05-25 hay 999999
     }
 
     cfg.interceptCloudFunctions = true;
@@ -7883,8 +7886,38 @@ function loadConfig() {
 }
 
 function saveConfig(newCfg) {
-    Env.write(JSON.stringify(newCfg), STORE_KEY);
-    Env.write(toIsoDate(newCfg.lockDate, DEFAULT_CONFIG.lockDate, "T08:30:00Z"), "locket_custom_date_lock");
+    const cleanCfg = { ...DEFAULT_CONFIG, ...(newCfg || {}) };
+
+    // Chuẩn hóa ngày đăng ký và ngày hết hạn trước khi ghi vào bộ nhớ đệm
+    const lockIso = toIsoDate(String(cleanCfg.lockDate || DEFAULT_CONFIG.lockDate), DEFAULT_CONFIG.lockDate, cleanCfg.lockTime || "T08:30:00Z");
+    const expireIso = toIsoDate(String(cleanCfg.expireDate || DEFAULT_CONFIG.expireDate), DEFAULT_CONFIG.expireDate, cleanCfg.expireTime || "T10:10:14Z");
+    cleanCfg.lockDate = lockIso.slice(0, 10);
+    cleanCfg.expireDate = expireIso.slice(0, 10);
+    cleanCfg.lockIso = lockIso;
+    cleanCfg.expireIso = expireIso;
+    cleanCfg.aiFilterQuota = sanitizeQuotaNumber(cleanCfg.aiFilterQuota, DEFAULT_CONFIG.aiFilterQuota);
+    cleanCfg.aiFilterDailyLimit = cleanCfg.aiFilterQuota;
+
+    Env.write(JSON.stringify(cleanCfg), STORE_KEY);
+    Env.write(lockIso, "locket_custom_date_lock");
+
+    // Đồng bộ ngay mốc ngày & lượt AI mới vào bảng tài khoản local để danh sách bên dưới hiển thị khớp 100%
+    try {
+        const uid = Env.read(USER_ID_CACHE_KEY) || "";
+        if (uid && !uid.includes("RCAnonymousID")) {
+            const db = getLocalStore();
+            if (db && db.users && db.users[uid]) {
+                db.users[uid].lock_date = cleanCfg.lockDate;
+                db.users[uid].force_lock_date = cleanCfg.lockDate;
+                db.users[uid].product_id = cleanCfg.productId || DEFAULT_CONFIG.productId;
+                if (!db.users[uid].blocked && db.users[uid].status !== "blocked") {
+                    db.users[uid].ai_quota = cleanCfg.aiFilterQuota;
+                }
+                db.users[uid].updated_at = new Date().toISOString().replace("T", " ").slice(0, 19);
+                saveLocalStore(db);
+            }
+        }
+    } catch (e) {}
 }
 
 function extractRequestedRcUserId(url) {
