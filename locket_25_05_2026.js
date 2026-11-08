@@ -9063,7 +9063,6 @@ function deepForceBadgeAndAiQuotaInObject(node, cfg, depth = 0) {
             deepForceBadgeAndAiQuotaInObject(val, cfg, depth + 1);
         }
     }
-
     if (depth === 0) {
         flushFriendsBadgeMapIfNeeded();
     }
