@@ -6561,7 +6561,7 @@ const DEFAULT_CONFIG = {
     storeTransactionId: "2000001108724193",
     priceAmount: 399000,
     priceCurrency: "VND",
-    appVersion: "1.0",
+    appVersion: "2.70.0",
     forceSandboxFalse: true,
     alwaysForceBadge: true,
     friendsBadgeDefault: true,
@@ -7644,7 +7644,7 @@ function activeFetchFriendsFromLocketApi(cfg, callback) {
         "Authorization": bearer,
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "Locket/1.0 iOS/17.0"
+        "User-Agent": "Locket/2.70.0 iOS/27.0"
     };
 
     const endpointsToProbe = [
@@ -8747,7 +8747,7 @@ function buildSubscriberPayload(existingObj, cfg, resolvedUserId, requestedUrlUs
     obj.subscriber.original_app_user_id = uid;
     obj.subscriber.first_seen = LOCK_DATE;
     obj.subscriber.last_seen = nowIso;
-    obj.subscriber.original_application_version = cfg.appVersion || "1.0";
+    obj.subscriber.original_application_version = cfg.appVersion || "2.70.0";
     obj.subscriber.original_purchase_date = LOCK_DATE;
     obj.subscriber.management_url = "https://apps.apple.com/account/subscriptions";
     obj.subscriber.other_purchases = obj.subscriber.other_purchases || {};
