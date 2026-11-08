@@ -1,0 +1,87 @@
+#!name=Locket Gold Master Pro V12.5 (Full Photobooth 4-Shot + Local Badge + UpLocket Web UI)
+#!desc=Tích hợp toàn diện Master Unified Edition V12.5: DoH 40 miền, Huy hiệu Gold Local, Photobooth 4 ảnh, AI Filter Modifier, Unblur và Bảng điều khiển Web UI 60fps (Chống lỗi 7117 100%).
+
+[General]
+dns-server = %APPEND% 172.67.146.35, 104.21.10.172
+always-real-ip = %APPEND% api.revenuecat.com, rc-backup.revenuecat.com, *.revenuecat.com, firebaseremoteconfig.googleapis.com, us-central1-locket-4252a.cloudfunctions.net, api.locketcamera.com, *.locketcamera.com
+
+[Rule]
+# 1. Chặn Realtime Stream Remote Config để ép tải JSON Filter AI & Captions tức thì
+DOMAIN,firebaseremoteconfigrealtime.googleapis.com,REJECT-NO-DROP
+
+# 2. Chặn QUIC/UDP 443 cho Locket, RevenueCat và Firebase
+AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,revenuecat.com)),REJECT-NO-DROP
+AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN,firebaseremoteconfig.googleapis.com)),REJECT-NO-DROP
+AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN,firebaseremoteconfigrealtime.googleapis.com)),REJECT-NO-DROP
+AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN,us-central1-locket-4252a.cloudfunctions.net)),REJECT-NO-DROP
+AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN,api.locketcamera.com)),REJECT-NO-DROP
+AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,locketcamera.com)),REJECT-NO-DROP
+
+# 3. Chặn Telemetry & Sentry Ads
+DOMAIN-SUFFIX,sentry.io,REJECT
+DOMAIN-SUFFIX,ingest.sentry.io,REJECT
+DOMAIN,firebaselogging.googleapis.com,REJECT
+DOMAIN,firebaselogging-pa.googleapis.com,REJECT
+DOMAIN,googleads.g.doubleclick.net,REJECT
+DOMAIN,pagead2.googlesyndication.com,REJECT
+DOMAIN,ad.doubleclick.net,REJECT
+DOMAIN,pubads.g.doubleclick.net,REJECT
+DOMAIN,securepubads.g.doubleclick.net,REJECT
+DOMAIN,adclick.g.doubleclick.net,REJECT
+DOMAIN,imasdk.googleapis.com,REJECT
+DOMAIN-SUFFIX,amplitude.com,REJECT
+
+# 4. Định tuyến trực tiếp tốc độ cao
+DOMAIN,dns.uplocket.io.vn,DIRECT
+DOMAIN,doh.2707226.xyz,DIRECT
+DOMAIN-SUFFIX,firebasestorage.googleapis.com,DIRECT
+DOMAIN-SUFFIX,firestore.googleapis.com,DIRECT
+DOMAIN-SUFFIX,locketcamera.com,DIRECT
+DOMAIN,us-central1-locket-4252a.cloudfunctions.net,DIRECT
+DOMAIN,firebaseremoteconfig.googleapis.com,DIRECT
+DOMAIN-SUFFIX,revenuecat.com,DIRECT
+DOMAIN,locket.gold,DIRECT
+
+[Host]
+locket.gold = 198.18.0.1
+dns.uplocket.io.vn = 172.67.146.35
+doh.2707226.xyz = 104.21.10.172
+firebaseremoteconfigrealtime.googleapis.com = 0.0.0.0
+
+[URL Rewrite]
+^https?:\/\/locket\.gold(?:\/setdate)?\/?(.*)$ https://api.revenuecat.com/setdate/$1 302
+^https?:\/\/(api|rc-backup)\.revenuecat\.com\/?$ https://api.revenuecat.com/setdate 302
+
+[Header Rewrite]
+^https?:\/\/(api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+ header-del x-revenuecat-etag
+^https?:\/\/(api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+ header-del X-RevenueCat-ETag
+^https?:\/\/(api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+ header-del if-none-match
+^https?:\/\/(api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+ header-del If-None-Match
+^https?:\/\/(api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+ header-del if-modified-since
+^https?:\/\/(api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+ header-del If-Modified-Since
+
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del if-none-match
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del If-None-Match
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del if-modified-since
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del If-Modified-Since
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del x-goog-if-none-match
+
+^https?:\/\/api\.locketcamera\.com\/.+ header-del if-none-match
+^https?:\/\/api\.locketcamera\.com\/.+ header-del If-None-Match
+^https?:\/\/api\.locketcamera\.com\/.+ header-del if-modified-since
+^https?:\/\/api\.locketcamera\.com\/.+ header-del If-Modified-Since
+
+[Script]
+# 1. Bắt cả 2 chiều Request & Response cho trang Web UI (Triệt tiêu 100% lỗi 7117)
+locket_web_panel = type=http-request,pattern=^https?:\/\/(locket\.gold.*|(api|rc-backup)\.revenuecat\.com\/?(setdate.*|\?.*)?)$,requires-body=1,max-size=524288,engine=jsc,script-path=https://raw.githubusercontent.com/ducnocode/locket/refs/heads/main/locket_25_05_2026.js?v=12.5,timeout=30
+locket_web_panel_res = type=http-response,pattern=^https?:\/\/(locket\.gold.*|(api|rc-backup)\.revenuecat\.com\/?(setdate.*|\?.*)?)$,requires-body=1,max-size=524288,engine=jsc,script-path=https://raw.githubusercontent.com/ducnocode/locket/refs/heads/main/locket_25_05_2026.js?v=12.5,timeout=30
+
+# 2. Xử lý Request & Response Locket Gold V12.5
+locket_strip_etag = type=http-request,pattern=^https?:\/\/((api|rc-backup|sdk|gateway|customer|subscriptions|identity)\.revenuecat\.com\/.+\/(receipts|subscribers|offerings|attributes|product_entitlement_mapping)|firebaseremoteconfig(realtime)?\.googleapis\.com\/.+|(us-central1-locket-4252a\.cloudfunctions\.net|api\.locketcamera\.com)\/(changeProfileInfo|updateUser|fetchUser|fetchUserV2|getLatestMoment|getLatestMomentV2|generateFilteredImage)).*$,requires-body=1,max-size=524288,engine=jsc,script-path=https://raw.githubusercontent.com/ducnocode/locket/refs/heads/main/locket_25_05_2026.js?v=12.5,timeout=25
+locket_gold_max = type=http-response,pattern=^https?:\/\/((api|rc-backup|sdk|gateway|customer|subscriptions|identity|rc-cdn)\.revenuecat\.com\/.+\/(receipts|subscribers|offerings|attributes|product_entitlement_mapping|paywalls)|firebaseremoteconfig(realtime)?\.googleapis\.com\/.+|(us-central1-locket-4252a\.cloudfunctions\.net|api\.locketcamera\.com)\/(fetchUser|fetchUserV2|getUser|getUserByUsername|changeProfileInfo|updateUser|login|verifyCustomToken|getEffects|getCameraEffects|getPhotobooth|getFilters|checkAiQuota|getAiLooks|getLatestMoment|getLatestMomentV2|getFriends|fetchFriends|getOverlays|generateFilteredImage)).*$,requires-body=1,max-size=1048576,engine=jsc,script-path=https://raw.githubusercontent.com/ducnocode/locket/refs/heads/main/locket_25_05_2026.js?v=12.5,timeout=25
+
+# 3. Cron Keepalive (5 phút/lần)
+locket_keepalive_cron = type=cron,cronexp="*/5 * * * *",wake-system=1,timeout=30,engine=jsc,script-path=https://raw.githubusercontent.com/ducnocode/locket/refs/heads/main/locket_25_05_2026.js?v=12.5
+
+[MITM]
+hostname = %APPEND% api.revenuecat.com, *.revenuecat.com, rc-backup.revenuecat.com, api.locketcamera.com, *.locketcamera.com, us-central1-locket-4252a.cloudfunctions.net, firebaseremoteconfig.googleapis.com, firebaseremoteconfigrealtime.googleapis.com, locket.gold
